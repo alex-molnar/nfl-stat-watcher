@@ -1,4 +1,4 @@
-import type { ValueKey } from './types';
+import type { StepStat, ValueKey } from './types';
 
 export type { ValueKey };
 
@@ -55,7 +55,7 @@ export const FIELD_GROUPS: { title: string; fields: FieldDef[] }[] = [
       { key: 'rushAttempt', label: 'Rush attempt', step: 0.01 },
       { key: 'recTarget', label: 'Target', step: 0.1 },
       { key: 'fumble', label: 'Fumble (lost or not)', step: 1 },
-      { key: 'sacked', label: 'Time sacked', step: 0.5, live: NOT_LIVE },
+      { key: 'sacked', label: 'Time sacked', step: 0.5 },
       { key: 'fumbleRecoveryTd', label: 'Fumble recovered for TD', step: 1, live: NOT_LIVE },
       { key: 'kickReturnYards', label: 'Per kickoff return yard', step: 0.01, live: NOT_LIVE },
       { key: 'puntReturnYards', label: 'Per punt return yard', step: 0.01, live: NOT_LIVE },
@@ -124,3 +124,8 @@ export const FIELD_GROUPS: { title: string; fields: FieldDef[] }[] = [
 ];
 
 export const isRuleOn = (values: { off?: readonly ValueKey[] }, key: ValueKey): boolean => !values.off?.includes(key);
+
+export const STEP_LABELS: Record<StepStat, string> = {
+  passYards: 'passing yards', rushYards: 'rushing yards', recYards: 'receiving yards', passAttempt: 'pass attempts', passCompletion: 'pass completions',
+  passIncompletion: 'incomplete passes', rushAttempt: 'rush attempts', reception: 'receptions', tackle: 'total tackles',
+};

@@ -149,7 +149,7 @@ export function normalizeSummary(s: EspnSummary): GameStats {
         switch (cat.name) {
           case 'passing': {
             const [completions, attempts] = pair(cat, stats, 'completions/passingAttempts');
-            p.passing = { completions, attempts, yards: v('passingYards'), touchdowns: v('passingTouchdowns'), interceptions: v('interceptions') };
+            p.passing = { completions, attempts, yards: v('passingYards'), touchdowns: v('passingTouchdowns'), interceptions: v('interceptions'), sacked: pair(cat, stats, 'sacks-sackYardsLost')[0] };
             break;
           }
           case 'rushing':

@@ -1,5 +1,5 @@
 import { PRESETS, copyValues } from '../scoring/presets';
-import { VALUE_KEYS, type PresetId, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
+import { VALUE_KEYS, isValidSteps, type PresetId, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
 import { followedStore, reassignProfile, withValidProfiles } from './followed';
 import { createStore } from './store';
 import { isLeagueSource } from '../leagues/types';
@@ -27,6 +27,7 @@ export function repairValues(stored: Partial<ScoringValues> & { fg50plus?: numbe
   }
   if (Array.isArray(stored.pointsAllowed) && stored.pointsAllowed.length === 7 && stored.pointsAllowed.every((n) => typeof n === 'number')) values.pointsAllowed = [...stored.pointsAllowed];
   if (isValidPointsAllowedBands(stored.pointsAllowedBands)) values.pointsAllowedBands = stored.pointsAllowedBands.map((band) => ({ ...band }));
+  if (isValidSteps(stored.steps) && stored.steps.length) values.steps = stored.steps.map((rule) => ({ ...rule }));
   const off = Array.isArray(stored.off) ? stored.off.filter((key): key is ValueKey => (VALUE_KEYS as readonly unknown[]).includes(key)) : [];
   if (off.length) values.off = [...new Set(off)];
   else delete values.off;
@@ -91,6 +92,15 @@ export function setRuleEnabled(id: string, key: ValueKey, enabled: boolean) {
     const values = { ...p.values };
     if (off.size) values.off = [...off]; else delete values.off;
     return { ...p, preset: 'custom', values };
+  });
+}
+
+export function setStepPoints(id: string, index: number, points: number) {
+  if (!Number.isFinite(points)) return;
+  update(id, (p) => {
+    const steps = p.values.steps;
+    if (!steps || !Number.isInteger(index) || index < 0 || index >= steps.length) return p;
+    return { ...p, preset: 'custom', values: { ...p.values, steps: steps.map((rule, i) => (i === index ? { ...rule, points } : rule)) } };
   });
 }
 

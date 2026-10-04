@@ -1,6 +1,8 @@
 import type { DefenseStats, GameStats, PlayerStats } from '../stats/types';
 import type { FollowedEntry } from '../storage/types';
-import type { ScoreLine, ScoreResult, ScoringValues, ValueKey } from './types';
+import type { ScoreLine, ScoreResult, ScoringValues, StepStat, ValueKey } from './types';
+import type { PlayerStats as Stats } from '../stats/types';
+import { STEP_LABELS } from './fields';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -18,6 +20,20 @@ function applied(v: ScoringValues): ScoringValues {
   const next = { ...v };
   for (const key of v.off) next[key as ValueKey] = 0;
   return next;
+}
+
+function statFor(s: Stats, stat: StepStat): number | undefined {
+  switch (stat) {
+    case 'passYards': return s.passing?.yards;
+    case 'passAttempt': return s.passing?.attempts;
+    case 'passCompletion': return s.passing?.completions;
+    case 'passIncompletion': return s.passing ? Math.max(0, s.passing.attempts - s.passing.completions) : undefined;
+    case 'rushYards': return s.rushing?.yards;
+    case 'rushAttempt': return s.rushing?.attempts;
+    case 'recYards': return s.receiving?.yards;
+    case 'reception': return s.receiving?.receptions;
+    case 'tackle': return s.defense?.totalTackles;
+  }
 }
 
 const atLeast = (list: number[] | undefined, min: number) => (list ?? []).filter((yards) => yards >= min).length;
@@ -42,6 +58,7 @@ export function scorePlayer(s: PlayerStats, values: ScoringValues): ScoreResult 
       add('300-399 yard passing game', s.passing.yards >= 300 && s.passing.yards < 400 ? v.pass300 : 0);
       add('400+ yard passing game', s.passing.yards >= 400 ? v.pass400 : 0);
       add('Interceptions thrown', s.passing.interceptions * v.interception);
+      add('Times sacked', (s.passing.sacked ?? 0) * v.sacked);
     }
     if (s.rushing) {
       add('Rush attempts', s.rushing.attempts * v.rushAttempt);
@@ -61,6 +78,10 @@ export function scorePlayer(s: PlayerStats, values: ScoringValues): ScoreResult 
       add('50+ yard receiving TDs', atLeast(s.tdYards?.rec, 50) * v.recTd50);
       add('100-199 yard receiving game', s.receiving.yards >= 100 && s.receiving.yards < 200 ? v.rec100 : 0);
       add('200+ yard receiving game', s.receiving.yards >= 200 ? v.rec200 : 0);
+    }
+    for (const rule of v.steps ?? []) {
+      const amount = statFor(s, rule.stat);
+      if (amount !== undefined) add(`Every ${rule.every} ${STEP_LABELS[rule.stat]}`, Math.floor(amount / rule.every) * rule.points);
     }
     add('2-point conversions', s.twoPointConversions * v.twoPoint);
     if (s.fumbles) {

@@ -6,7 +6,7 @@ import { EspnSettingsError, parseEspnLeagueInput, parsePastedEspnSettings } from
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { commitLeagueImports, isLocallyModified, leagueIdentity, type LeagueImportTarget } from '../leagues/import';
 import type { EspnLeagueSettings, LeagueImportDraft } from '../leagues/types';
-import { FIELD_GROUPS } from '../scoring/fields';
+import { FIELD_GROUPS, STEP_LABELS } from '../scoring/fields';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 
@@ -44,6 +44,7 @@ function importedValues(draft: LeagueImportDraft): string[] {
       if (points !== 0) values.push(`${field.label}: ${points}`);
     }
   }
+  for (const rule of draft.values.steps ?? []) values.push(`Every ${rule.every} ${STEP_LABELS[rule.stat]}: ${rule.points}`);
   if (draft.values.pointsAllowedBands) values.push(`${draft.values.pointsAllowedBands.length} D/ST points-allowed ranges`);
   else if (draft.values.pointsAllowed.some((points) => points !== 0)) values.push('D/ST points-allowed scoring');
   return values;

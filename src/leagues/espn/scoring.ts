@@ -44,6 +44,7 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
   values.pointsAllowed = Array(7).fill(0) as number[];
   delete values.pointsAllowedBands;
   delete values.off;
+  delete values.steps;
   const issues: ImportIssue[] = [];
   const active = league.scoringItems.filter((item) => item.isActive !== false && item.isDisabled !== true);
   const usable: EspnScoringItem[] = [];
@@ -75,8 +76,20 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
         addIssue(issues, issueForItem(item, 'position overrides differ and cannot be represented by one profile value'));
         continue;
       }
-      values[target.key] = round(values[target.key] + points / (target.per ?? 1));
+      if (target.step) {
+        const { stat, every } = target.step;
+        const steps = (values.steps ??= []);
+        const existing = steps.find((rule) => rule.stat === stat && rule.every === every);
+        if (existing) existing.points = round(existing.points + points); else steps.push({ stat, every, points });
+      } else {
+        values[target.key] = round(values[target.key] + points / (target.per ?? 1));
+      }
     }
+  }
+
+  if (values.steps) {
+    values.steps = values.steps.filter((rule) => rule.points !== 0);
+    if (values.steps.length === 0) delete values.steps;
   }
 
   for (const group of TOUCHDOWN_GROUPS) {

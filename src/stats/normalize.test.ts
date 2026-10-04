@@ -7,7 +7,7 @@ const game = normalizeSummary(summary);
 
 describe('normalizeSummary on PIT 24 at CLE 27', () => {
   it('reads passing and credits a successful 2-point run', () => {
-    expect(game.players['8439']?.passing).toEqual({ completions: 22, attempts: 40, yards: 299, touchdowns: 3, interceptions: 2 });
+    expect(game.players['8439']?.passing).toEqual({ completions: 22, attempts: 40, yards: 299, touchdowns: 3, interceptions: 2, sacked: 1 });
     expect(game.players['8439']?.twoPointConversions).toBe(1);
   });
 

@@ -104,16 +104,19 @@ describe('normalizeEspnLeague', () => {
     expect(draft.source.issues.some(({ code, message }) => code === 'stat-limitation' && message.includes('Forced fumble'))).toBe(true);
   });
 
-  it('turns "every N yards" awards into a per-yard weight', () => {
+  it('keeps "every N" awards as whole steps instead of prorating them', () => {
     const draft = normalizeEspnLeague(league([item(8, 1), item(30, 1), item(48, 1)]));
-    expect(draft.values.passYards).toBeCloseTo(0.04);
-    expect(draft.values.rushYards).toBeCloseTo(0.04);
-    expect(draft.values.recYards).toBeCloseTo(0.1);
+    expect(draft.values.passYards).toBe(0);
+    expect(draft.values.steps).toEqual([
+      { stat: 'passYards', every: 25, points: 1 }, { stat: 'rushYards', every: 25, points: 1 },
+      { stat: 'recYards', every: 10, points: 1 },
+    ]);
   });
 
   it('adds awards from several ESPN stats that score the same thing, as ESPN does', () => {
     const draft = normalizeEspnLeague(league([item(3, 0.05), item(8, 1), item(109, 1), item(108, 1)]));
-    expect(draft.values.passYards).toBeCloseTo(0.09);
+    expect(draft.values.passYards).toBeCloseTo(0.05);
+    expect(draft.values.steps).toEqual([{ stat: 'passYards', every: 25, points: 1 }]);
     expect(draft.values.soloTackle).toBe(2);
     expect(draft.values.assistedTackle).toBe(1);
   });
@@ -151,11 +154,12 @@ describe('normalizeEspnLeague', () => {
     const fixture = JSON.parse(readFileSync('src/test/fixtures/espn-fantasy/public-settings-1900128084-2026.json', 'utf8')) as unknown;
     const { values, source } = normalizeEspnLeague(parseEspnLeagueSettings(fixture));
     expect(values).toMatchObject({
-      passYards: 0.04, passTd: 4, rushYards: 0.1, recYards: 0.1, reception: 0.5,
+      passTd: 4, rushYards: 0.1, recYards: 0.1, reception: 0.5,
       fg0to39: 3, fg40to49: 4, fg50to59: 5, fg60plus: 6, fgMissed: -1, xpMade: 1,
       dstInterception: 2, dstSack: 1, dstSafety: 2, dstFumbleRecovery: 2, dstBlockedKick: 2, dstTd: 6, twoPointReturn: 2, onePointSafety: 1,
       yardsAllowed0: 5, yardsAllowed100: 3, yardsAllowed200: 2, yardsAllowed350: -1, yardsAllowed400: -3, yardsAllowed450: -5, yardsAllowed500: -6, yardsAllowed550: -7,
     });
+    expect(values.steps).toEqual([{ stat: 'passYards', every: 25, points: 1 }]);
     const flagged = source.issues.flatMap(({ providerKeys }) => providerKeys);
     for (const id of [8, 209, 206, 95, 96, 98, 99, 93, 101, 102, 103, 104, 128, 129, 130, 132, 133, 85, 82]) expect(flagged).not.toContain(`statId:${id}`);
     expect(source.issues.filter(({ code }) => code !== 'stat-limitation')).toEqual([]);

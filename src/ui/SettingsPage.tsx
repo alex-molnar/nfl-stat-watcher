@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { FIELD_GROUPS, isRuleOn, type FieldDef } from '../scoring/fields';
+import { FIELD_GROUPS, STEP_LABELS, isRuleOn, type FieldDef } from '../scoring/fields';
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
 import { followedStore, sideOf } from '../storage/followed';
-import { addProfile, applyPreset, clearPointsAllowedBands, deleteProfile, profilesStore, renameProfile, setPointsAllowedBand, setRuleEnabled, setTier, setValue } from '../storage/profiles';
+import { addProfile, applyPreset, clearPointsAllowedBands, deleteProfile, profilesStore, renameProfile, setPointsAllowedBand, setRuleEnabled, setStepPoints, setTier, setValue } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { Header } from './Header';
 import { usePageTitle } from './usePageTitle';
@@ -175,6 +175,16 @@ function ProfileForm({ profile, profiles, usedBy, opponents, onDeleted, onRefres
           </details>
         );
       })}
+
+      {profile.values.steps && profile.values.steps.length > 0 && (
+        <fieldset>
+          <legend>Stepped rules</legend>
+          {profile.values.steps.map((rule, index) => (
+            <NumberField key={`${rule.stat}-${rule.every}`} label={`Every ${rule.every} ${STEP_LABELS[rule.stat]}`} step={0.5} value={rule.points} onChange={(n) => setStepPoints(profile.id, index, n)} />
+          ))}
+          <p className="field-note">ESPN awards these in whole steps, so 40 passing yards earns one 25-yard step, not 1.6.</p>
+        </fieldset>
+      )}
 
       {profile.values.pointsAllowedBands && (
         <fieldset>

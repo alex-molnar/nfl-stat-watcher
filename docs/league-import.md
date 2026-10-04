@@ -27,13 +27,13 @@ Groups: Offense, Offense bonuses (40+ and 50+ yard touchdowns, 100/200 yard and 
 
 How ESPN rules map:
 
-- Several ESPN stats can score the same thing (for example stat 3 per yard and stat 8 "every 25 passing yards"); ESPN adds them, and so does the importer. "Every N" rules become a per-unit weight (1 point per 25 yards is 0.04 per yard).
+- Several ESPN stats can score the same thing (for example stat 3 per yard and stat 8 "every 25 passing yards"); ESPN adds them, and so does the importer. "Every N" rules are kept as whole steps, because ESPN floors them: 1 point per 25 passing yards gives 1 point at 40 yards and 2 at 50, not 1.6. They appear under **Stepped rules**.
 - Total field goals (83) and 50+ yard field goals (74) are spread over the distance buckets they cover.
 - Total tackles (109) counts as both a solo and an assisted tackle. ESPN "stuffs" (112) are treated as tackles for loss.
 - Defensive, interception return, fumble return, blocked kick return and kick or punt return touchdowns each score once per touchdown. When a league scores them differently the site keeps the highest value and warns.
 - Rules that scale by position, period, offset or distance are listed as warnings instead of being guessed.
 
-Rules the live feed cannot supply (sacked, fumble recovered for TD, return yards, forced fumbles, blocked kicks, 2-point returns, 1-point safeties) are imported and kept on the profile, labelled "Not tracked in the live game feed", and never score. Touchdown lengths come from play-by-play text, field goal distances (made and missed) from play text, game yardage bonuses from the box score and yards allowed from the opponent's total yards. Stat IDs come from the community `cwendt94/espn-api` constants; ESPN publishes no contract, so an unknown ID is shown as a warning. Profiles imported before this mapping show a notice to refresh them.
+Times sacked comes from the box score. Rules the live feed cannot supply (fumble recovered for TD, return yards, forced fumbles, blocked kicks, 2-point returns, 1-point safeties) are imported and kept on the profile, labelled "Not tracked in the live game feed", and never score. Touchdown lengths come from play-by-play text, field goal distances (made and missed) from play text, game yardage bonuses from the box score and yards allowed from the opponent's total yards. Stat IDs come from the community `cwendt94/espn-api` constants; ESPN publishes no contract, so an unknown ID is shown as a warning. Profiles imported before this mapping show a notice to refresh them.
 
 ## Scoring compatibility
 

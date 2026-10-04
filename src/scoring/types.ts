@@ -12,9 +12,22 @@ export const VALUE_KEYS = [
 
 export type ValueKey = (typeof VALUE_KEYS)[number];
 
+/** Stats ESPN can award in whole steps ("every 25 passing yards"), which floor rather than prorate. */
+export const STEP_STATS = ['passYards', 'rushYards', 'recYards', 'passAttempt', 'passCompletion', 'passIncompletion', 'rushAttempt', 'reception', 'tackle'] as const;
+export type StepStat = (typeof STEP_STATS)[number];
+export interface StepRule { stat: StepStat; every: number; points: number }
+
+export function isValidSteps(value: unknown): value is StepRule[] {
+  return Array.isArray(value) && value.length <= 100 && value.every((rule) => typeof rule === 'object' && rule !== null
+    && (STEP_STATS as readonly unknown[]).includes((rule as StepRule).stat)
+    && Number.isFinite((rule as StepRule).every) && (rule as StepRule).every > 0
+    && Number.isFinite((rule as StepRule).points));
+}
+
 export type ScoringValues = Record<ValueKey, number> & {
   pointsAllowed: number[]; // 7 tiers, see POINTS_ALLOWED_TIERS
   pointsAllowedBands?: PointsAllowedBand[];
+  steps?: StepRule[];
   /** Rules switched off for this profile. Their weight is kept so switching one back on restores it. */
   off?: ValueKey[];
 };
@@ -67,6 +80,7 @@ export function isValidScoringValues(value: unknown): value is ScoringValues {
     'fumbleRecovery', 'defensiveTd', 'safety', 'dstSack', 'dstInterception', 'dstFumbleRecovery', 'dstSafety', 'dstTd'];
   const numericFields = VALUE_KEYS.filter((key) => legacy.includes(key));
   if (VALUE_KEYS.some((key) => input[key] !== undefined && (typeof input[key] !== 'number' || !Number.isFinite(input[key])))) return false;
+  if (input.steps !== undefined && !isValidSteps(input.steps)) return false;
   if (input.off !== undefined && (!Array.isArray(input.off) || !input.off.every((key) => (VALUE_KEYS as readonly unknown[]).includes(key)))) return false;
   if (numericFields.some((key) => typeof input[key] !== 'number' || !Number.isFinite(input[key]))) return false;
   if (!Array.isArray(input.pointsAllowed) || input.pointsAllowed.length !== 7

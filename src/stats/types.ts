@@ -1,5 +1,5 @@
 export interface PlayerStats {
-  passing?: { completions: number; attempts: number; yards: number; touchdowns: number; interceptions: number };
+  passing?: { completions: number; attempts: number; yards: number; touchdowns: number; interceptions: number; sacked?: number };
   rushing?: { attempts: number; yards: number; touchdowns: number };
   receiving?: { receptions: number; targets: number; yards: number; touchdowns: number };
   fumbles?: { fumbles: number; lost: number; recovered: number };

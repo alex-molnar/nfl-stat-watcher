@@ -1,5 +1,5 @@
 import type { EspnScoringItem, ImportIssue } from '../types';
-import type { ValueKey } from '../../scoring/types';
+import type { StepStat, ValueKey } from '../../scoring/types';
 
 export const ESPN_SCORING_MAP_VERSION = 2;
 
@@ -16,8 +16,10 @@ export const SCOPE_POSITIONS: Record<Scope, string[]> = {
 export interface Target {
   key: ValueKey;
   scope: Scope;
-  /** ESPN "every N yards" rules award points per N units; the site scores per unit. */
+  /** Points per unit of 1/N, for rules that ESPN prorates (half sacks). */
   per?: number;
+  /** ESPN "every N" rules award whole steps: floor(stat / N) times the points, never a prorated amount. */
+  step?: { stat: StepStat; every: number };
 }
 
 interface StatRule {
@@ -26,7 +28,8 @@ interface StatRule {
 }
 
 const t = (key: ValueKey, scope: Scope, per?: number): Target => ({ key, scope, ...(per ? { per } : {}) });
-const every = (key: ValueKey, scope: Scope, units: number[]): Target[][] => units.map((n) => [t(key, scope, n)]);
+const st = (stat: StepStat, scope: Scope, every: number): Target => ({ key: 'passYards', scope, step: { stat, every } });
+const every = (stat: StepStat, scope: Scope, units: number[]): Target[][] => units.map((n) => [st(stat, scope, n)]);
 const rule = (label: string, ...targets: Target[]): StatRule => ({ label, targets });
 const note = (label: string): StatRule => ({ label });
 
@@ -48,8 +51,8 @@ export const ESPN_STAT_MAP: Readonly<Record<number, StatRule>> = {
   4: rule('passing touchdowns', t('passTd', 'offense')),
   5: rule('every 5 passing yards', ...py5!), 6: rule('every 10 passing yards', ...py10!), 7: rule('every 20 passing yards', ...py20!),
   8: rule('every 25 passing yards', ...py25!), 9: rule('every 50 passing yards', ...py50!), 10: rule('every 100 passing yards', ...py100!),
-  11: rule('every 5 pass completions', t('passCompletion', 'offense', 5)), 12: rule('every 10 pass completions', t('passCompletion', 'offense', 10)),
-  13: rule('every 5 incomplete passes', t('passIncompletion', 'offense', 5)), 14: rule('every 10 incomplete passes', t('passIncompletion', 'offense', 10)),
+  11: rule('every 5 pass completions', st('passCompletion', 'offense', 5)), 12: rule('every 10 pass completions', st('passCompletion', 'offense', 10)),
+  13: rule('every 5 incomplete passes', st('passIncompletion', 'offense', 5)), 14: rule('every 10 incomplete passes', st('passIncompletion', 'offense', 10)),
   15: rule('40+ yard passing touchdown bonus', t('passTd40', 'offense')),
   16: rule('50+ yard passing touchdown bonus', t('passTd50', 'offense')),
   17: rule('300-399 yard passing game', t('pass300', 'offense')),
@@ -62,7 +65,7 @@ export const ESPN_STAT_MAP: Readonly<Record<number, StatRule>> = {
   26: note('rushing 2-point conversions'),
   27: rule('every 5 rushing yards', ...ry5!), 28: rule('every 10 rushing yards', ...ry10!), 29: rule('every 20 rushing yards', ...ry20!),
   30: rule('every 25 rushing yards', ...ry25!), 31: rule('every 50 rushing yards', ...ry50!), 32: rule('every 100 rushing yards', ...ry100!),
-  33: rule('every 5 rush attempts', t('rushAttempt', 'offense', 5)), 34: rule('every 10 rush attempts', t('rushAttempt', 'offense', 10)),
+  33: rule('every 5 rush attempts', st('rushAttempt', 'offense', 5)), 34: rule('every 10 rush attempts', st('rushAttempt', 'offense', 10)),
   35: rule('40+ yard rushing touchdown bonus', t('rushTd40', 'offense')),
   36: rule('50+ yard rushing touchdown bonus', t('rushTd50', 'offense')),
   37: rule('100-199 yard rushing game', t('rush100', 'offense')),
@@ -76,7 +79,7 @@ export const ESPN_STAT_MAP: Readonly<Record<number, StatRule>> = {
   47: rule('every 5 receiving yards', ...rey5!), 48: rule('every 10 receiving yards', ...rey10!), 49: rule('every 20 receiving yards', ...rey20!),
   50: rule('every 25 receiving yards', ...rey25!), 51: rule('every 50 receiving yards', ...rey50!), 52: rule('every 100 receiving yards', ...rey100!),
   53: rule('receptions', t('reception', 'offense')),
-  54: rule('every 5 receptions', t('reception', 'offense', 5)), 55: rule('every 10 receptions', t('reception', 'offense', 10)),
+  54: rule('every 5 receptions', st('reception', 'offense', 5)), 55: rule('every 10 receptions', st('reception', 'offense', 10)),
   56: rule('100-199 yard receiving game', t('rec100', 'offense')),
   57: rule('200+ yard receiving game', t('rec200', 'offense')),
   58: rule('receiving targets', t('recTarget', 'offense')),
@@ -112,16 +115,16 @@ export const ESPN_STAT_MAP: Readonly<Record<number, StatRule>> = {
   107: rule('assisted tackles', t('assistedTackle', 'idp')),
   108: rule('solo tackles', t('soloTackle', 'idp')),
   109: rule('total tackles', t('soloTackle', 'idp'), t('assistedTackle', 'idp')),
-  110: rule('every 3 total tackles', t('soloTackle', 'idp', 3), t('assistedTackle', 'idp', 3)),
-  111: rule('every 5 total tackles', t('soloTackle', 'idp', 5), t('assistedTackle', 'idp', 5)),
+  110: rule('every 3 total tackles', st('tackle', 'idp', 3)),
+  111: rule('every 5 total tackles', st('tackle', 'idp', 5)),
   112: rule('stuffs', t('tackleForLoss', 'idp')),
   113: rule('passes defended', t('passDefended', 'idp')),
+  116: note('every 10 kickoff return yards'),
+  117: note('every 25 kickoff return yards'),
+  118: note('every 10 punt return yards'),
+  119: note('every 25 punt return yards'),
   114: rule('kickoff return yards', t('kickReturnYards', 'offense')),
   115: rule('punt return yards', t('puntReturnYards', 'offense')),
-  116: rule('every 10 kickoff return yards', t('kickReturnYards', 'offense', 10)),
-  117: rule('every 25 kickoff return yards', t('kickReturnYards', 'offense', 25)),
-  118: rule('every 10 punt return yards', t('puntReturnYards', 'offense', 10)),
-  119: rule('every 25 punt return yards', t('puntReturnYards', 'offense', 25)),
   120: note('points allowed (per point)'),
   127: note('yards allowed (per yard)'),
   128: rule('under 100 yards allowed', t('yardsAllowed0', 'dst')),

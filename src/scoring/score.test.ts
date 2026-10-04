@@ -147,3 +147,16 @@ describe('new scoring rules and on/off switches', () => {
     expect(scorePlayer({ ...base, passing: { completions: 0, attempts: 0, yards: 0, touchdowns: 1, interceptions: 0 } }, copy).total).toBe(0);
   });
 });
+
+describe('stepped ESPN rules and sacks', () => {
+  // Kyler Murray, MIN vs MIA: 40 passing yards, 2 sacks, 8 rushing yards. ESPN scored 1.8 under 1 point per
+  // 25 passing yards (one whole step) and 0.1 per rushing yard.
+  const murray = { twoPointConversions: 0, safeties: 0, passing: { completions: 6, attempts: 8, yards: 40, touchdowns: 0, interceptions: 0, sacked: 2 }, rushing: { attempts: 1, yards: 8, touchdowns: 0 } };
+  const v = { ...PRESETS.ppr, passYards: 0, rushYards: 0.1, steps: [{ stat: 'passYards' as const, every: 25, points: 1 }] };
+  it('floors "every N" awards like ESPN', () => expect(scorePlayer(murray, v).total).toBeCloseTo(1.8));
+  it('scores times sacked when the league has that rule', () => expect(scorePlayer(murray, { ...v, sacked: -1 }).total).toBeCloseTo(-0.2));
+  it('scores nothing for a step until the whole amount is reached', () => {
+    expect(scorePlayer({ ...murray, passing: { ...murray.passing, yards: 24 } }, v).breakdown.some((l) => l.label.startsWith('Every 25'))).toBe(false);
+    expect(scorePlayer({ ...murray, passing: { ...murray.passing, yards: 50 } }, v).breakdown).toContainEqual({ label: 'Every 25 passing yards', points: 2 });
+  });
+});

@@ -17,6 +17,7 @@ export const copyValues = (v: ScoringValues): ScoringValues => ({
   ...v,
   pointsAllowed: [...v.pointsAllowed],
   ...(v.pointsAllowedBands ? { pointsAllowedBands: v.pointsAllowedBands.map((band) => ({ ...band })) } : {}),
+  ...(v.steps ? { steps: v.steps.map((rule) => ({ ...rule })) } : {}),
   ...(v.off ? { off: [...v.off] } : {}),
 });
 
