@@ -14,7 +14,7 @@ export function MiniField({ game, situation }: { game: GameInfo; situation: Situ
     '--opp': defense.color, '--opp-ink': textOn(defense.color),
   } as CSSProperties;
   return (
-    <div className="field" role="img" aria-label={`${offense.abbr} ball, ${situation.downDistanceText}`} style={style}>
+    <div className="field" role="img" aria-label={`${offense.abbr} has the ball, ${yards} ${yards === 1 ? 'yard' : 'yards'} from the end zone`} style={style}>
       <div className="ez l">{offense.abbr}</div>
       <div className="ez r">{defense.abbr}</div>
       <div className="rzone" />

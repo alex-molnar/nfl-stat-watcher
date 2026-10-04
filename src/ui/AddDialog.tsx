@@ -66,9 +66,16 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
   );
 
   let message: string | null = null;
+  const nothing = !search.isFetching && hits.length === 0 && defenses.length === 0;
   if (term.length < 2) message = 'Type at least 2 letters.';
-  else if (search.isError || teams.isError) message = 'Search is unavailable right now. Try again in a moment.';
-  else if (!search.isFetching && hits.length === 0 && defenses.length === 0) message = `No NFL player or team matches "${term}".`;
+  else if (search.isError) {
+    message = defenses.length > 0
+      ? 'Player search is unavailable right now. Showing team defenses only.'
+      : 'Search is unavailable right now. Try again in a moment.';
+  } else if (teams.isError) {
+    if (nothing) message = `Team defenses are unavailable right now. No NFL player matches "${term}".`;
+    else if (!search.isFetching) message = 'Team defenses are unavailable right now. Showing players only.';
+  } else if (nothing) message = `No NFL player or team matches "${term}".`;
 
   const searching = term.length >= 2 && search.isFetching;
   const count = hits.length + defenses.length;

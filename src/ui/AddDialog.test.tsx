@@ -78,12 +78,30 @@ describe('add dialog', () => {
     expect(dialog).not.toHaveAttribute('open');
   });
 
-  it('says search is unavailable when the team list fails to load', async () => {
+  it('says team defenses are unavailable, not that search is down, when only the team list fails', async () => {
     mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, standings: status(500) });
     await openDialog();
     await userEvent.type(screen.getByLabelText('Search'), 'bills');
-    expect(await screen.findByText('Search is unavailable right now. Try again in a moment.')).toBeInTheDocument();
+    expect(await screen.findByText('Team defenses are unavailable right now. No NFL player matches "bills".')).toBeInTheDocument();
+    expect(screen.queryByText(/Search is unavailable/)).not.toBeInTheDocument();
     expect(screen.queryByText(/No NFL player or team matches/)).not.toBeInTheDocument();
+  });
+
+  it('still shows player results when only the team list fails', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=josh%20allen': search, 'athletes/3918298': allen, standings: status(500) });
+    await openDialog();
+    await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
+    expect(await screen.findByRole('button', { name: 'Add Josh Allen, BUF QB' })).toBeInTheDocument();
+    expect(screen.getByText('Team defenses are unavailable right now. Showing players only.')).toBeInTheDocument();
+    expect(screen.queryByText(/Search is unavailable/)).not.toBeInTheDocument();
+  });
+
+  it('shows team defenses with an accurate message when only player search fails', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, search: status(500), standings: teams });
+    await openDialog();
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    expect(await screen.findByText('Player search is unavailable right now. Showing team defenses only.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Buffalo Bills, team defense' })).toBeInTheDocument();
   });
 
   it('puts focus in the search field on open', async () => {
