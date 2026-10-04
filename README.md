@@ -4,6 +4,8 @@ Follow NFL players and team defenses from all your fantasy leagues in one place,
 
 ## Run locally
 
+Use Node 22 for local development (the Docker build uses `node:22-alpine`).
+
     npm install
     npm run dev        # http://localhost:5173
     npm test           # unit and component tests

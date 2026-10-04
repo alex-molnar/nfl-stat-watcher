@@ -9,7 +9,7 @@
 **Tech Stack:** React, TypeScript, Vite, React Router, TanStack Query, Vitest, React Testing Library, jsdom, nginx (unprivileged image), Kubernetes.
 
 **Spec:** `docs/superpowers/specs/2026-10-04-stat-watch-poc-design.md`
-**Visual reference:** `prototypes/main-screen.html`, variant "Field" (press `3`).
+**Visual reference:** `prototypes/main-screen.html`, variant "Field" (press `3`). The prototype was removed after the design was chosen, history in git, commit 50261f3.
 
 ## Global Constraints
 

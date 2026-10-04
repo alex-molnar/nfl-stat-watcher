@@ -6,3 +6,8 @@ docs
 prototypes
 k8s
 .impeccable
+.superpowers
+.claude
+.env*
+tsconfig.tsbuildinfo
+.DS_Store

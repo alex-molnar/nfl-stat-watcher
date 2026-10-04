@@ -44,7 +44,7 @@ This PoC proves the data and scoring path end to end. Later iterations add red-z
 | Fantasy configuration | Multiple named scoring profiles. Each profile starts from a preset (Standard, Half PPR, PPR) and every value is editable. |
 | Same player in two leagues | Follow the player twice, once per profile. Two cards. |
 | Architecture | Static single-page app. The browser calls ESPN directly. No backend. |
-| Visual direction | "Field", chosen from three prototypes. Reference: `prototypes/main-screen.html` (variant 3). |
+| Visual direction | "Field", chosen from three prototypes. Reference: `prototypes/main-screen.html` (removed after the design was chosen, history in git, commit 50261f3) (variant 3). |
 
 ## 4. Data source
 
@@ -56,9 +56,9 @@ ESPN's public, unofficial JSON API. Verified on 2026-10-04:
 
 | Need | Endpoint |
 | --- | --- |
-| Player search | `https://site.web.api.espn.com/apis/common/v3/search?query={q}&limit=20&type=player`, then keep items where `league === "nfl"` |
+| Player search | `https://site.web.api.espn.com/apis/common/v3/search?query={q}&limit=10&type=player`, then keep items where `league === "nfl"` |
 | Player details (current team, position) | `https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/{id}` |
-| Teams (for D/ST search) | `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams` |
+| Teams (for D/ST search) | `https://site.api.espn.com/apis/v2/sports/football/nfl/standings` (ESPN's `/teams` sends no CORS headers, standings does, and one fetch returns all 32 teams) |
 | Current week's games | `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` |
 | One game's stats and plays | `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event={eventId}` |
 
@@ -220,7 +220,7 @@ The presets differ only in `reception`. Every value is editable; tier ranges are
 
 ## 9. UI
 
-Visual reference: `prototypes/main-screen.html`, variant "Field". The implementation copies its tokens (colors for light and dark, fonts, radii) and layout.
+Visual reference: `prototypes/main-screen.html` (removed after the design was chosen, history in git, commit 50261f3), variant "Field". The implementation copies its tokens (colors for light and dark, fonts, radii) and layout.
 
 ### Main screen (`/`)
 
@@ -284,7 +284,7 @@ Stat line per position:
 
 ## 11. Testing
 
-- **Fixtures:** real ESPN responses saved under `src/test/fixtures/`: one final game summary, one live game summary, one scoreboard, one search response, one athlete response. Together they cover a QB, RB, WR, TE, K, IDP player and a team defense.
+- **Fixtures:** real ESPN responses saved under `src/test/fixtures/`: `summary-pit-cle.json` (a final game summary, covering a QB, RB, WR, TE, K, IDP player and a team defense) and `standings.json` (all 32 teams). The scoreboard is built by hand in `src/test/data.ts`. The search and athlete response shapes were verified only by the browser end-to-end run.
 - **Unit tests (Vitest):**
   - `normalize`: every stat category for every position type, FG distance parsing, 2-point and safety parsing, game state (live, final, scheduled, red zone).
   - `score`: every scoring field, every points-allowed tier boundary, preset values.
