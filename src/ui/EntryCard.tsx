@@ -8,6 +8,7 @@ import { entryKey, sideOf, updateEntryTeam } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
 import { Bump } from './Bump';
 import { MiniField } from './MiniField';
+import { injuryLabel, injuryTone, isOut } from '../stats/injury';
 import { onRightSide } from '../stats/liveOrder';
 import { isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
 
@@ -46,7 +47,9 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const total = result.total.toFixed(2);
   const items = statLine(entry, stats);
   const live = game?.state === 'in';
-  const redZone = isRedZone(entry, game, stats);
+  const injury = entry.kind === 'player' ? stats?.injuries?.[entry.espnId] : undefined;
+  const out = isOut(injury); // a player ruled out never counts as on the field or in the red zone
+  const redZone = isRedZone(entry, game, stats) && !out;
   const celebration = useCelebration(entry, stats, live);
   const home = game?.home.id === entry.teamId;
   const us = game ? (home ? game.home : game.away) : null;
@@ -55,7 +58,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const versus = them ? `${home ? 'vs' : 'at'} ${them.abbr}` : null;
   const note = paused ? null : freshness(summary.isError, summary.dataUpdatedAt); // nothing retries while paused
   const situation = live ? stats?.situation : null;
-  const onField = !!situation && onRightSide(entry, situation);
+  const onField = !!situation && !out && onRightSide(entry, situation);
   const role = entry.kind === 'defense' ? 'Team defense' : entry.position;
   const opposing = sideOf(entry) === 'opponent'; // opponent cards never move between leagues
 
@@ -84,6 +87,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <h3 className="nm">{entry.name}</h3>
           <div className="sub">
             <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
+            {injury && <span className={`inj inj-${injuryTone(injury)}`}>{injuryLabel(injury)}</span>}
             <span className="chip">{profile.name}</span>
             {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
           </div>

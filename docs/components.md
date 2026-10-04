@@ -98,3 +98,10 @@ The rank is recomputed from the latest game data on every refresh (`useLiveOrder
 When a live card's player or defense makes a big play, `EntryCard` shows a one-time highlight: an expanding ring around the card and a labelled tag on its top edge ("Touchdown", "Field goal", "Interception", "Fumble recovery", "Safety", "Blocked kick", "Sack"). Offense scores are gold; defensive plays use the theme accent. The tag clears itself after about four seconds, nothing loops, and a screen reader hears "<name>: <play>" through a polite live region on the card.
 
 `scoringEvent` (`src/stats/events.ts`) compares two refreshes of the same game and reports the biggest play whose count grew: any touchdown, a made field goal, and for defenses and IDP players interceptions, fumble recoveries, safeties, blocked kicks and sacks (biggest first). `useCelebration` calls it when new data arrives for a live game. The first data a card sees is only a baseline, so a reload never replays old plays, and games that are not live never animate. With reduced motion the ring is dropped and only the tag shows; in forced colors the tag takes a system-color border.
+
+
+## Injury designations
+
+ESPN's game summary carries an injury report per team (status such as Out, Questionable, Doubtful, plus the injury and return date), which `normalizeSummary` keeps as `GameStats.injuries`, keyed by athlete id. Games that have not started are now fetched too (one summary per game, refreshed every ten minutes, stopped by Pause), because designations change before kickoff.
+
+`EntryCard` shows the designation as a chip beside the name ("Out · Ankle", "Questionable · Hamstring"); the word carries the meaning and the colour reinforces it (red for out, orange for doubtful, amber for questionable, neutral otherwise). A player ruled out (`isOut` in `src/stats/injury.ts`: out, injured reserve, suspension, PUP) is ranked last in the Live now group whatever the ball is doing, even before the game situation is known, and never gets the on-field or red zone styling. Questionable and doubtful players keep their normal order. Byes and games ESPN has no report for show no chip.

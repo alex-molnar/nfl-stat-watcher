@@ -70,6 +70,12 @@ export interface EspnDrive {
   isScore?: boolean;
 }
 
+export interface EspnInjury {
+  status: string;
+  athlete: { id: string };
+  details?: { type?: string; returnDate?: string };
+}
+
 export interface EspnSummary {
   header: { id: string; competitions: { competitors: EspnCompetitor[] }[] };
   boxscore: {
@@ -77,6 +83,7 @@ export interface EspnSummary {
     teams?: { team: { id: string }; statistics: { name: string; displayValue: string }[] }[];
   };
   drives?: { previous?: EspnDrive[]; current?: EspnDrive };
+  injuries?: { team?: { id: string }; injuries?: EspnInjury[] }[];
 }
 
 export interface EspnSearchItem {

@@ -1,6 +1,7 @@
 import { isOffense, isRedZone } from '../ui/format';
 import type { FollowedEntry } from '../storage/types';
 import type { GameInfo } from './scoreboard';
+import { isOut } from './injury';
 import type { GameStats } from './types';
 
 /** Within a bucket: skill players, then quarterbacks, then kickers, then defenses and IDP. */
@@ -9,6 +10,9 @@ function tier(entry: FollowedEntry): number {
   if (entry.position === 'K' || entry.position === 'PK') return 2;
   return entry.position === 'QB' ? 1 : 0;
 }
+
+/** After every other rank, including cards whose situation is still unknown (40). */
+export const OUT_RANK = 50;
 
 /** Whether the card's side of the ball is on the field: offense with possession, defense without it. */
 export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId: string; driveOver?: true }): boolean {
@@ -23,6 +27,8 @@ export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId:
  * Lower sorts first; the tens digit is the bucket and the ones digit is the position tier.
  */
 export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats | undefined): number | null {
+  // A player ruled out goes to the back whatever the ball is doing, even before the situation is known.
+  if (entry.kind === 'player' && isOut(stats?.injuries?.[entry.espnId])) return OUT_RANK;
   const situation = stats?.situation;
   if (!situation) return null;
   const bucket = isRedZone(entry, game, stats) ? 0 : onRightSide(entry, situation) ? 1 : 2;

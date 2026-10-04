@@ -60,3 +60,21 @@ describe('after a score', () => {
     }
   });
 });
+
+describe('injured players', () => {
+  const withInjury = (status: string): GameStats => ({ ...stats('25', 60), injuries: { '1': { status } } });
+  it('puts a player ruled out last, even in the red zone, even with the ball, even before the situation is known', () => {
+    const wr = entry({ position: 'WR' });
+    expect(liveRank(wr, game, { ...stats('25', 8), injuries: { '1': { status: 'Out' } } })).toBe(50);
+    expect(liveRank(wr, game, withInjury('Out'))).toBeGreaterThan(liveRank(entry({ teamId: '7', position: 'RB', espnId: '2' }), game, withInjury('Out'))!);
+    expect(liveRank(wr, game, { players: {}, defenses: {}, situation: null, injuries: { '1': { status: 'Out' } } })).toBe(50);
+  });
+  it('leaves questionable and doubtful players where the ball puts them', () => {
+    const wr = entry({ position: 'WR' });
+    expect(liveRank(wr, game, withInjury('Questionable'))).toBe(liveRank(wr, game, stats('25', 60)));
+    expect(liveRank(wr, game, withInjury('Doubtful'))).toBe(liveRank(wr, game, stats('25', 60)));
+  });
+  it('never marks a team defense out', () => {
+    expect(liveRank(entry({ kind: 'defense', position: 'D/ST', espnId: '1' }), game, withInjury('Out'))).toBeLessThan(50);
+  });
+});

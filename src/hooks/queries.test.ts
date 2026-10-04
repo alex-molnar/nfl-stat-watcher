@@ -16,10 +16,11 @@ describe('polling rules', () => {
     expect(scoreboardRefetch('success', [game('in')])).toBe(60_000);
   });
 
-  it('polls live summaries, fetches finals once and skips scheduled games', () => {
+  it('polls live summaries, fetches finals once and checks scheduled games now and then for injuries', () => {
     expect(summaryPolling('in')).toEqual({ enabled: true, refetchInterval: 10_000, staleTime: 0 });
     expect(summaryPolling('post')).toEqual({ enabled: true, refetchInterval: false, staleTime: Infinity });
-    expect(summaryPolling('pre')).toEqual({ enabled: false, refetchInterval: false, staleTime: 0 });
+    expect(summaryPolling('pre')).toEqual({ enabled: true, refetchInterval: 600_000, staleTime: 300_000 });
+    expect(summaryPolling('pre', true)).toEqual({ enabled: true, refetchInterval: false, staleTime: 300_000 });
     expect(summaryPolling(undefined)).toEqual({ enabled: false, refetchInterval: false, staleTime: 0 });
   });
 });

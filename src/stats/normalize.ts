@@ -1,5 +1,5 @@
 import type { EspnAthleteRef, EspnPlay, EspnStatCategory, EspnSummary } from '../espn/types';
-import type { DefenseStats, GameStats, PlayerStats, Situation } from './types';
+import type { DefenseStats, GameStats, Injury, PlayerStats, Situation } from './types';
 
 const num = (s: string | undefined) => {
   const n = Number.parseFloat(s ?? '');
@@ -179,6 +179,23 @@ function yardsAllowedOf(s: EspnSummary, opponentId: string | undefined): { yards
   return Number.isFinite(yards) ? { yardsAllowed: yards } : {};
 }
 
+function injuriesOf(s: EspnSummary): Record<string, Injury> {
+  const injuries: Record<string, Injury> = {};
+  for (const team of s.injuries ?? []) {
+    for (const item of team.injuries ?? []) {
+      const status = typeof item.status === 'string' ? item.status.trim().slice(0, 40) : '';
+      if (!status || !item.athlete?.id) continue;
+      const type = item.details?.type?.trim();
+      injuries[item.athlete.id] = {
+        status,
+        ...(type && !/^not specified$/i.test(type) ? { type: type.slice(0, 40) } : {}),
+        ...(item.details?.returnDate ? { returnDate: item.details.returnDate } : {}),
+      };
+    }
+  }
+  return injuries;
+}
+
 export function normalizeSummary(s: EspnSummary): GameStats {
   const players: Record<string, PlayerStats> = {};
   const names: Named[] = [];
@@ -267,5 +284,5 @@ export function normalizeSummary(s: EspnSummary): GameStats {
   const last = plays.at(-1);
   const drives = [...(s.drives?.previous ?? []), ...(s.drives?.current ? [s.drives.current] : [])];
   const lastDrive = last ? [...drives].reverse().find((d) => d.plays.some((p) => p.id === last.id)) : undefined;
-  return { players, defenses, situation: situationFrom(plays, endsDrive(lastDrive?.plays ?? plays, lastDrive?.result)) };
+  return { players, defenses, situation: situationFrom(plays, endsDrive(lastDrive?.plays ?? plays, lastDrive?.result)), injuries: injuriesOf(s) };
 }

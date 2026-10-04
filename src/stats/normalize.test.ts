@@ -184,3 +184,29 @@ describe('drive end detection', () => {
     expect(situationFrom([play('Rush')], false)).not.toHaveProperty('driveOver');
   });
 });
+
+describe('injury report', () => {
+  const summary = (injuries: unknown) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] }, boxscore: { players: [] }, injuries,
+  } as unknown as EspnSummary);
+
+  it('keys designations by athlete id, with the injury and return date when ESPN gives them', () => {
+    const g = summary([
+      { team: { id: '25' }, injuries: [
+        { status: 'Out', athlete: { id: '10' }, details: { type: 'Ankle', returnDate: '2026-10-11' } },
+        { status: 'Questionable', athlete: { id: '11' }, details: { type: 'Not Specified' } },
+        { status: 'Doubtful', athlete: { id: '12' } },
+      ] },
+    ]);
+    expect(g.injuries).toEqual({
+      '10': { status: 'Out', type: 'Ankle', returnDate: '2026-10-11' },
+      '11': { status: 'Questionable' },
+      '12': { status: 'Doubtful' },
+    });
+  });
+
+  it('is empty for a game with no report, and ignores entries without a status or athlete', () => {
+    expect(summary(undefined).injuries).toEqual({});
+    expect(summary([{ injuries: [{ status: '', athlete: { id: '1' } }, { status: 'Out' }] }]).injuries).toEqual({});
+  });
+});

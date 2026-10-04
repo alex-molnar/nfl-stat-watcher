@@ -329,3 +329,41 @@ describe('live ordering', () => {
     expect(card('SF runner')).toHaveClass('still');
   });
 });
+
+describe('injury designations', () => {
+  const sf = (espnId: string, name: string, position: string) => ({ ...warren, espnId, name, position, teamId: '25', teamAbbr: 'SF', profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  // SF has the ball at DEN 12: SF offense is in the red zone.
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+    injuries: [{ team: { id: '25' }, injuries: [
+      { status: 'Out', athlete: { id: '1' }, details: { type: 'Ankle' } },
+      { status: 'Questionable', athlete: { id: '2' }, details: { type: 'Hamstring' } },
+    ] }],
+  };
+  const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('marks every designation on the card and sends an out player to the back without red zone styling', async () => {
+    seed([sf('1', 'Hurt runner', 'RB'), sf('2', 'Iffy receiver', 'WR'), sf('3', 'Healthy quarterback', 'QB')], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(screen.getByText('Out · Ankle')).toBeInTheDocument());
+    expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
+    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    const hurt = screen.getByText('Hurt runner').closest('.card')!;
+    expect(hurt).not.toHaveClass('is-rz');
+    expect(hurt).not.toHaveClass('on-field');
+    expect(screen.getByText('Iffy receiver').closest('.card')).toHaveClass('is-rz');
+  });
+
+  it('shows the designation on a game that has not started yet', async () => {
+    seed([{ ...warren, espnId: '9', name: 'Later player', teamId: '25', teamAbbr: 'SF', position: 'WR', profileId: 'p1' }], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872975': { ...liveSummary, injuries: [{ team: { id: '25' }, injuries: [{ status: 'Doubtful', athlete: { id: '9' } }] }] }, standings: teams });
+    renderAt('/');
+    expect(await screen.findByText('Doubtful')).toHaveClass('inj-doubtful');
+  });
+});

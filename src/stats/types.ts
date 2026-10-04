@@ -55,8 +55,17 @@ export interface Situation {
   lastPlayText: string;
 }
 
+/** A player's injury designation for a game, from ESPN's injury report. */
+export interface Injury {
+  status: string; // "Out", "Questionable", "Doubtful", ...
+  type?: string; // the injury, for example "Ankle"
+  returnDate?: string;
+}
+
 export interface GameStats {
   players: Record<string, PlayerStats>; // keyed by ESPN athlete id
   defenses: Record<string, DefenseStats>; // keyed by ESPN team id
   situation: Situation | null;
+  /** Keyed by ESPN athlete id. */
+  injuries?: Record<string, Injury>;
 }

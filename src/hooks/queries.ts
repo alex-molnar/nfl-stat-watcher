@@ -18,6 +18,8 @@ export function summaryPolling(state: GameInfo['state'] | undefined, paused = fa
 } {
   if (state === 'in') return { enabled: true, refetchInterval: paused ? false : 10_000, staleTime: 0 };
   if (state === 'post') return { enabled: true, refetchInterval: false, staleTime: Infinity };
+  // Not started yet: one fetch for the injury report, refreshed now and then because designations change before kickoff.
+  if (state === 'pre') return { enabled: true, refetchInterval: paused ? false : 600_000, staleTime: 300_000 };
   return { enabled: false, refetchInterval: false, staleTime: 0 };
 }
 

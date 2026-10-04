@@ -244,3 +244,12 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .burst { border-color: Highlight; }
   .play-tag { background: Canvas; color: CanvasText; border: 2px solid Highlight; box-shadow: none; }
 }
+
+/* Injury designation next to the name: the word carries the meaning, the colour reinforces it. */
+:root { --inj-out: #B42318; --inj-out-ink: #FFFFFF; --inj-doubt: #C2410C; --inj-doubt-ink: #FFFFFF; --inj-q: #F5C542; --inj-q-ink: #2B2000; }
+[data-theme="dark"] { --inj-out: #F97066; --inj-out-ink: #2A0A07; --inj-doubt: #FB923C; --inj-doubt-ink: #2A1200; --inj-q: #FFC83D; --inj-q-ink: #1A1300; }
+.inj { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--rule); color: var(--ink); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.inj-out { background: var(--inj-out); color: var(--inj-out-ink); }
+.inj-doubtful { background: var(--inj-doubt); color: var(--inj-doubt-ink); }
+.inj-questionable { background: var(--inj-q); color: var(--inj-q-ink); }
+@media (forced-colors: active) { .inj { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }
