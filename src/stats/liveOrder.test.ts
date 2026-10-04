@@ -41,4 +41,13 @@ describe('liveRank', () => {
     expect(order[4]).toBeLessThan(order[5]!);
     expect(rank(entry({ position: 'PK' }))).toBe(rank(entry({ position: 'K' })));
   });
+
+  it('puts a quarterback with the ball ahead of a running back whose defense is on the field, and a skill player ahead of a quarterback on the field', () => {
+    const sf = (position: string, teamId = '25') => rank(entry({ position, teamId }))!; // SF has the ball at midfield
+    expect(sf('QB')).toBeLessThan(sf('RB', '7'));
+    expect(sf('RB')).toBeLessThan(sf('QB'));
+    expect(sf('K')).toBeLessThan(sf('RB', '7'));
+    // A defense on the field is still ahead of any offensive player stuck on the wrong side.
+    expect(rank(entry({ teamId: '7', kind: 'defense', position: 'D/ST' }))).toBeLessThan(sf('RB', '7'));
+  });
 });
