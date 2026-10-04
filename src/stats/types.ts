@@ -27,6 +27,8 @@ export interface PlayerStats {
   tdYards?: { pass: number[]; rush: number[]; rec: number[] };
   twoPointConversions: number;
   safeties: number;
+  /** Kicks the player blocked, read from play text. */
+  blockedKicks?: number;
 }
 
 export interface DefenseStats {
@@ -37,6 +39,7 @@ export interface DefenseStats {
   safeties: number;
   pointsAllowed: number; // the opponent's score
   yardsAllowed?: number; // the opponent's total yards
+  blockedKicks?: number; // field goals, punts and extra points blocked, read from play text
 }
 
 export interface Situation {

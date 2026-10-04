@@ -48,6 +48,8 @@ type Named = { id: string; teamId: string; short: string };
 
 const FIELD_GOAL = /(\d+) yard field goal is GOOD/i;
 const FIELD_GOAL_MISS = /(\d+) yard field goal is (?:No Good|BLOCKED)/i;
+/** "punt is BLOCKED by S.Fehoko", "extra point is Blocked (T.Booker)", "field goal is BLOCKED (W.Anderson)". */
+const BLOCKED_KICK = /\b(?:field goal|punt|extra point|PAT) is blocked(?: by |\s*\()([^,)]+)/i;
 const TD_YARDS = /for (-?\d+) yards?, TOUCHDOWN/i;
 const TD_VOID = /NULLIFIED|REVERSED|WIPED/i;
 const TWO_POINT = /TWO-POINT CONVERSION ATTEMPT\.(.*?)ATTEMPT SUCCEEDS/i;
@@ -106,6 +108,14 @@ function applyPlays(
     }
 
     applyTouchdownYards(play, offense, players, names);
+
+    const block = BLOCKED_KICK.exec(play.text);
+    if (block && !TD_VOID.test(play.text)) {
+      const defense = Object.keys(defenses).find((id) => id !== offense);
+      if (defense) defenses[defense]!.blockedKicks = (defenses[defense]!.blockedKicks ?? 0) + 1;
+      const blocker = names.find((n) => n.teamId !== offense && n.short === block[1]!.trim());
+      if (blocker) players[blocker.id]!.blockedKicks = (players[blocker.id]!.blockedKicks ?? 0) + 1;
+    }
 
     const two = TWO_POINT.exec(play.text);
     if (two) {

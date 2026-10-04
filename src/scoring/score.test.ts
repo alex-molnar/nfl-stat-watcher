@@ -170,3 +170,12 @@ describe('return yards', () => {
     expect(r.total).toBeCloseTo(5 + 1.8);
   });
 });
+
+describe('blocked kicks', () => {
+  it('scores them for a defense and for the blocker, each with its own weight', () => {
+    const v = { ...PRESETS.ppr, dstBlockedKick: 2, blockedKick: 3, pointsAllowed: [0, 0, 0, 0, 0, 0, 0] };
+    expect(scoreDefense({ sacks: 0, interceptions: 0, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 99, blockedKicks: 1 }, v).total).toBe(2);
+    expect(scorePlayer({ twoPointConversions: 0, safeties: 0, blockedKicks: 1 }, v).total).toBe(3);
+    expect(scorePlayer({ twoPointConversions: 0, safeties: 0, blockedKicks: 1 }, { ...v, off: ['blockedKick'] }).total).toBe(0);
+  });
+});

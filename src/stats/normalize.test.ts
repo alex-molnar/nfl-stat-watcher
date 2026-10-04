@@ -96,3 +96,29 @@ describe('plays', () => {
     expect(situationFrom([])).toBeNull();
   });
 });
+
+describe('blocked kicks from play text', () => {
+  const side = (id: string, name: string) => ({ team: { id }, statistics: [{ name: 'defensive', keys: [] as string[], totals: [] as string[], athletes: [{ athlete: { id: `a${id}`, displayName: name }, stats: [] as string[] }] }] });
+  // Two teams, as in a real game: the kicking team has the ball, the other team blocks.
+  const game = (kicking: string, blocker: [string, string], text: string) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] },
+    boxscore: { players: [side(kicking, 'Some Kicker'), side(blocker[0], blocker[1])] },
+    drives: { previous: [{ plays: [{ id: '1', text, start: { team: { id: kicking } } }] }] },
+  } as unknown as EspnSummary);
+
+  it.each([
+    ['punt', 'J.Scott punt is BLOCKED by S.Fehoko, Center-J.Harris, recovered by LAC-A.Ingold at LAC 3.', ['22', 'Simi Fehoko']],
+    ['extra point', 'T.Shough pass short left to J.Johnson for 2 yards, TOUCHDOWN. D.Carlson extra point is Blocked (T.Booker), Center-C.Adomitis, Holder-R.Wright.', ['13', 'Thomas Booker']],
+    ['field goal', 'B.Aubrey 62 yard field goal is BLOCKED (W.Anderson), Center-T.Sieg, Holder-B.Anger.', ['34', 'Will Anderson']],
+  ] as const)('credits a blocked %s to the defense and the named blocker', (_kind, text, blocker) => {
+    const g = game('24', [blocker[0], blocker[1]], text);
+    expect(g.defenses[blocker[0]]?.blockedKicks).toBe(1);
+    expect(g.players[`a${blocker[0]}`]?.blockedKicks).toBe(1);
+    expect(g.defenses['24']?.blockedKicks).toBeUndefined();
+  });
+
+  it('ignores a kick that is only mentioned, not blocked', () => {
+    const g = game('24', ['22', 'Simi Fehoko'], 'J.Scott punt is Good, blocked by nobody. D.Carlson extra point is GOOD.');
+    expect(Object.values(g.defenses).every((d) => !d.blockedKicks)).toBe(true);
+  });
+});

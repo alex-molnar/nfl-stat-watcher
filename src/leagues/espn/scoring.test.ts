@@ -104,6 +104,14 @@ describe('normalizeEspnLeague', () => {
     expect(draft.source.issues.some(({ code, message }) => code === 'stat-limitation' && message.includes('Forced fumble'))).toBe(true);
   });
 
+  it('imports blocked kicks but warns that they depend on ESPN play wording', () => {
+    const draft = normalizeEspnLeague(league([item(97, 0, { '16': 2 })]));
+    expect(draft.values.dstBlockedKick).toBe(2);
+    expect(draft.source.issues.some(({ message }) => message.includes('play-by-play wording'))).toBe(true);
+    expect(draft.source.issues.some(({ message }) => message.includes('never score') && message.includes('Blocked kick'))).toBe(false);
+    expect(normalizeEspnLeague(league([item(4, 4)])).source.issues.some(({ message }) => message.includes('play-by-play wording'))).toBe(false);
+  });
+
   it('keeps "every N" awards as whole steps instead of prorating them', () => {
     const draft = normalizeEspnLeague(league([item(8, 1), item(30, 1), item(48, 1)]));
     expect(draft.values.passYards).toBe(0);

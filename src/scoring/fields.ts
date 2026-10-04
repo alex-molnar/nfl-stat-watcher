@@ -8,6 +8,8 @@ export interface FieldDef {
   step: number;
   /** False when the live game feed cannot supply the stat, so the weight is stored but never scores. */
   live?: false;
+  /** Scored from ESPN's play-by-play wording, which can change, so the weight may not match ESPN exactly. */
+  approx?: true;
 }
 
 const NOT_LIVE = false as const;
@@ -91,7 +93,7 @@ export const FIELD_GROUPS: { title: string; fields: FieldDef[] }[] = [
       { key: 'forcedFumble', label: 'Forced fumble', step: 1, live: NOT_LIVE },
       { key: 'defensiveTd', label: 'Defensive TD', step: 1 },
       { key: 'safety', label: 'Safety', step: 1 },
-      { key: 'blockedKick', label: 'Blocked kick', step: 1, live: NOT_LIVE },
+      { key: 'blockedKick', label: 'Blocked kick', step: 1, approx: true },
     ],
   },
   {
@@ -102,7 +104,7 @@ export const FIELD_GROUPS: { title: string; fields: FieldDef[] }[] = [
       { key: 'dstFumbleRecovery', label: 'Fumble recovery', step: 1 },
       { key: 'dstSafety', label: 'Safety', step: 1 },
       { key: 'dstTd', label: 'Defense or return TD', step: 1 },
-      { key: 'dstBlockedKick', label: 'Blocked kick', step: 1, live: NOT_LIVE },
+      { key: 'dstBlockedKick', label: 'Blocked kick', step: 1, approx: true },
       { key: 'twoPointReturn', label: '2-point return', step: 1, live: NOT_LIVE },
       { key: 'onePointSafety', label: '1-point safety', step: 1, live: NOT_LIVE },
     ],

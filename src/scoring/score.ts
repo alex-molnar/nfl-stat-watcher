@@ -118,6 +118,7 @@ export function scorePlayer(s: PlayerStats, values: ScoringValues): ScoreResult 
     if (s.fumbles && !s.passing && !s.rushing && !s.receiving && (s.defense || s.interceptions)) add('Fumble recoveries', s.fumbles.recovered * v.fumbleRecovery);
     if (s.interceptions) add('Interceptions', s.interceptions.interceptions * v.idpInterception);
     add('Safeties', s.safeties * v.safety);
+    add('Blocked kicks', (s.blockedKicks ?? 0) * v.blockedKick);
   });
 }
 
@@ -134,6 +135,7 @@ export function scoreDefense(d: DefenseStats, values: ScoringValues): ScoreResul
     add('Interceptions', d.interceptions * v.dstInterception);
     add('Fumble recoveries', d.fumbleRecoveries * v.dstFumbleRecovery);
     add('Safeties', d.safeties * v.dstSafety);
+    add('Blocked kicks', (d.blockedKicks ?? 0) * v.dstBlockedKick);
     add('Touchdowns', d.touchdowns * v.dstTd);
     const band = v.pointsAllowedBands?.find(({ min, max }) => d.pointsAllowed >= min && (max === null || d.pointsAllowed <= max));
     const ya = d.yardsAllowed === undefined ? undefined : YARDS_ALLOWED_BANDS.find(({ min, max }) => d.yardsAllowed! >= min && d.yardsAllowed! <= max);

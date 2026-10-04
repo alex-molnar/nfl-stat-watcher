@@ -156,7 +156,7 @@ function ProfileForm({ profile, profiles, usedBy, opponents, onDeleted, onRefres
                 value={profile.values[f.key]}
                 enabled={isRuleOn(profile.values, f.key)}
                 onToggle={(on) => setRuleEnabled(profile.id, f.key, on)}
-                note={f.live === false && profile.values[f.key] !== 0 ? 'Not tracked in the live game feed, so it never scores.' : undefined}
+                note={profile.values[f.key] === 0 ? undefined : f.live === false ? 'Not tracked in the live game feed, so it never scores.' : f.approx ? 'Read from ESPN play-by-play wording, so it may be inaccurate.' : undefined}
                 onChange={(n) => setValue(profile.id, f.key, n)}
               />
             ))}
