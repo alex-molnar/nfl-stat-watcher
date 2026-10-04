@@ -174,7 +174,9 @@ export function normalizeSummary(s: EspnSummary): GameStats {
           case 'kickReturns':
           case 'puntReturns':
             p.returns = {
+              ...p.returns,
               touchdowns: (p.returns?.touchdowns ?? 0) + v(cat.name === 'kickReturns' ? 'kickReturnTouchdowns' : 'puntReturnTouchdowns'),
+              [cat.name === 'kickReturns' ? 'kickYards' : 'puntYards']: v(cat.name === 'kickReturns' ? 'kickReturnYards' : 'puntReturnYards'),
             };
             break;
           case 'kicking': {

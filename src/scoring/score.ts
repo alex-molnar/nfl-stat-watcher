@@ -33,6 +33,8 @@ function statFor(s: Stats, stat: StepStat): number | undefined {
     case 'recYards': return s.receiving?.yards;
     case 'reception': return s.receiving?.receptions;
     case 'tackle': return s.defense?.totalTackles;
+    case 'kickReturnYards': return s.returns?.kickYards;
+    case 'puntReturnYards': return s.returns?.puntYards;
   }
 }
 
@@ -88,7 +90,11 @@ export function scorePlayer(s: PlayerStats, values: ScoringValues): ScoreResult 
       add('Fumbles', s.fumbles.fumbles * v.fumble);
       add('Fumbles lost', s.fumbles.lost * v.fumbleLost);
     }
-    if (s.returns) add('Return TDs', s.returns.touchdowns * v.returnTd);
+    if (s.returns) {
+      add('Return TDs', s.returns.touchdowns * v.returnTd);
+      add('Kickoff return yards', (s.returns.kickYards ?? 0) * v.kickReturnYards);
+      add('Punt return yards', (s.returns.puntYards ?? 0) * v.puntReturnYards);
+    }
     if (s.kicking) {
       const k = s.kicking;
       for (const d of k.madeDistances.slice(0, k.fgMade)) add(`${d}-yard field goal`, d >= 60 ? v.fg60plus : d >= 50 ? v.fg50to59 : d >= 40 ? v.fg40to49 : v.fg0to39);

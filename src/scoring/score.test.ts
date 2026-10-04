@@ -160,3 +160,13 @@ describe('stepped ESPN rules and sacks', () => {
     expect(scorePlayer({ ...murray, passing: { ...murray.passing, yards: 50 } }, v).breakdown).toContainEqual({ label: 'Every 25 passing yards', points: 2 });
   });
 });
+
+describe('return yards', () => {
+  const returner = { twoPointConversions: 0, safeties: 0, returns: { touchdowns: 0, kickYards: 57, puntYards: 18 } };
+  it('floors every-N return yard steps and prorates per-yard weights', () => {
+    const v = { ...PRESETS.ppr, puntReturnYards: 0.1, steps: [{ stat: 'kickReturnYards' as const, every: 10, points: 1 }] };
+    const r = scorePlayer(returner, v);
+    expect(r.breakdown).toContainEqual({ label: 'Every 10 kickoff return yards', points: 5 });
+    expect(r.total).toBeCloseTo(5 + 1.8);
+  });
+});

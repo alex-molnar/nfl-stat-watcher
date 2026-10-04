@@ -13,7 +13,7 @@ export const VALUE_KEYS = [
 export type ValueKey = (typeof VALUE_KEYS)[number];
 
 /** Stats ESPN can award in whole steps ("every 25 passing yards"), which floor rather than prorate. */
-export const STEP_STATS = ['passYards', 'rushYards', 'recYards', 'passAttempt', 'passCompletion', 'passIncompletion', 'rushAttempt', 'reception', 'tackle'] as const;
+export const STEP_STATS = ['passYards', 'rushYards', 'recYards', 'passAttempt', 'passCompletion', 'passIncompletion', 'rushAttempt', 'reception', 'tackle', 'kickReturnYards', 'puntReturnYards'] as const;
 export type StepStat = (typeof STEP_STATS)[number];
 export interface StepRule { stat: StepStat; every: number; points: number }
 

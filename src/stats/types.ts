@@ -13,7 +13,7 @@ export interface PlayerStats {
     touchdowns: number;
   };
   interceptions?: { interceptions: number; touchdowns: number };
-  returns?: { touchdowns: number }; // kick and punt return TDs
+  returns?: { touchdowns: number; kickYards?: number; puntYards?: number }; // kick and punt returns
   kicking?: {
     fgMade: number;
     fgAttempts: number;
