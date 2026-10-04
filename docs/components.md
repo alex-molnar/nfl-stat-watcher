@@ -38,3 +38,10 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 - Remove on a card focuses the next card's points button, else the previous card's, else the header "Add player" button.
 - Changing the league on a card keeps focus on that card's league select (the card remounts under its new key).
 - Deleting a profile in settings focuses the newly selected profile's list button.
+
+## Visual notes
+- Ghost buttons (`.btn`, `.add`) use `--field-border` (6.3:1 light, 7.3:1 dark on the panel). Disabled buttons use the muted text color (6.3:1 and 7.3:1) instead of fading.
+- MiniField: endzone labels are vertical so three-letter names fit the 20px endzone at 320px; the line of scrimmage is white (4.3:1 on light turf, 4.9:1 on the alternate stripe, 8.2:1 or more in dark); the red zone hatch is pale orange (3.2:1 light, 6.2:1 dark).
+- The card Remove link is at least 24px by 24px.
+- Forced colors: the field, endzones, line of scrimmage, ball, red zone card outline and the selected profile use borders and system colors (CanvasText, Highlight).
+- Press scale does not apply to `aria-disabled` buttons.
