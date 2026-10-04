@@ -29,12 +29,65 @@ describe('settings page', () => {
     expect(profiles()[0].values.pointsAllowed[0]).toBe(12);
   });
 
-  it('keeps the stored value when a field is cleared', async () => {
+  it('restores the stored value when a cleared field is blurred', async () => {
     renderAt('/settings');
     const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
     await userEvent.clear(passTd);
     expect(passTd).toHaveValue(null);
     expect(profiles()[0].values.passTd).toBe(4);
+    await userEvent.tab();
+    expect(passTd).toHaveValue(4);
+    expect(profiles()[0].values.passTd).toBe(4);
+  });
+
+  it('restores a cleared field after a preset keeps the same value', async () => {
+    renderAt('/settings');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
+    await userEvent.clear(passTd);
+    await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
+    await userEvent.click(document.body);
+    expect(passTd).toHaveValue(4);
+  });
+
+  it('moves focus into the delete confirmation and back on cancel', async () => {
+    seed([warren], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByLabelText('Move 1 followed card to')).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveFocus();
+  });
+
+  it('trims a name on blur and falls back when empty', async () => {
+    renderAt('/settings');
+    const name = screen.getByLabelText('Name');
+    await userEvent.clear(name);
+    expect(profiles()[0].name).toBe('My league');
+    await userEvent.type(name, '  Spaced  ');
+    await userEvent.tab();
+    expect(profiles()[0].name).toBe('Spaced');
+    expect(name).toHaveValue('Spaced');
+    await userEvent.clear(name);
+    await userEvent.tab();
+    expect(profiles()[0].name).toBe('Untitled league');
+    expect(name).toHaveValue('Untitled league');
+  });
+
+  it('suffixes a duplicate name on blur', async () => {
+    seed([], profilesFixture);
+    renderAt('/settings');
+    const name = screen.getByLabelText('Name');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'friends LEAGUE');
+    await userEvent.tab();
+    expect(name).toHaveValue('friends LEAGUE 2');
+    expect(profiles().map((p: { name: string }) => p.name)).toEqual(['friends LEAGUE 2', 'Friends league']);
+  });
+
+  it('describes the disabled delete button', () => {
+    renderAt('/settings');
+    expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveAccessibleDescription('You need at least one profile.');
   });
 
   it('adds and renames a profile', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FIELD_GROUPS } from '../scoring/fields';
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
@@ -21,6 +21,9 @@ function NumberField({ label, value, step, onChange }: { label: string; value: n
         inputMode="decimal"
         step={step}
         value={text}
+        onBlur={() => {
+          if (!Number.isFinite(Number.parseFloat(text))) setText(String(value));
+        }}
         onChange={(e) => {
           setText(e.target.value);
           const n = Number.parseFloat(e.target.value);
@@ -31,10 +34,51 @@ function NumberField({ label, value, step, onChange }: { label: string; value: n
   );
 }
 
+function uniqueName(raw: string, others: Profile[]): string {
+  const base = raw.trim() || 'Untitled league';
+  const taken = new Set(others.map((p) => p.name.toLowerCase()));
+  let name = base;
+  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} ${n}`;
+  return name;
+}
+
+function NameField({ profile, others }: { profile: Profile; others: Profile[] }) {
+  const [text, setText] = useState(profile.name);
+  return (
+    <label className="field-label">
+      Name
+      <input
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          // An empty name is never stored, so the profile always has an accessible name.
+          if (e.target.value.trim()) renameProfile(profile.id, e.target.value);
+        }}
+        onBlur={() => {
+          const name = uniqueName(text, others);
+          setText(name);
+          renameProfile(profile.id, name);
+        }}
+      />
+    </label>
+  );
+}
+
 function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profile; profiles: Profile[]; usedBy: number; onDeleted: (moveTo: string) => void }) {
   const others = profiles.filter((p) => p.id !== profile.id);
   const [deleting, setDeleting] = useState(false);
   const [moveTo, setMoveTo] = useState(others[0]?.id ?? '');
+  const deleteBtn = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLDivElement>(null);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (deleting) confirmRef.current?.querySelector<HTMLElement>('select, button')?.focus();
+    else deleteBtn.current?.focus();
+  }, [deleting]);
 
   function choosePreset(preset: PresetId) {
     if (window.confirm(`Replace all values in ${profile.name} with the ${PRESET_LABELS[preset]} preset?`)) applyPreset(profile.id, preset);
@@ -42,16 +86,7 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
 
   return (
     <section className="profile-form" aria-label={`Edit ${profile.name}`}>
-      <label className="field-label">
-        Name
-        <input
-          value={profile.name}
-          onChange={(e) => renameProfile(profile.id, e.target.value)}
-          onBlur={(e) => {
-            if (!e.target.value.trim()) renameProfile(profile.id, 'Untitled league');
-          }}
-        />
-      </label>
+      <NameField profile={profile} others={others} />
       <label className="field-label">
         Preset
         <select value={profile.preset} onChange={(e) => choosePreset(e.target.value as PresetId)}>
@@ -75,14 +110,14 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
 
       {!deleting && (
         <div>
-          <button type="button" className="btn btn-danger" disabled={others.length === 0} onClick={() => setDeleting(true)}>
+          <button ref={deleteBtn} type="button" className="btn btn-danger" disabled={others.length === 0} aria-describedby={others.length === 0 ? 'last-profile-note' : undefined} onClick={() => setDeleting(true)}>
             Delete profile
           </button>
-          {others.length === 0 && <p className="muted">You need at least one profile.</p>}
+          {others.length === 0 && <p id="last-profile-note" className="muted">You need at least one profile.</p>}
         </div>
       )}
       {deleting && (
-        <div className="confirm" role="group" aria-label="Confirm delete">
+        <div ref={confirmRef} className="confirm" role="group" aria-label="Confirm delete">
           {usedBy > 0 ? (
             <label className="field-label">
               {`Move ${usedBy} followed ${usedBy === 1 ? 'card' : 'cards'} to`}
