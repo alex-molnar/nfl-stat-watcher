@@ -28,6 +28,25 @@ describe('app shell', () => {
     expect(screen.getByRole('button', { name: 'Light mode' })).toBeInTheDocument();
   });
 
+  it('does not move focus on first load, including the redirect from an unknown route', () => {
+    renderAt('/settings');
+    expect(document.body).toHaveFocus();
+  });
+
+  it('does not move focus when an unknown route redirects on first load', () => {
+    renderAt('/nope');
+    expect(document.body).toHaveFocus();
+  });
+
+  it('moves focus to the page heading after a navigation', async () => {
+    renderAt('/');
+    expect(document.body).toHaveFocus();
+    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    expect(screen.getByRole('heading', { name: 'Scoring profiles' })).toHaveFocus();
+    await userEvent.click(screen.getByRole('link', { name: 'Players' }));
+    expect(screen.getByRole('heading', { name: 'Players' })).toHaveFocus();
+  });
+
   it('redirects unknown routes to the main page', () => {
     renderAt('/nope');
     expect(screen.getByRole('heading', { name: 'Stat Watch', level: 1 })).toBeInTheDocument();

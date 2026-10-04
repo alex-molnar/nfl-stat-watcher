@@ -165,17 +165,25 @@ export function SettingsPage() {
   const [selectedId, setSelectedId] = useState(profiles[0]!.id);
   const profile = profiles.find((p) => p.id === selectedId) ?? profiles[0]!;
 
+  // After a delete the removed list button is gone, so focus the newly selected profile.
+  const refocusProfile = useRef<string | null>(null);
+  useEffect(() => {
+    const id = refocusProfile.current;
+    refocusProfile.current = null;
+    if (id) document.querySelector<HTMLElement>(`[data-profile="${CSS.escape(id)}"]`)?.focus();
+  });
+
   return (
     <>
       <Header />
       <main className="wrap">
-        <h2 className="section-title">Scoring profiles</h2>
+        <h2 className="section-title" tabIndex={-1} data-page-title>Scoring profiles</h2>
         <div className="settings-grid">
           <nav aria-label="Profiles">
             <ul className="profile-list">
               {profiles.map((p) => (
                 <li key={p.id}>
-                  <button type="button" aria-current={p.id === profile.id ? 'true' : undefined} onClick={() => setSelectedId(p.id)}>
+                  <button type="button" data-profile={p.id} aria-current={p.id === profile.id ? 'true' : undefined} onClick={() => setSelectedId(p.id)}>
                     {p.name}
                   </button>
                 </li>
@@ -190,7 +198,10 @@ export function SettingsPage() {
             profile={profile}
             profiles={profiles}
             usedBy={followed.filter((f) => f.profileId === profile.id).length}
-            onDeleted={setSelectedId}
+            onDeleted={(id) => {
+              refocusProfile.current = id;
+              setSelectedId(id);
+            }}
           />
         </div>
       </main>

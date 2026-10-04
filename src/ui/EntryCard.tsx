@@ -3,7 +3,7 @@ import { freshness, useAthlete, useGameSummary } from '../hooks/queries';
 import { scoreEntry } from '../scoring/score';
 import type { Profile } from '../scoring/types';
 import type { GameInfo } from '../stats/scoreboard';
-import { moveEntry, removeEntry, updateEntryTeam } from '../storage/followed';
+import { updateEntryTeam } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
 import { Bump } from './Bump';
 import { MiniField } from './MiniField';
@@ -15,11 +15,15 @@ interface Props {
   profiles: Profile[];
   hasSchedule: boolean;
   paused?: boolean;
+  onMove: (entry: FollowedEntry, toProfileId: string) => void;
+  onRemove: (entry: FollowedEntry, button: HTMLElement) => void;
 }
+
+export const entryKey = (e: Pick<FollowedEntry, 'kind' | 'espnId' | 'profileId'>) => `${e.kind}:${e.espnId}:${e.profileId}`;
 
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
-export function EntryCard({ entry, game, profiles, hasSchedule, paused = false }: Props) {
+export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, onMove, onRemove }: Props) {
   const summary = useGameSummary(game, paused);
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
   const [open, setOpen] = useState(false);
@@ -58,6 +62,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false }
 
   return (
     <li
+      data-entry={entryKey(entry)}
       className={`card${live ? ' live' : ''}${redZone ? ' is-rz' : ''}`}
       style={{ '--team': color, '--team-ink': textOn(color) } as CSSProperties}
     >
@@ -128,11 +133,11 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false }
       <div className="ft">
         <label>
           League
-          <select value={profile.id} onChange={(e) => moveEntry(entry, e.target.value)}>
+          <select value={profile.id} onChange={(e) => onMove(entry, e.target.value)}>
             {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-        <button type="button" className="rm" onClick={() => removeEntry(entry)} aria-label={`Remove ${entry.name} from ${profile.name}`}>
+        <button type="button" className="rm" onClick={(e) => onRemove(entry, e.currentTarget)} aria-label={`Remove ${entry.name} from ${profile.name}`}>
           Remove
         </button>
       </div>

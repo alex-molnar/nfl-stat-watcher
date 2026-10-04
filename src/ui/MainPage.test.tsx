@@ -51,6 +51,27 @@ describe('main page', () => {
     expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toHaveLength(2);
   });
 
+  it('keeps focus on the moved card league select after a league change', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    await screen.findByText('15.60');
+    await userEvent.selectOptions(within(card('Jaylen Warren')).getByLabelText('League'), 'Friends league');
+    expect(within(card('Jaylen Warren')).getByLabelText('League')).toHaveFocus();
+  });
+
+  it('moves focus to the next card, else the previous, else Add player after Remove', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    const pts = (name: string) => within(card(name)).getByRole('button', { name: /fantasy pts/ });
+    await screen.findByText('15.60');
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Jaylen Warren from Office league' }));
+    expect(pts('Pittsburgh Steelers')).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Patrick Mahomes from Friends league' }));
+    expect(pts('Pittsburgh Steelers')).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Pittsburgh Steelers from Office league' }));
+    expect(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' })).toHaveFocus();
+  });
+
   it('shows a retry note when the game summary fails', async () => {
     mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': status(500) });
     renderAt('/');

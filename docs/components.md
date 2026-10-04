@@ -10,11 +10,11 @@ No props. Shows "Dark mode" in the light theme and "Light mode" in the dark them
 ## MainPage
 No props. States: empty (nothing followed), grouped (Live now, Final, Later, Bye week), schedule unavailable (one "Followed" group, cards say "Game status unavailable"), scoreboard error with older data (note under the header), loading games ("Loading games"). Page-level notes (loading, paused, retry) share one `role="status"` element that stays mounted and only changes its text.
 
-Pause live updates: a header button with `aria-pressed`, labelled "Pause live updates" or "Resume live updates". While paused, scoreboard and live summary polling and window-focus refetching stop, loaded data stays visible and the status line says "Live updates are paused. The numbers shown may be out of date." Resuming refetches the scoreboard and loaded summaries immediately. The choice lives in component state only (session, never stored). `EntryCard` takes an optional `paused` prop.
+Pause live updates: a header button with `aria-pressed`, labelled "Pause live updates" or "Resume live updates". While paused, scoreboard and live summary polling and window-focus refetching stop, loaded data stays visible and the status line says "Live updates are paused. The numbers shown may be out of date." Resuming refetches the scoreboard and loaded summaries immediately. The choice lives in component state only (session, never stored). `EntryCard` takes an optional `paused` prop and `onMove` and `onRemove` callbacks (the page owns focus handling).
 
 ## EntryCard
 The card name is an `h3`.
-Props: `entry: FollowedEntry`, `game: GameInfo | null`, `profiles: Profile[]`, `hasSchedule: boolean`, `paused?: boolean` (stops live polling).
+Props: `entry: FollowedEntry`, `game: GameInfo | null`, `profiles: Profile[]`, `hasSchedule: boolean`, `paused?: boolean` (stops live polling), `onMove(entry, toProfileId)`, `onRemove(entry, button)`.
 States: live (wide, mini field, situation and last play), live in the red zone (orange outline and "Red zone" label, only for offensive players of the team with the ball), final (result line), scheduled (kickoff time, "No stats until kickoff"), bye, no stats, breakdown open, retry note.
 
 ## MiniField
@@ -30,3 +30,9 @@ States: hint (fewer than 2 letters), loading team for a result, results (team de
 
 ## SettingsPage
 No props. Profile list plus the selected profile's form: name, preset (with confirmation), value groups Offense, Kicker, IDP and Team defense (with points-allowed tiers). Delete is disabled for the last profile and asks where to move followed cards.
+
+## Focus management
+- After a link navigation (not on first load, not on redirects) focus moves to the page heading (`data-page-title`, `tabindex="-1"`): the visually hidden "Players" `h2` on the main page, "Scoring profiles" on settings.
+- Remove on a card focuses the next card's points button, else the previous card's, else the header "Add player" button.
+- Changing the league on a card keeps focus on that card's league select (the card remounts under its new key).
+- Deleting a profile in settings focuses the newly selected profile's list button.

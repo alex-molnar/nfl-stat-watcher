@@ -158,6 +158,7 @@ describe('settings page', () => {
     expect(profiles().map((p: { id: string }) => p.id)).toEqual(['p2']);
     expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)[0].profileId).toBe('p2');
     expect(screen.getByRole('button', { name: 'Friends league' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: 'Friends league' })).toHaveFocus();
   });
 
   it('changes card points on the main screen', async () => {

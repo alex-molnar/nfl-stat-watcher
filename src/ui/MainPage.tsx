@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { freshness, useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
-import { followedStore, withValidProfiles } from '../storage/followed';
+import { followedStore, moveEntry, removeEntry, withValidProfiles } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
-import { EntryCard } from './EntryCard';
+import { EntryCard, entryKey } from './EntryCard';
 import { Header } from './Header';
+import type { FollowedEntry } from '../storage/types';
 import { usePageTitle } from './usePageTitle';
 
 const GROUPS = [
@@ -35,6 +36,27 @@ export function MainPage() {
     : paused
       ? 'Live updates are paused. The numbers shown may be out of date.'
       : freshness(scoreboard.isError, scoreboard.dataUpdatedAt);
+
+  // Focus survives the remount that a league change causes (the card key includes the league).
+  const refocusLeague = useRef<string | null>(null);
+  useEffect(() => {
+    const key = refocusLeague.current;
+    refocusLeague.current = null;
+    if (key) document.querySelector<HTMLElement>(`[data-entry="${CSS.escape(key)}"] select`)?.focus();
+  });
+
+  function move(entry: FollowedEntry, toProfileId: string) {
+    refocusLeague.current = entryKey({ ...entry, profileId: toProfileId });
+    moveEntry(entry, toProfileId);
+  }
+
+  // Next card's points button, else the previous one, else the header Add player button.
+  function remove(entry: FollowedEntry, button: HTMLElement) {
+    const all = [...document.querySelectorAll<HTMLElement>('.card .pts')];
+    const i = all.indexOf(button.closest('.card')!.querySelector<HTMLElement>('.pts')!);
+    (all[i + 1] ?? all[i - 1] ?? headerAdd.current)?.focus();
+    removeEntry(entry);
+  }
 
   function togglePause() {
     setPaused(!paused);
@@ -68,6 +90,7 @@ export function MainPage() {
         }
       />
       <main className="wrap">
+        <h2 className="sr" tabIndex={-1} data-page-title>Players</h2>
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
           <div className="empty">
@@ -86,12 +109,14 @@ export function MainPage() {
                 <ul className={`grid${key === 'in' ? ' live' : ''}`}>
                   {group.map(({ entry, game }) => (
                     <EntryCard
-                      key={`${entry.kind}:${entry.espnId}:${entry.profileId}`}
+                      key={entryKey(entry)}
                       entry={entry}
                       game={game}
                       profiles={profiles}
                       hasSchedule={hasSchedule}
                       paused={paused}
+                      onMove={move}
+                      onRemove={remove}
                     />
                   ))}
                 </ul>

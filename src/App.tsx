@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { MainPage } from './ui/MainPage';
 import { SettingsPage } from './ui/SettingsPage';
 
@@ -8,13 +9,29 @@ import { SettingsPage } from './ui/SettingsPage';
 export const queryDefaults = { queries: { networkMode: 'always' as const } };
 const queryClient = new QueryClient({ defaultOptions: queryDefaults });
 
+/** After a navigation the Header link that had focus unmounts, so focus goes to the page heading. Not on first load or redirects. */
+function FocusPageHeading() {
+  const { key } = useLocation();
+  const type = useNavigationType();
+  const seen = useRef(key); // compared, not flagged, so StrictMode's double effect cannot focus on mount
+  useEffect(() => {
+    if (seen.current === key) return;
+    seen.current = key;
+    if (type !== 'REPLACE') document.querySelector<HTMLElement>('[data-page-title]')?.focus();
+  }, [key, type]);
+  return null;
+}
+
 export function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<MainPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <FocusPageHeading />
+    </>
   );
 }
 
