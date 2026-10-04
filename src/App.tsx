@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { MainPage } from './ui/MainPage';
 import { SettingsPage } from './ui/SettingsPage';
 
@@ -10,6 +10,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<MainPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

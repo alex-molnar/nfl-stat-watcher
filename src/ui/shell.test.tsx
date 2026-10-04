@@ -20,4 +20,10 @@ describe('app shell', () => {
     expect(localStorage.getItem('nflsw:v1:theme')).toBe('"dark"');
     expect(screen.getByRole('button', { name: 'Light mode' })).toBeInTheDocument();
   });
+
+  it('redirects unknown routes to the main page', () => {
+    renderAt('/nope');
+    expect(screen.getByRole('heading', { name: 'Stat Watch', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Players' })).toHaveAttribute('aria-current', 'page');
+  });
 });

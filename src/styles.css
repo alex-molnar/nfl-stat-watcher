@@ -1,13 +1,13 @@
 :root {
   --bg: #E8F0E4; --panel: #FFFFFF; --ink: #132016; --muted: #4F6555; --rule: #D2DFCD;
-  --turf: #3B8A46; --turf2: #357F40; --pylon: #C2410C; --accent: #14532D; --accent-ink: #FFFFFF;
-  --danger: #B42318; --bump: rgba(255, 106, 19, .28); --focus: #14532D;
+  --turf: #3B8A46; --turf2: #357F40; --pylon: #B93D0A; --accent: #14532D; --accent-ink: #FFFFFF;
+  --danger: #B42318; --bump: rgba(255, 106, 19, .28); --focus: #14532D; --field-border: #4F6555;
   color-scheme: light;
 }
 [data-theme="dark"] {
   --bg: #0B1810; --panel: #122319; --ink: #E5EFE6; --muted: #9CB3A1; --rule: #21382A;
   --turf: #1F5A2A; --turf2: #1B5126; --pylon: #FF7A2E; --accent: #86EFAC; --accent-ink: #0B1810;
-  --danger: #F97066; --bump: rgba(255, 106, 19, .32); --focus: #86EFAC;
+  --danger: #F97066; --bump: rgba(255, 106, 19, .32); --focus: #86EFAC; --field-border: #9CB3A1;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -61,7 +61,7 @@ main.wrap { padding-bottom: 48px; }
 .ball { position: absolute; top: 50%; left: -7px; width: 15px; height: 10px; margin-top: -5px; border-radius: 50%; background: #7B3F1D; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85); }
 .dd { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
 .dd b { color: var(--ink); }
-.rzt { color: var(--pylon); font-weight: 800; }
+.rzt { color: var(--pylon); font-weight: 700; }
 .score { font-size: 14px; color: var(--muted); }
 .stats { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .stat b { display: block; font: 800 20px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 4px; }
@@ -72,7 +72,7 @@ main.wrap { padding-bottom: 48px; }
 .note { font-size: 12px; color: var(--muted); margin: 0; }
 .ft { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .ft label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-.ft select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--rule); background: var(--bg); }
+.ft select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); }
 .rm { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; text-decoration: underline; padding: 0; }
 .empty { background: var(--panel); border-radius: 16px; padding: 40px; text-align: center; margin-top: 24px; }
 
@@ -90,7 +90,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .dlg-head h2 { margin: 0; font: 800 20px/1.2 Anybody, sans-serif; font-stretch: 115%; }
 .close { border: 0; background: none; font-size: 24px; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; }
 .field-label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
-.field-label input, .field-label select { font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); }
+.field-label input, .field-label select { font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); }
 .results { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .results li { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--rule); }
 .results .r { flex: 1; }
@@ -107,7 +107,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
 .profile-form legend { font: 800 15px/1 Anybody, sans-serif; font-stretch: 115%; padding: 0 6px; }
 .num-field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-.num-field input { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+.num-field input { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
 .confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--danger); border-radius: 12px; }
 @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
 
