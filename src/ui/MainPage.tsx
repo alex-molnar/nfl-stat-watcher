@@ -4,6 +4,7 @@ import { gameForTeam } from '../stats/scoreboard';
 import { followedStore, withValidProfiles } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
+import { AddDialog } from './AddDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
 
@@ -68,8 +69,7 @@ export function MainPage() {
           })
         )}
       </main>
-      {/* Task 9 replaces this line with <AddDialog open={adding} onClose={() => setAdding(false)} />. */}
-      {adding && null}
+      <AddDialog open={adding} onClose={() => setAdding(false)} />
     </>
   );
 }
