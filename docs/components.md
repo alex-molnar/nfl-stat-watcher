@@ -21,10 +21,10 @@ No props. The `aria-pressed` "Pause live updates" / "Resume live updates" button
 
 ## EntryCard
 The card name is an `h3`.
-Props: `entry: FollowedEntry`, `game: GameInfo | null`, `profiles: Profile[]`, `hasSchedule: boolean`, `paused?: boolean` (stops live polling), `onMove(entry, toProfileId)`, `onRemove(entry, button)`.
+Props: `entry: FollowedEntry`, `game: GameInfo | null`, `profiles: Profile[]`, `hasSchedule: boolean`, `paused?: boolean` (stops live polling), `movable?: boolean` (default true; the League select, named "League for {name}", renders only when movable and not an opponent card), `onMove?(entry, toProfileId)` (used by the select), `onRemove(entry, button)`.
 States: live (wide, mini field, situation and last play), live in the red zone (orange outline and "Red zone" label, only for offensive players of the team with the ball), final (result line), scheduled (kickoff time, "No stats until kickoff"), bye, no stats, breakdown open, retry note.
 
-Props include `movable` (default true) and an optional `onMove`; the League select (named "League for {name}") renders only when movable and not an opponent card. Opponent variant: an entry with `side: 'opponent'` renders the same content without the league select (opponent cards never move between leagues), and its Remove button is named "Remove {name} from opponent side, {league}". Cards are keyed by `entryKey` from `src/storage/followed.ts` (`kind:espnId:profileId`, plus `:opponent` for opponent entries).
+Opponent variant: an entry with `side: 'opponent'` renders the same content without the league select (opponent cards never move between leagues), and its Remove button is named "Remove {name} from opponent side, {league}". Cards are keyed by `entryKey` from `src/storage/followed.ts` (`kind:espnId:profileId`, plus `:opponent` for opponent entries).
 
 ## MiniField
 Props: `game: GameInfo`, `situation: Situation`.
@@ -49,7 +49,7 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 
 ## Focus management
 - After a link navigation (not on first load, not on redirects) focus moves to the page heading (`data-page-title`, `tabindex="-1"`): the visually hidden "Players" `h2` on the main page, the visually hidden "Matchup" `h2` on the vs page, "Scoring profiles" on settings.
-- On the vs page, Remove (or moving one of my cards to another league) focuses the next card's points button in the same column, else the previous one, else that column's Add player button. Closing the add dialog returns focus to the Add player button that opened it.
+- On the vs page, Remove focuses the next card's points button in the same column, else the previous one, else that column's Add player button. Closing the add dialog returns focus to the Add player button that opened it.
 - Remove on a card focuses the next card's points button, else the previous card's, else the header "Add player" button.
 - Changing the league on a card keeps focus on that card's league select (the card remounts under its new key).
 - Deleting a profile in settings focuses the newly selected profile's list button.
@@ -60,4 +60,4 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 - The card Remove link is at least 24px by 24px.
 - Forced colors: the field, endzones, line of scrimmage, ball, red zone card outline and the selected profile use borders and system colors (CanvasText, Highlight).
 - Press scale does not apply to `aria-disabled` buttons.
-- Score bar: sticky at the top, panel background, a 2px `--field-border` bottom border (5.4:1 light, 8.1:1 dark against the page background). The leader is stated in text, never by color. Below 720px it is two lines (and it stops sticking on viewports shorter than 30em) (both totals, then the status), one line above. `html:has(.score-bar)` sets `scroll-padding-top` to `var(--score-bar-h)` plus 8px, with 112px (below 720px) and 72px fallbacks until the measurement runs, so a focused card never hides under it (WCAG 2.4.11), including with text zoom or text spacing. Forced colors: Canvas background, CanvasText text and border.
+- Score bar: sticky at the top, panel background, a 2px `--field-border` bottom border (5.4:1 light, 8.1:1 dark against the page background). The leader is stated in text, never by color. Below 720px it is two lines (both totals, then the status), one line above. On viewports shorter than 30em it stops sticking. `html:has(.score-bar)` sets `scroll-padding-top` to `var(--score-bar-h)` plus 8px, with 112px (below 720px) and 72px fallbacks until the measurement runs, so a focused card never hides under it (WCAG 2.4.11), including with text zoom or text spacing. Forced colors: Canvas background, CanvasText text and border.

@@ -61,10 +61,10 @@ Cards on /vs have no league select (a deliberate accessibility deviation from th
  +------------------------------+-----------------------------------+
 ```
 
-- A league picker (native select, labelled "League") chooses the matchup. It defaults to the first league and the choice is kept in memory only (React state, not persisted).
+- A league picker (native select, labelled "Matchup league") chooses the matchup. It defaults to the first league and the choice is kept in memory only (React state, not persisted).
 - Two columns (`.vs-col`) from 720px width up, each its own list. Below 720px the columns stack, mine first, and the score bar stays sticky at the top (`position: sticky`, token colors, a bottom border that meets 3:1).
 - Each column header has its own Add button; the page header also exposes the shared Pause toggle (reused from the Players page).
-- Cards reuse `EntryCard`. Opponent cards render the same content but WITHOUT the league select (they cannot move). Remove works on both sides and deletes only that entry.
+- Cards reuse `EntryCard`. No card on /vs has a league select (see the deviation note above): opponent cards cannot move, and moving my cards stays on the Players page. Remove works on both sides and deletes only that entry.
 - Within a column cards are ordered by the game groups already used (live first, then final, later, bye), flattened into one list per side with a small status per card already present in the card. No group headings inside columns (columns are narrow); the score bar and column headings carry the structure.
 - Empty states: an empty side shows a short message and its Add button ("No players on your side yet" / "No opponent players yet"). With both sides empty the score bar still renders with 0.00 vs 0.00 and "Tied".
 

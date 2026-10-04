@@ -1,10 +1,11 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import teams from '../test/fixtures/standings.json';
 import summary from '../test/fixtures/summary-pit-cle.json';
 import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
+import { addEntry } from '../storage/followed';
 import { renderAt, seed } from '../test/render';
 
 const routes = { scoreboard: scoreboardFixture, 'summary?event=401872964': summary };
@@ -56,7 +57,7 @@ describe('vs page', () => {
     await userEvent.selectOptions(picker(), 'Friends league');
     expect(within(mineCol()).getByText('Patrick Mahomes')).toBeInTheDocument();
     expect(within(oppCol()).getByText('No opponent players yet')).toBeInTheDocument();
-    await waitFor(() => expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00'));
+    expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00');
     const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
     expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme'].includes(k!))).toBe(true);
   });
@@ -136,7 +137,7 @@ describe('vs page', () => {
     seed([warren], profilesFixture);
     mockFetch({ scoreboard: status(500) });
     renderAt('/vs');
-    await waitFor(() => expect(statusLine()).toHaveTextContent(/^Live data unavailable, retrying\. You lead$|^Live data unavailable, retrying\. Tied$/));
+    await waitFor(() => expect(statusLine()).toHaveTextContent(/^Live data unavailable, retrying\. Tied$/));
   });
 
   it('shows Loading instead of a lead until the matchup has settled', async () => {
@@ -147,20 +148,34 @@ describe('vs page', () => {
     await waitFor(() => expect(bar()).toHaveTextContent('You lead by 15.60'));
   });
 
-  it('does not blank and re-announce when a card with an uncached summary is added', async () => {
+  it('does not blank or repeat the phrase when a card with an uncached, still loading summary is added', async () => {
+    const final = scoreboardFixture.events[0]!;
+    const kc = { ...final, id: '401872999', competitions: [{ competitors: [
+      { homeAway: 'home', score: '10', team: { id: '12', abbreviation: 'KC', displayName: 'Kansas City Chiefs', color: 'aa0000' } },
+      { homeAway: 'away', score: '3', team: { id: '13', abbreviation: 'LV', displayName: 'Las Vegas Raiders', color: '000000' } },
+    ] }] };
     seed([warren], profilesFixture);
-    mockFetch({ ...routes, 'search?query=bills': { items: [] }, standings: teams });
+    const board = { events: [...scoreboardFixture.events, kc] };
+    mockFetch({ ...routes, scoreboard: board, 'summary?event=401872999': summary });
+    const real = globalThis.fetch;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+      if (String(input).includes('summary?event=401872999')) await gate;
+      return real(input);
+    });
     renderAt('/vs');
     await waitFor(() => expect(statusLine()).toHaveTextContent(/^You lead$/));
     const seen: string[] = [];
     new MutationObserver(() => seen.push(statusLine().textContent ?? '')).observe(statusLine(), { childList: true, subtree: true, characterData: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Add player to opponent side' }));
-    const dialog = screen.getByRole('dialog');
-    await userEvent.type(within(dialog).getByLabelText('Search'), 'bills');
-    await userEvent.click(await within(dialog).findByRole('button', { name: 'Add Buffalo Bills, team defense' }));
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
-    expect(within(oppCol()).getByText('Buffalo Bills')).toBeInTheDocument();
-    expect(seen.filter((t) => t === '')).toEqual([]);
+    act(() => addEntry({ ...mahomes, profileId: 'p1', side: 'opponent' }));
+    await within(oppCol()).findByText('Patrick Mahomes');
+    await new Promise((r) => setTimeout(r, 30)); // the new card's summary is still gated here
+    expect(statusLine()).toHaveTextContent(/^You lead$/);
+    release();
+    await waitFor(() => expect(bar()).toHaveTextContent('Opponent'));
+    await new Promise((r) => setTimeout(r, 30));
+    expect(seen.filter((t) => t !== 'You lead')).toEqual([]);
   });
 
   it('stays silent about the leader until the matchup data has settled, then announces it once', async () => {

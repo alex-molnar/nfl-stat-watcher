@@ -45,7 +45,6 @@ export function VsPage() {
   if (settled) latch.current.done = true;
   const announced = latch.current.done;
   const phrase = announced && mine.length + opponent.length > 0 ? LEADER_TEXT[leader] : '';
-  const noteText = note?.replace(/\.$/, '') ?? '';
 
   // Scroll padding follows the bar's real height (it wraps with long names, text zoom and text spacing),
   // so a focused card never sits under the sticky bar (WCAG 2.4.11). CSS has a fallback until this runs.
@@ -130,8 +129,8 @@ export function VsPage() {
         </label>
         {/* The one status line: the page note, plus the leader, which changes only when the lead changes hands. */}
         <p className="page-note" role="status">
-          {phrase ? noteText : note}
-          <span className="sr">{phrase ? `${noteText ? '. ' : ''}${phrase}` : ''}</span>
+          {note}
+          <span className="sr">{phrase ? `${!note ? '' : note.endsWith('.') ? ' ' : '. '}${phrase}` : ''}</span>
         </p>
         <ScoreBar ref={barRef} settled={announced} mine={totals.mine} opponent={totals.opponent} />
         <div className="vs">
