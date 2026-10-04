@@ -317,7 +317,9 @@ describe('live ordering', () => {
     mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
     renderAt('/');
     const card = (name: string) => screen.getByText(name).closest('.card')!;
-    await waitFor(() => expect(card('SF runner')).toHaveClass('is-rz', 'on-field'));
+    await waitFor(() => expect(card('SF runner')).toHaveClass('is-rz'));
+    expect(card('SF runner')).not.toHaveClass('on-field');
+    expect(within(card('SF runner') as HTMLElement).getByText('Offense on the field')).toBeInTheDocument();
     expect(card('Denver D/ST')).toHaveClass('on-field');
     expect(card('Denver D/ST')).not.toHaveClass('is-rz');
     expect(card('DEN receiver')).not.toHaveClass('on-field');

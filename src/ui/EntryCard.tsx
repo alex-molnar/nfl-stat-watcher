@@ -66,7 +66,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   return (
     <li
       data-entry={entryKey(entry)}
-      className={`card${live ? ' live' : ''}${onField ? ' on-field' : ''}${redZone ? ' is-rz' : ''}${paused ? ' still' : ''}`}
+      className={`card${live ? ' live' : ''}${onField && !redZone ? ' on-field' : ''}${redZone ? ' is-rz' : ''}${paused ? ' still' : ''}`}
       style={{ '--team': color, '--team-ink': textOn(color) } as CSSProperties}
     >
       <div className="hd">
