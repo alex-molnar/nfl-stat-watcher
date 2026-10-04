@@ -63,9 +63,9 @@ export function EntryCard({ entry, game, profiles, hasSchedule }: Props) {
       <div className="hd">
         <div className="badge" aria-hidden="true">{entry.teamAbbr}</div>
         <div className="id">
-          <p className="nm">{entry.name}</p>
+          <h3 className="nm">{entry.name}</h3>
           <div className="sub">
-            <span>{versus ? `${role}, ${versus}` : role}</span>
+            <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
             <span className="chip">{profile.name}</span>
           </div>
         </div>
@@ -73,7 +73,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule }: Props) {
           type="button"
           className="pts press"
           aria-expanded={open}
-          aria-label={`${total} fantasy points in ${profile.name}, show breakdown`}
+          aria-label={`${total} fantasy pts, ${profile.name} breakdown`}
           onClick={() => setOpen((o) => !o)}
         >
           <Bump value={total} />

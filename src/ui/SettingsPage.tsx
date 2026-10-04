@@ -6,6 +6,7 @@ import { followedStore } from '../storage/followed';
 import { addProfile, applyPreset, deleteProfile, profilesStore, renameProfile, setTier, setValue } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { Header } from './Header';
+import { usePageTitle } from './usePageTitle';
 
 function NumberField({ label, value, step, onChange }: { label: string; value: number; step: number; onChange: (n: number) => void }) {
   const [text, setText] = useState(String(value));
@@ -158,6 +159,7 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
 }
 
 export function SettingsPage() {
+  usePageTitle('Settings');
   const profiles = useStore(profilesStore);
   const followed = useStore(followedStore);
   const [selectedId, setSelectedId] = useState(profiles[0]!.id);

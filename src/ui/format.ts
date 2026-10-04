@@ -58,12 +58,12 @@ function luminance(hex: string): number {
   return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
 }
 
-/** White or near-black text, whichever has more contrast on the team color. */
-export function textOn(hex: string): '#ffffff' | '#111111' {
+/** White or black text, whichever has more contrast on the team color. */
+export function textOn(hex: string): '#ffffff' | '#000000' {
   const l = luminance(hex);
   const onWhite = 1.05 / (l + 0.05);
-  const onDark = (l + 0.05) / (luminance('#111111') + 0.05);
-  return onWhite >= onDark ? '#ffffff' : '#111111';
+  const onDark = (l + 0.05) / (luminance('#000000') + 0.05);
+  return onWhite >= onDark ? '#ffffff' : '#000000';
 }
 
 export function resultText(game: GameInfo, teamId: string): string {

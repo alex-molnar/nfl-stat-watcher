@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { freshness, useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
 import { followedStore, withValidProfiles } from '../storage/followed';
@@ -7,6 +7,7 @@ import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
+import { usePageTitle } from './usePageTitle';
 
 const GROUPS = [
   { key: 'in', title: 'Live now' },
@@ -16,6 +17,7 @@ const GROUPS = [
 ] as const;
 
 export function MainPage() {
+  usePageTitle('Players');
   const profiles = useStore(profilesStore);
   const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id));
   const scoreboard = useScoreboard();
@@ -25,21 +27,29 @@ export function MainPage() {
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
   const note = freshness(scoreboard.isError, scoreboard.dataUpdatedAt);
 
-  const addButton = (
-    <button type="button" className="btn btn-primary press" onClick={() => setAdding(true)}>
+  const opener = useRef<HTMLElement | null>(null);
+  const headerAdd = useRef<HTMLButtonElement>(null);
+  const addButton = (ref?: React.Ref<HTMLButtonElement>) => (
+    <button type="button" ref={ref} className="btn btn-primary press" onClick={(e) => { opener.current = e.currentTarget; setAdding(true); }}>
       Add player
     </button>
   );
 
+  // When the opener was unmounted (adding from the empty state), hand focus to the header button.
+  function closeDialog() {
+    setAdding(false);
+    if (!opener.current?.isConnected) headerAdd.current?.focus();
+  }
+
   return (
     <>
-      <Header actions={addButton} />
+      <Header actions={addButton(headerAdd)} />
       <main className="wrap">
-        {note && <p className="page-note">{note}</p>}
+        <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
           <div className="empty">
             <p>You're not following anyone yet. Add players or team defenses from any of your leagues.</p>
-            {addButton}
+            {addButton()}
           </div>
         ) : scoreboard.isPending ? (
           // Wait for the schedule so cards do not jump between groups after mounting.
@@ -69,7 +79,7 @@ export function MainPage() {
           })
         )}
       </main>
-      <AddDialog open={adding} onClose={() => setAdding(false)} />
+      <AddDialog open={adding} onClose={closeDialog} />
     </>
   );
 }

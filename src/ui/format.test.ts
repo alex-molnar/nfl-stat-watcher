@@ -48,8 +48,8 @@ describe('textOn', () => {
   it('picks readable text for dark and light team colors', () => {
     expect(textOn('#000000')).toBe('#ffffff');
     expect(textOn('#aa0000')).toBe('#ffffff');
-    expect(textOn('#d3bc8d')).toBe('#111111'); // Saints gold
-    expect(textOn('#ffb612')).toBe('#111111');
+    expect(textOn('#d3bc8d')).toBe('#000000'); // Saints gold
+    expect(textOn('#ffb612')).toBe('#000000');
   });
 });
 

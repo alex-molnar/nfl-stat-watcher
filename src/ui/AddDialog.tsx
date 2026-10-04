@@ -10,6 +10,7 @@ import type { FollowedEntry } from '../storage/types';
 
 export function AddDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const profiles = useStore(profilesStore);
   const followed = useStore(followedStore);
   const [query, setQuery] = useState('');
@@ -21,7 +22,10 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      inputRef.current?.focus();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -48,16 +52,27 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
     addEntry({ kind: 'defense', espnId: t.id, name: t.displayName, teamId: t.id, teamAbbr: t.abbreviation, position: 'D/ST', profileId });
   }
 
-  const addButton = (name: string, done: boolean, disabled: boolean, onClick: () => void) => (
-    <button type="button" className="add press" disabled={done || disabled} onClick={onClick} aria-label={done ? `${name} added` : `Add ${name}`}>
+  // aria-disabled, not disabled, so focus stays on the button after it is pressed.
+  const addButton = (name: string, meta: string, done: boolean, disabled: boolean, onClick: () => void) => (
+    <button
+      type="button"
+      className="add press"
+      aria-disabled={done || disabled || undefined}
+      onClick={() => { if (!done && !disabled) onClick(); }}
+      aria-label={done ? `${name} added` : `Add ${name}, ${meta}`}
+    >
       {done ? 'Added' : 'Add'}
     </button>
   );
 
   let message: string | null = null;
   if (term.length < 2) message = 'Type at least 2 letters.';
-  else if (search.isError) message = 'Search is unavailable right now. Try again in a moment.';
+  else if (search.isError || teams.isError) message = 'Search is unavailable right now. Try again in a moment.';
   else if (!search.isFetching && hits.length === 0 && defenses.length === 0) message = `No NFL player or team matches "${term}".`;
+
+  const searching = term.length >= 2 && search.isFetching;
+  const count = hits.length + defenses.length;
+  const summary = message ?? (searching ? 'Searching' : `${count} ${count === 1 ? 'result' : 'results'}`);
 
   return (
     <dialog ref={ref} aria-labelledby="add-title" onClose={onClose}>
@@ -68,7 +83,7 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
         </div>
         <label className="field-label">
           Search
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" autoFocus />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" ref={inputRef} />
         </label>
         <label className="field-label">
           League
@@ -76,11 +91,12 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
             {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-        <ul className="results" aria-live="polite">
+        <p role="status" className={message ? 'muted msg' : 'sr'}>{summary}</p>
+        <ul className="results">
           {defenses.map((t) => (
             <li key={`d${t.id}`}>
               <span className="r"><b>{t.displayName}</b><small>Team defense</small></span>
-              {addButton(t.displayName, isFollowed('defense', t.id), false, () => addDefense(t))}
+              {addButton(t.displayName, 'team defense', isFollowed('defense', t.id), false, () => addDefense(t))}
             </li>
           ))}
           {hits.map((h, i) => {
@@ -89,11 +105,10 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
             return (
               <li key={`p${h.id}`}>
                 <span className="r"><b>{h.displayName}</b><small>{meta}</small></span>
-                {addButton(h.displayName, isFollowed('player', h.id), !a?.team, () => addPlayer(i))}
+                {addButton(h.displayName, meta, isFollowed('player', h.id), !a?.team, () => addPlayer(i))}
               </li>
             );
           })}
-          {message && <li className="muted">{message}</li>}
         </ul>
       </div>
     </dialog>

@@ -2,6 +2,7 @@ import { act, screen, within } from '@testing-library/react';
 import { onlineManager } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
+import teams from '../test/fixtures/standings.json';
 import summary from '../test/fixtures/summary-pit-cle.json';
 import { mahomes, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
@@ -27,7 +28,8 @@ describe('main page', () => {
   it('shows the breakdown', async () => {
     mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
     renderAt('/');
-    await userEvent.click(await screen.findByRole('button', { name: /15\.60 fantasy points in Office league/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /^15\.60 fantasy pts, Office league breakdown$/ }));
+    expect(within(card('Jaylen Warren')).getByRole('button', { name: /fantasy pts, Office league breakdown/ })).toHaveAttribute('aria-expanded', 'true');
     expect(within(card('Jaylen Warren')).getByText('Rushing yards')).toBeInTheDocument();
     expect(within(card('Jaylen Warren')).getByText('+9.30')).toBeInTheDocument();
   });
@@ -109,5 +111,38 @@ describe('main page', () => {
     expect(screen.getAllByText('Game status unavailable')).toHaveLength(3);
     expect(screen.getByText('Live data unavailable, retrying')).toBeInTheDocument();
     expect(within(card('Jaylen Warren')).getByText('0.00')).toBeInTheDocument();
+  });
+
+  it('names the points button after its visible text', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    const btn = await screen.findByRole('button', { name: /^15\.60 fantasy pts/ });
+    expect(btn).toHaveTextContent('15.60fantasy pts');
+  });
+
+  it('gives each card a heading and the team abbreviation in text', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    expect(await screen.findByRole('heading', { name: 'Jaylen Warren', level: 3 })).toBeInTheDocument();
+    expect(within(card('Jaylen Warren')).getByText('PIT RB, at CLE')).toBeInTheDocument();
+  });
+
+  it('keeps a page-level status region that announces the retry note', async () => {
+    mockFetch({ scoreboard: status(500) });
+    renderAt('/');
+    const region = screen.getAllByRole('status').find((el) => el.classList.contains('page-note'))!;
+    expect(region).toBeInTheDocument();
+    expect(await screen.findByText('Live data unavailable, retrying')).toBe(region);
+  });
+
+  it('focuses the header Add player button when the dialog closes and the opener is gone', async () => {
+    seed([], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, standings: teams });
+    renderAt('/');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Add player' })[1]!);
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    await userEvent.click(await screen.findByRole('button', { name: /^Add Buffalo Bills/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByRole('button', { name: 'Add player' })).toHaveFocus();
   });
 });

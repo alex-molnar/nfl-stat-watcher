@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import teams from '../test/fixtures/standings.json';
 import { profilesFixture, scoreboardFixture } from '../test/data';
@@ -12,6 +12,8 @@ const search = {
   ],
 };
 const allen = { athlete: { id: '3918298', displayName: 'Josh Allen', jersey: '17', position: { abbreviation: 'QB' }, team: { id: '2', abbreviation: 'BUF' } } };
+const twoNfl = { items: [search.items[0], { id: '4892153', displayName: 'Josh Allen', league: 'nfl' }] };
+const wyo = { athlete: { ...allen.athlete, id: '4892153', team: { id: '9', abbreviation: 'WYO' } } };
 const stored = () => JSON.parse(localStorage.getItem('nflsw:v1:followed') ?? '[]');
 
 async function openDialog() {
@@ -30,16 +32,20 @@ describe('add dialog', () => {
     await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
     expect(await screen.findByText('BUF QB')).toBeInTheDocument();
     expect(screen.getAllByText('Josh Allen')).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', { name: 'Add Josh Allen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add Josh Allen, BUF QB' }));
     expect(stored()).toEqual([{ kind: 'player', espnId: '3918298', name: 'Josh Allen', teamId: '2', teamAbbr: 'BUF', position: 'QB', jersey: '17', profileId: 'p2' }]);
-    expect(screen.getByRole('button', { name: 'Josh Allen added' })).toBeDisabled();
+    const added = screen.getByRole('button', { name: 'Josh Allen added' });
+    expect(added).toHaveAttribute('aria-disabled', 'true');
+    expect(added).toHaveFocus();
+    await userEvent.click(added);
+    expect(stored()).toHaveLength(1);
   });
 
   it('finds a team defense by nickname', async () => {
     mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, standings: teams });
     await openDialog();
     await userEvent.type(screen.getByLabelText('Search'), 'bills');
-    await userEvent.click(await screen.findByRole('button', { name: 'Add Buffalo Bills' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Add Buffalo Bills, team defense' }));
     expect(stored()[0]).toMatchObject({ kind: 'defense', espnId: '2', teamId: '2', teamAbbr: 'BUF', position: 'D/ST', profileId: 'p1' });
   });
 
@@ -62,5 +68,36 @@ describe('add dialog', () => {
     const dialog = await openDialog();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(dialog).not.toHaveAttribute('open');
+  });
+
+  it('says search is unavailable when the team list fails to load', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, standings: status(500) });
+    await openDialog();
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    expect(await screen.findByText('Search is unavailable right now. Try again in a moment.')).toBeInTheDocument();
+    expect(screen.queryByText(/No NFL player or team matches/)).not.toBeInTheDocument();
+  });
+
+  it('puts focus in the search field on open', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, standings: teams });
+    await openDialog();
+    expect(screen.getByLabelText('Search')).toHaveFocus();
+  });
+
+  it('announces a result count through one status region, not a live list', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=josh%20allen': twoNfl, 'athletes/3918298': allen, 'athletes/4892153': wyo, standings: teams });
+    const dialog = await openDialog();
+    expect(dialog.querySelector('.results')).not.toHaveAttribute('aria-live');
+    await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
+    const status = within(dialog).getByRole('status');
+    await waitFor(() => expect(status).toHaveTextContent('2 results'));
+  });
+
+  it('tells two same-named players apart by team and position', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=josh%20allen': twoNfl, 'athletes/3918298': allen, 'athletes/4892153': wyo, standings: teams });
+    await openDialog();
+    await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
+    expect(await screen.findByRole('button', { name: 'Add Josh Allen, BUF QB' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Add Josh Allen, WYO QB' })).toBeInTheDocument();
   });
 });

@@ -12,6 +12,13 @@ describe('app shell', () => {
     expect(screen.queryByRole('heading', { name: 'Scoring profiles' })).not.toBeInTheDocument();
   });
 
+  it('sets a title per page', async () => {
+    renderAt('/');
+    expect(document.title).toBe('Players · Stat Watch');
+    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    expect(document.title).toBe('Settings · Stat Watch');
+  });
+
   it('toggles and stores the theme', async () => {
     document.documentElement.dataset.theme = 'light';
     renderAt('/');
