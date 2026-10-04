@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { FIELD_GROUPS } from '../scoring/fields';
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
-import { followedStore } from '../storage/followed';
+import { followedStore, sideOf } from '../storage/followed';
 import { addProfile, applyPreset, deleteProfile, profilesStore, renameProfile, setTier, setValue } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { Header } from './Header';
@@ -87,7 +87,7 @@ function NameField({ profile, others }: { profile: Profile; others: Profile[] })
   );
 }
 
-function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profile; profiles: Profile[]; usedBy: number; onDeleted: (moveTo: string) => void }) {
+function ProfileForm({ profile, profiles, usedBy, opponents, onDeleted }: { profile: Profile; profiles: Profile[]; usedBy: number; opponents: number; onDeleted: (moveTo: string) => void }) {
   const others = profiles.filter((p) => p.id !== profile.id);
   const [deleting, setDeleting] = useState(false);
   const [moveTo, setMoveTo] = useState(others[0]?.id ?? '');
@@ -157,13 +157,15 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
           {usedBy > 0 ? (
             <label className="field-label">
               {`Move ${usedBy} followed ${usedBy === 1 ? 'card' : 'cards'} to`}
-              <select value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+              <select value={moveTo} aria-describedby={opponents > 0 ? 'confirm-opponents' : undefined} onChange={(e) => setMoveTo(e.target.value)}>
                 {others.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
           ) : (
             <p id="confirm-question">Delete {profile.name}? No followed cards use it.</p>
           )}
+          {/* Opponent cards belong to this league, so they are removed with it, never moved. */}
+          {opponents > 0 && <p id="confirm-opponents">{`Also removes ${opponents} opponent ${opponents === 1 ? 'card' : 'cards'}.`}</p>}
           <button
             type="button"
             className="btn btn-danger"
@@ -176,7 +178,7 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
           <button
             ref={cancelBtn}
             type="button"
-            aria-describedby={usedBy > 0 ? undefined : 'confirm-question'}
+            aria-describedby={[usedBy > 0 ? '' : 'confirm-question', opponents > 0 ? 'confirm-opponents' : ''].filter(Boolean).join(' ') || undefined}
             className="btn"
             onClick={() => {
               pendingFocus.current = 'delete';
@@ -197,6 +199,8 @@ export function SettingsPage() {
   const followed = useStore(followedStore);
   const [selectedId, setSelectedId] = useState(profiles[0]!.id);
   const profile = profiles.find((p) => p.id === selectedId) ?? profiles[0]!;
+  const inProfile = followed.filter((f) => f.profileId === profile.id);
+  const opponents = inProfile.filter((f) => sideOf(f) === 'opponent').length;
 
   // After a delete the removed list button is gone, so focus the newly selected profile.
   const refocusProfile = useRef<string | null>(null);
@@ -231,7 +235,8 @@ export function SettingsPage() {
             key={profile.id}
             profile={profile}
             profiles={profiles}
-            usedBy={followed.filter((f) => f.profileId === profile.id).length}
+            usedBy={inProfile.length - opponents}
+            opponents={opponents}
             onDeleted={(id) => {
               refocusProfile.current = id;
               setSelectedId(id);

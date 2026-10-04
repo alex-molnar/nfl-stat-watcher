@@ -3,7 +3,7 @@ import { freshness, useAthlete, useGameSummary } from '../hooks/queries';
 import { scoreEntry } from '../scoring/score';
 import type { Profile } from '../scoring/types';
 import type { GameInfo } from '../stats/scoreboard';
-import { updateEntryTeam } from '../storage/followed';
+import { entryKey, updateEntryTeam } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
 import { Bump } from './Bump';
 import { MiniField } from './MiniField';
@@ -18,8 +18,6 @@ interface Props {
   onMove: (entry: FollowedEntry, toProfileId: string) => void;
   onRemove: (entry: FollowedEntry, button: HTMLElement) => void;
 }
-
-export const entryKey = (e: Pick<FollowedEntry, 'kind' | 'espnId' | 'profileId'>) => `${e.kind}:${e.espnId}:${e.profileId}`;
 
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 

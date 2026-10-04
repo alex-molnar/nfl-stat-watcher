@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { AppRoutes } from '../App';
 import summary from '../test/fixtures/summary-pit-cle.json';
-import { profilesFixture, scoreboardFixture, warren } from '../test/data';
+import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 
@@ -259,5 +259,26 @@ describe('settings page', () => {
     unmount();
     renderAt('/');
     expect(await screen.findByText('12.60')).toBeInTheDocument();
+  });
+
+  it('says how many opponent cards a delete removes and counts only my cards to move', async () => {
+    seed([warren, opponent(pitDefense), opponent({ ...mahomes, profileId: 'p1' })], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    const select = screen.getByLabelText('Move 1 followed card to');
+    expect(select).toHaveFocus();
+    expect(screen.getByText('Also removes 2 opponent cards.')).toBeInTheDocument();
+    expect(select).toHaveAccessibleDescription('Also removes 2 opponent cards.');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Office league' }));
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([{ ...warren, profileId: 'p2' }]);
+  });
+
+  it('describes Cancel with the opponent count when no cards of mine use the profile', async () => {
+    seed([opponent(warren)], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription(
+      'Delete Office league? No followed cards use it. Also removes 1 opponent card.',
+    );
   });
 });

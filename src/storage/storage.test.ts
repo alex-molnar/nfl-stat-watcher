@@ -2,13 +2,17 @@ import { vi } from 'vitest';
 import { PRESETS, copyValues } from '../scoring/presets';
 import type { Profile } from '../scoring/types';
 import type { FollowedEntry } from './types';
-import { addEntry, followedStore, moveEntry, removeEntry, updateEntryTeam, withValidProfiles } from './followed';
+import { addEntry, entryKey, followedStore, moveEntry, removeEntry, sideOf, updateEntryTeam, withValidProfiles } from './followed';
+import { opponent } from '../test/data';
 import { addProfile, applyPreset, deleteProfile, profilesStore, setTier, setValue } from './profiles';
 import { followSystemTheme, setTheme, themeStore } from './theme';
 import { reloadAllStores } from './store';
 
 const purdy = (profileId: string): FollowedEntry => ({
   kind: 'player', espnId: '4361741', name: 'Brock Purdy', teamId: '25', teamAbbr: 'SF', position: 'QB', jersey: '13', profileId,
+});
+const kelce = (profileId: string): FollowedEntry => ({
+  kind: 'player', espnId: '15847', name: 'Travis Kelce', teamId: '12', teamAbbr: 'KC', position: 'TE', jersey: '87', profileId,
 });
 const profile = (id: string, name: string): Profile => ({ id, name, preset: 'ppr', values: copyValues(PRESETS.ppr) });
 const seedProfiles = (...ps: Profile[]) => {
@@ -228,5 +232,88 @@ describe('system theme', () => {
   it('does nothing without matchMedia', () => {
     vi.stubGlobal('matchMedia', undefined);
     expect(() => followSystemTheme()()).not.toThrow();
+  });
+});
+
+describe('opponent entries', () => {
+  it('loads entries stored before vs mode unchanged', () => {
+    seedProfiles(profile('p1', 'Office'));
+    const raw = JSON.stringify([purdy('p1')]);
+    localStorage.setItem('nflsw:v1:followed', raw);
+    reloadAllStores();
+    expect(followedStore.get()).toEqual([purdy('p1')]);
+    expect(sideOf(followedStore.get()[0]!)).toBe('mine');
+    expect(localStorage.getItem('nflsw:v1:followed')).toBe(raw);
+  });
+
+  it('accepts side opponent and rejects any other side value', () => {
+    seedProfiles(profile('p1', 'Office'));
+    localStorage.setItem('nflsw:v1:followed', JSON.stringify([opponent(purdy('p1'))]));
+    reloadAllStores();
+    expect(followedStore.get()).toEqual([opponent(purdy('p1'))]);
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    for (const side of ['mine', 'theirs', null, 1]) {
+      localStorage.setItem('nflsw:v1:followed', JSON.stringify([{ ...purdy('p1'), side }]));
+      reloadAllStores();
+      expect(followedStore.get()).toEqual([]);
+    }
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('keys my entries as before and opponent entries with a suffix', () => {
+    expect(entryKey(purdy('p1'))).toBe('player:4361741:p1');
+    expect(entryKey(opponent(purdy('p1')))).toBe('player:4361741:p1:opponent');
+  });
+
+  it('keeps the same player on both sides of one league apart', () => {
+    addEntry(purdy('p1'));
+    addEntry(opponent(purdy('p1')));
+    addEntry(opponent(purdy('p1')));
+    expect(followedStore.get()).toEqual([purdy('p1'), opponent(purdy('p1'))]);
+    removeEntry(opponent(purdy('p1')));
+    expect(followedStore.get()).toEqual([purdy('p1')]);
+  });
+
+  it('never moves an opponent entry, and moving mine leaves the opponent copy alone', () => {
+    addEntry(purdy('p1'));
+    addEntry(opponent(purdy('p1')));
+    moveEntry(opponent(purdy('p1')), 'p2');
+    expect(followedStore.get()).toEqual([purdy('p1'), opponent(purdy('p1'))]);
+    moveEntry(purdy('p1'), 'p2');
+    expect(followedStore.get()).toEqual([purdy('p2'), opponent(purdy('p1'))]);
+  });
+
+  it('updates the team on both sides after a trade', () => {
+    addEntry(purdy('p1'));
+    addEntry(opponent(purdy('p1')));
+    updateEntryTeam('4361741', { teamId: '7', teamAbbr: 'DEN', position: 'QB', jersey: '10' });
+    expect(followedStore.get().every((e) => e.teamAbbr === 'DEN')).toBe(true);
+  });
+
+  it('drops opponent entries of a missing profile and still moves mine', () => {
+    expect(withValidProfiles([purdy('gone'), opponent(kelce('gone')), opponent(purdy('p1'))], ['p1', 'p2'])).toEqual([
+      purdy('p1'),
+      opponent(purdy('p1')),
+    ]);
+  });
+
+  it('removes the deleted league\'s opponent entries and moves mine', () => {
+    seedProfiles(profile('p1', 'Office'), profile('p2', 'Friends'));
+    addEntry(purdy('p1'));
+    addEntry(opponent(purdy('p1')));
+    addEntry(opponent(kelce('p2')));
+    expect(deleteProfile('p1', 'p2')).toBe(true);
+    expect(followedStore.get()).toEqual([purdy('p2'), opponent(kelce('p2'))]);
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([purdy('p2'), opponent(kelce('p2'))]);
+  });
+
+  it('drops orphaned opponent entries from storage when profiles fall back to a default', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.setItem('nflsw:v1:followed', JSON.stringify([purdy('gone'), opponent(kelce('gone'))]));
+    localStorage.setItem('nflsw:v1:profiles', '{');
+    reloadAllStores();
+    const id = profilesStore.get()[0]!.id;
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([purdy(id)]);
   });
 });
