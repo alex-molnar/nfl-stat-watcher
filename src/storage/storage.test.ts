@@ -4,7 +4,7 @@ import type { Profile } from '../scoring/types';
 import type { FollowedEntry } from './types';
 import { addEntry, entryKey, followedStore, moveEntry, removeEntry, sideOf, updateEntryTeam, withValidProfiles } from './followed';
 import { opponent } from '../test/data';
-import { addProfile, applyPreset, deleteProfile, profilesStore, setTier, setValue } from './profiles';
+import { addProfile, applyPreset, deleteProfile, profilesStore, setPointsAllowedBand, setRuleEnabled, setTier, setValue } from './profiles';
 import { followSystemTheme, setTheme, themeStore } from './theme';
 import { reloadAllStores } from './store';
 
@@ -84,6 +84,28 @@ describe('store loading', () => {
   });
 });
 
+describe('rule switches and migrated fields', () => {
+  it('turns a rule off and on without losing its weight', () => {
+    const id = profilesStore.get()[0]!.id;
+    setRuleEnabled(id, 'passTd', false);
+    expect(profilesStore.get()[0]!.values.off).toEqual(['passTd']);
+    expect(profilesStore.get()[0]!.values.passTd).toBe(4);
+    expect(profilesStore.get()[0]!.preset).toBe('custom');
+    setRuleEnabled(id, 'passTd', true);
+    expect(profilesStore.get()[0]!.values.off).toBeUndefined();
+  });
+
+  it('splits a stored single 50+ yard kick value into 50-59 and 60+ and drops unknown switches', () => {
+    const { fg50to59: _a, fg60plus: _b, ...legacy } = copyValues(PRESETS.ppr);
+    seedProfiles({ id: 'p1', name: 'Old', preset: 'custom', values: { ...legacy, fg50plus: 7, off: ['passTd', 'nonsense'] } as never });
+    const values = profilesStore.get()[0]!.values;
+    expect(values.fg50to59).toBe(7);
+    expect(values.fg60plus).toBe(7);
+    expect(values.off).toEqual(['passTd']);
+    expect(values.passTd40).toBe(0);
+  });
+});
+
 describe('followed entries', () => {
   it('ignores an exact duplicate but allows the same player in another profile', () => {
     addEntry(purdy('p1'));
@@ -156,6 +178,17 @@ describe('profiles', () => {
     expect(p.preset).toBe('standard');
     expect(p.values.reception).toBe(0);
     expect(p.values.passTd).toBe(4);
+  });
+
+  it('edits imported points-allowed bands and clears them when applying a preset', () => {
+    const id = profilesStore.get()[0]!.id;
+    profilesStore.set(profilesStore.get().map((p) => ({ ...p, values: { ...p.values, pointsAllowedBands: [
+      { min: 0, max: 17, points: 2 }, { min: 18, max: null, points: -2 },
+    ] } })));
+    setPointsAllowedBand(id, 1, 'points', -4);
+    expect(profilesStore.get()[0]!.values.pointsAllowedBands?.[1]?.points).toBe(-4);
+    applyPreset(id, 'standard');
+    expect(profilesStore.get()[0]!.values.pointsAllowedBands).toBeUndefined();
   });
 
   it('refuses to delete the last profile', () => {

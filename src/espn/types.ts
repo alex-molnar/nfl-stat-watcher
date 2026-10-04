@@ -58,13 +58,17 @@ export interface EspnPlay {
   id: string;
   text: string;
   scoringPlay?: boolean;
+  type?: { text?: string };
   start: EspnPlaySpot;
   end?: EspnPlaySpot;
 }
 
 export interface EspnSummary {
   header: { id: string; competitions: { competitors: EspnCompetitor[] }[] };
-  boxscore: { players?: { team: { id: string; abbreviation?: string }; statistics: EspnStatCategory[] }[] };
+  boxscore: {
+    players?: { team: { id: string; abbreviation?: string }; statistics: EspnStatCategory[] }[];
+    teams?: { team: { id: string }; statistics: { name: string; displayValue: string }[] }[];
+  };
   drives?: { previous?: { plays: EspnPlay[] }[]; current?: { plays: EspnPlay[] } };
 }
 

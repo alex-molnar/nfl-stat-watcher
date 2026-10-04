@@ -290,4 +290,28 @@ describe('settings page', () => {
       'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
     );
   });
+
+  it('switches a rule off, keeps its weight and scores nothing for it', async () => {
+    renderAt('/settings');
+    const toggle = within(fieldset('Offense')).getByRole('checkbox', { name: 'Count Passing TD' });
+    expect(toggle).toBeChecked();
+    await userEvent.click(toggle);
+    expect(within(fieldset('Offense')).getByLabelText('Passing TD')).toBeDisabled();
+    expect(profiles()[0].values.off).toEqual(['passTd']);
+    expect(profiles()[0].values.passTd).toBe(4);
+    await userEvent.click(within(fieldset('Offense')).getByRole('checkbox', { name: 'Count Passing TD' }));
+    expect(profiles()[0].values.off).toBeUndefined();
+  });
+
+  it('offers the bonus rules and says which ones the live feed cannot score', async () => {
+    renderAt('/settings');
+    await userEvent.click(screen.getByText('Offense bonuses', { selector: 'summary' }));
+    expect(within(fieldset('Offense bonuses')).getByLabelText('40+ yard passing TD')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Offense volume', { selector: 'summary' }));
+    expect(within(fieldset('Offense volume')).queryByText(/never scores/)).not.toBeInTheDocument();
+    const sacked = within(fieldset('Offense volume')).getByLabelText('Time sacked');
+    await userEvent.clear(sacked);
+    await userEvent.type(sacked, '-1');
+    expect(within(fieldset('Offense volume')).getByText(/never scores/)).toBeInTheDocument();
+  });
 });

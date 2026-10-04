@@ -80,6 +80,20 @@ describe('scoreDefense', () => {
     const cases: [number, number][] = [[0, 0], [1, 1], [6, 1], [7, 2], [13, 2], [14, 3], [20, 3], [21, 4], [27, 4], [28, 5], [34, 5], [35, 6], [52, 6]];
     for (const [pa, tier] of cases) expect(tierIndex(pa)).toBe(tier);
   });
+  it('scores explicit ESPN defense ranges at provider boundaries', () => {
+    const values = {
+      ...ppr,
+      pointsAllowedBands: [
+        { min: 0, max: 0, points: 10 }, { min: 1, max: 6, points: 4 }, { min: 7, max: 13, points: 1 },
+        { min: 14, max: 17, points: 0 }, { min: 18, max: 21, points: -1 }, { min: 22, max: 27, points: -3 },
+        { min: 28, max: 34, points: -5 }, { min: 35, max: 45, points: -6 }, { min: 46, max: null, points: -7 },
+      ],
+    };
+    const base = { sacks: 0, interceptions: 0, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 0 };
+    for (const [pointsAllowed, expected] of [[17, 0], [18, -1], [20, -1], [21, -1], [22, -3], [27, -3], [28, -5], [34, -5], [35, -6], [45, -6], [46, -7]] as const) {
+      expect(scoreDefense({ ...base, pointsAllowed }, values).total).toBe(expected);
+    }
+  });
 });
 
 describe('scoreEntry', () => {
@@ -91,5 +105,45 @@ describe('scoreEntry', () => {
   it('returns zero without game stats or without a box score line', () => {
     expect(scoreEntry(base, undefined, ppr)).toEqual({ total: 0, breakdown: [] });
     expect(scoreEntry({ ...base, espnId: '1' }, game, ppr)).toEqual({ total: 0, breakdown: [] });
+  });
+});
+
+describe('new scoring rules and on/off switches', () => {
+  const base = { twoPointConversions: 0, safeties: 0 };
+  const rules = (over: Partial<typeof ppr>) => ({ ...ppr, ...over });
+
+  it('scores touchdown length and game yardage bonuses, cumulatively for 50+ yard touchdowns', () => {
+    const wr = { ...base, receiving: { receptions: 0, targets: 0, yards: 210, touchdowns: 2 }, tdYards: { pass: [], rush: [], rec: [55, 12] } };
+    const v = rules({ recTd40: 1, recTd50: 2, rec100: 3, rec200: 4 });
+    const r = scorePlayer(wr, v);
+    expect(r.breakdown).toContainEqual({ label: '40+ yard receiving TDs', points: 1 });
+    expect(r.breakdown).toContainEqual({ label: '50+ yard receiving TDs', points: 2 });
+    expect(r.breakdown).toContainEqual({ label: '200+ yard receiving game', points: 4 });
+    expect(r.breakdown.some((l) => l.label === '100-199 yard receiving game')).toBe(false);
+  });
+
+  it('scores 50-59 and 60+ yard kicks and misses by their own weights', () => {
+    const k = { ...base, kicking: { fgMade: 2, fgAttempts: 3, longest: 61, xpMade: 0, xpAttempts: 0, madeDistances: [55, 61], missedDistances: [44] } };
+    const v = rules({ fg50to59: 5, fg60plus: 6, fgMissed: -1, fgMissed40to49: -2 });
+    expect(scorePlayer(k, v).total).toBeCloseTo(5 + 6 - 1 - 2);
+  });
+
+  it('scores yards allowed bands from the opponent total', () => {
+    const d = { sacks: 0, interceptions: 0, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 99, yardsAllowed: 372 };
+    const v = rules({ yardsAllowed350: -1, pointsAllowed: [0, 0, 0, 0, 0, 0, 0] });
+    expect(scoreDefense(d, v).total).toBe(-1);
+    expect(scoreDefense({ ...d, yardsAllowed: undefined }, v).total).toBe(0);
+  });
+
+  it('scores nothing for a rule switched off and restores it when switched back on', () => {
+    const qb = { ...base, passing: { completions: 10, attempts: 20, yards: 100, touchdowns: 2, interceptions: 0 } };
+    expect(scorePlayer(qb, rules({ off: ['passTd'] })).total).toBeCloseTo(4);
+    expect(scorePlayer(qb, rules({ off: [] })).total).toBeCloseTo(12);
+  });
+
+  it('keeps an off rule out of the preset objects it was copied from', () => {
+    const copy = { ...PRESETS.ppr, off: ['passTd' as const] };
+    expect(PRESETS.ppr.off).toBeUndefined();
+    expect(scorePlayer({ ...base, passing: { completions: 0, attempts: 0, yards: 0, touchdowns: 1, interceptions: 0 } }, copy).total).toBe(0);
   });
 });

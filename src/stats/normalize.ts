@@ -47,8 +47,40 @@ export function situationFrom(plays: EspnPlay[]): Situation | null {
 type Named = { id: string; teamId: string; short: string };
 
 const FIELD_GOAL = /(\d+) yard field goal is GOOD/i;
+const FIELD_GOAL_MISS = /(\d+) yard field goal is (?:No Good|BLOCKED)/i;
+const TD_YARDS = /for (-?\d+) yards?, TOUCHDOWN/i;
+const TD_VOID = /NULLIFIED|REVERSED|WIPED/i;
 const TWO_POINT = /TWO-POINT CONVERSION ATTEMPT\.(.*?)ATTEMPT SUCCEEDS/i;
 const SAFETY = /\bSAFETY\b/;
+
+/** Credits the length of a passing or rushing touchdown to the players named in its play text. */
+function applyTouchdownYards(play: EspnPlay, offense: string, players: Record<string, PlayerStats>, names: Named[]) {
+  const kind = play.type?.text;
+  if (kind !== 'Passing Touchdown' && kind !== 'Rushing Touchdown') return;
+  if (TD_VOID.test(play.text)) return;
+  const match = TD_YARDS.exec(play.text);
+  if (!match || match.index === undefined) return;
+  const yards = Number(match[1]);
+  const lead = play.text.slice(0, match.index);
+  const mentioned = names
+    .filter((n) => n.teamId === offense && players[n.id])
+    .map((n) => ({ n, at: lead.lastIndexOf(n.short) }))
+    .filter(({ at }) => at >= 0)
+    .sort((a, b) => a.at - b.at);
+  const credit = (id: string, key: 'pass' | 'rush' | 'rec') => {
+    const p = players[id];
+    if (p) (p.tdYards ??= { pass: [], rush: [], rec: [] })[key].push(yards);
+  };
+  if (kind === 'Passing Touchdown') {
+    const passer = mentioned.find(({ n }) => players[n.id]?.passing);
+    const receiver = [...mentioned].reverse().find(({ n }) => players[n.id]?.receiving && n.id !== passer?.n.id);
+    if (passer) credit(passer.n.id, 'pass');
+    if (receiver) credit(receiver.n.id, 'rec');
+  } else {
+    const runner = [...mentioned].reverse().find(({ n }) => players[n.id]?.rushing);
+    if (runner) credit(runner.n.id, 'rush');
+  }
+}
 
 function applyPlays(
   plays: EspnPlay[],
@@ -65,6 +97,15 @@ function applyPlays(
       const kicker = names.find((n) => n.teamId === offense && players[n.id]?.kicking && play.text.includes(n.short));
       players[kicker?.id ?? '']?.kicking?.madeDistances.push(Number(fg[1]));
     }
+
+    const miss = FIELD_GOAL_MISS.exec(play.text);
+    if (miss) {
+      const kicker = names.find((n) => n.teamId === offense && players[n.id]?.kicking && play.text.includes(n.short));
+      const k = players[kicker?.id ?? '']?.kicking;
+      if (k) (k.missedDistances ??= []).push(Number(miss[1]));
+    }
+
+    applyTouchdownYards(play, offense, players, names);
 
     const two = TWO_POINT.exec(play.text);
     if (two) {
@@ -83,6 +124,12 @@ function applyPlays(
       }
     }
   }
+}
+
+function yardsAllowedOf(s: EspnSummary, opponentId: string | undefined): { yardsAllowed?: number } {
+  const stat = s.boxscore.teams?.find((t) => t.team.id === opponentId)?.statistics.find((c) => c.name === 'totalYards');
+  const yards = Number.parseFloat(stat?.displayValue ?? '');
+  return Number.isFinite(yards) ? { yardsAllowed: yards } : {};
 }
 
 export function normalizeSummary(s: EspnSummary): GameStats {
@@ -162,6 +209,7 @@ export function normalizeSummary(s: EspnSummary): GameStats {
         total(team, 'puntReturns', 'puntReturnTouchdowns'),
       safeties: 0,
       pointsAllowed: opp ? scores[opp.team.id] ?? 0 : 0,
+      ...yardsAllowedOf(s, opp?.team.id),
     };
   }
 

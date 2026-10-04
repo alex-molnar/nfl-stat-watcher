@@ -1,7 +1,9 @@
 import { PRESETS, copyValues } from '../scoring/presets';
-import type { PresetId, Profile, ScoringValues } from '../scoring/types';
+import { VALUE_KEYS, type PresetId, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
 import { followedStore, reassignProfile, withValidProfiles } from './followed';
 import { createStore } from './store';
+import { isLeagueSource } from '../leagues/types';
+import { isValidPointsAllowedBands } from '../scoring/types';
 
 const newProfile = (name: string): Profile => ({ id: crypto.randomUUID(), name, preset: 'ppr', values: copyValues(PRESETS.ppr) });
 
@@ -12,16 +14,22 @@ function isProfile(v: unknown): v is Profile {
 }
 
 /** Keeps stored profiles usable when new scoring fields are added later. */
-function repairValues(stored: Partial<ScoringValues>): ScoringValues {
+export function repairValues(stored: Partial<ScoringValues> & { fg50plus?: number }): ScoringValues {
   const values = copyValues(PRESETS.ppr);
-  for (const key of Object.keys(values) as (keyof ScoringValues)[]) {
+  for (const key of VALUE_KEYS) {
     const v = stored[key];
-    if (key === 'pointsAllowed') {
-      if (Array.isArray(v) && v.length === 7 && v.every((n) => typeof n === 'number')) values.pointsAllowed = [...v];
-    } else if (typeof v === 'number' && Number.isFinite(v)) {
-      values[key] = v;
-    }
+    if (typeof v === 'number' && Number.isFinite(v)) values[key] = v;
   }
+  // The single 50+ yard value became separate 50-59 and 60+ values.
+  if (typeof stored.fg50plus === 'number' && Number.isFinite(stored.fg50plus)) {
+    if (typeof stored.fg50to59 !== 'number') values.fg50to59 = stored.fg50plus;
+    if (typeof stored.fg60plus !== 'number') values.fg60plus = stored.fg50plus;
+  }
+  if (Array.isArray(stored.pointsAllowed) && stored.pointsAllowed.length === 7 && stored.pointsAllowed.every((n) => typeof n === 'number')) values.pointsAllowed = [...stored.pointsAllowed];
+  if (isValidPointsAllowedBands(stored.pointsAllowedBands)) values.pointsAllowedBands = stored.pointsAllowedBands.map((band) => ({ ...band }));
+  const off = Array.isArray(stored.off) ? stored.off.filter((key): key is ValueKey => (VALUE_KEYS as readonly unknown[]).includes(key)) : [];
+  if (off.length) values.off = [...new Set(off)];
+  else delete values.off;
   return values;
 }
 
@@ -29,7 +37,15 @@ export const profilesStore = createStore<Profile[]>({
   key: 'nflsw:v1:profiles',
   fallback: () => [newProfile('My league')],
   isValid: (v): v is Profile[] => Array.isArray(v) && v.length > 0 && v.every(isProfile),
-  repair: (ps) => ps.map((p) => ({ ...p, values: repairValues(p.values) })),
+  repair: (ps) => ps.map((p) => {
+    const values = repairValues(p.values);
+    const rawSource = p.source as (Record<string, unknown> & { baselineValues?: Partial<ScoringValues> }) | undefined;
+    const migrated = rawSource && typeof rawSource === 'object' && rawSource.baselineValues && typeof rawSource.baselineValues === 'object'
+      ? { ...rawSource, baselineValues: repairValues(rawSource.baselineValues) }
+      : rawSource;
+    const source = isLeagueSource(migrated) ? migrated : undefined;
+    return { ...p, values, ...(source ? { source } : { source: undefined }) };
+  }),
 });
 
 /** Persists the repair of entries that point at a missing profile (spec section 7), once at startup and after every reload. */
@@ -63,9 +79,19 @@ export function deleteProfile(id: string, moveTo: string): boolean {
   return true;
 }
 
-export function setValue(id: string, key: Exclude<keyof ScoringValues, 'pointsAllowed'>, value: number) {
+export function setValue(id: string, key: ValueKey, value: number) {
   if (!Number.isFinite(value)) return;
   update(id, (p) => ({ ...p, preset: 'custom', values: { ...p.values, [key]: value } }));
+}
+
+export function setRuleEnabled(id: string, key: ValueKey, enabled: boolean) {
+  update(id, (p) => {
+    const off = new Set(p.values.off ?? []);
+    if (enabled) off.delete(key); else off.add(key);
+    const values = { ...p.values };
+    if (off.size) values.off = [...off]; else delete values.off;
+    return { ...p, preset: 'custom', values };
+  });
 }
 
 export function setTier(id: string, index: number, value: number) {
@@ -75,6 +101,24 @@ export function setTier(id: string, index: number, value: number) {
     preset: 'custom',
     values: { ...p.values, pointsAllowed: p.values.pointsAllowed.map((v, i) => (i === index ? value : v)) },
   }));
+}
+
+export function setPointsAllowedBand(id: string, index: number, key: 'min' | 'max' | 'points', value: number | null) {
+  update(id, (p) => {
+    const bands = p.values.pointsAllowedBands;
+    if (!bands || !Number.isInteger(index) || index < 0 || index >= bands.length) return p;
+    const next = bands.map((band, i) => i === index ? { ...band, [key]: value } : band);
+    if (!isValidPointsAllowedBands(next)) return p;
+    return { ...p, preset: 'custom', values: { ...p.values, pointsAllowedBands: next } };
+  });
+}
+
+export function clearPointsAllowedBands(id: string) {
+  update(id, (p) => {
+    const values = { ...p.values };
+    delete values.pointsAllowedBands;
+    return { ...p, values };
+  });
 }
 
 export function applyPreset(id: string, preset: PresetId) {

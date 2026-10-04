@@ -133,6 +133,12 @@ export function VsPage() {
           <span className="sr">{phrase ? `${!note ? '' : note.endsWith('.') ? ' ' : '. '}${phrase}` : ''}</span>
         </p>
         <ScoreBar ref={barRef} settled={announced} mine={totals.mine} opponent={totals.opponent} />
+        {profile.source?.issues.length ? (
+          <details className="compat-warning matchup-warning">
+            <summary>{`${profile.name} has ${profile.source.issues.length} imported scoring limits`}</summary>
+            <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
+          </details>
+        ) : null}
         <div className="vs">
           {column('mine')}
           {column('opponent')}

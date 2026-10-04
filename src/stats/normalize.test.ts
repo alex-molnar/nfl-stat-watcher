@@ -23,7 +23,7 @@ describe('normalizeSummary on PIT 24 at CLE 27', () => {
   });
 
   it('reads kicking and parses made field goal distances', () => {
-    expect(game.players['17372']?.kicking).toEqual({ fgMade: 1, fgAttempts: 2, longest: 31, xpMade: 1, xpAttempts: 1, madeDistances: [31] });
+    expect(game.players['17372']?.kicking).toEqual({ fgMade: 1, fgAttempts: 2, longest: 31, xpMade: 1, xpAttempts: 1, madeDistances: [31], missedDistances: [48] });
     expect(game.players['4258620']?.kicking?.madeDistances).toEqual([44, 56]);
   });
 
@@ -34,9 +34,16 @@ describe('normalizeSummary on PIT 24 at CLE 27', () => {
     expect(game.players['3122840']?.fumbles?.lost).toBe(1);
   });
 
+  it('credits touchdown lengths to the passer, receiver and runner named in the play text', () => {
+    const lengths = Object.values(game.players).flatMap((p) => p.tdYards ? [p.tdYards] : []);
+    expect(lengths.flatMap((l) => l.pass).sort((a, b) => a - b)).toEqual([2, 3, 12, 21]);
+    expect(lengths.flatMap((l) => l.rec).sort((a, b) => a - b)).toEqual([2, 3, 12, 21]);
+    expect(lengths.flatMap((l) => l.rush).sort((a, b) => a - b)).toEqual([2, 28]);
+    expect(game.players['8439']?.tdYards?.pass).toEqual([12, 21, 3]);
+  });
   it('builds team defense stats for both teams', () => {
-    expect(game.defenses['23']).toEqual({ sacks: 2, interceptions: 1, fumbleRecoveries: 1, touchdowns: 0, safeties: 0, pointsAllowed: 27 });
-    expect(game.defenses['5']).toEqual({ sacks: 5, interceptions: 2, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 24 });
+    expect(game.defenses['23']).toEqual({ sacks: 2, interceptions: 1, fumbleRecoveries: 1, touchdowns: 0, safeties: 0, pointsAllowed: 27, yardsAllowed: 372 });
+    expect(game.defenses['5']).toEqual({ sacks: 5, interceptions: 2, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 24, yardsAllowed: 361 });
   });
 });
 

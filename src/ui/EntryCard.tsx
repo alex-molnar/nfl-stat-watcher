@@ -80,7 +80,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           type="button"
           className="pts press"
           aria-expanded={open}
-          aria-label={`${total} fantasy pts, ${profile.name} breakdown`}
+          aria-label={`${total} fantasy pts, ${profile.name} breakdown${profile.source?.issues.length ? `, ${profile.source.issues.length} scoring warnings` : ''}`}
           onClick={() => setOpen((o) => !o)}
         >
           <Bump value={total} />
@@ -128,6 +128,13 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           )}
         </dl>
       )}
+
+      {open && profile.source?.issues.length ? (
+        <details className="compat-warning" open>
+          <summary>{`Imported scoring limits (${profile.source.issues.length})`}</summary>
+          <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
+        </details>
+      ) : null}
 
       {note && <p className="note">{note}</p>}
 

@@ -120,7 +120,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .dlg-head h2 { margin: 0; font: 800 20px/1.2 Anybody, sans-serif; font-stretch: 115%; }
 .close { border: 0; background: none; font-size: 24px; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; }
 .field-label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
-.field-label input, .field-label select { font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); }
+.field-label input, .field-label select, .field-label textarea { font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); }
+.field-label textarea { resize: vertical; min-height: 74px; }
 .results { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .results li { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--rule); }
 .results .r { flex: 1; }
@@ -133,6 +134,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
+.profile-list + .btn, .profile-list + .btn + .btn { width: 100%; margin-bottom: 8px; }
 .profile-form { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 18px; }
 .profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
 .profile-form legend { font: 800 15px/1 Anybody, sans-serif; font-stretch: 115%; padding: 0 6px; }
@@ -146,6 +148,29 @@ dialog[open] { animation: dlg 180ms ease-out; }
 /* Empty status regions stay in the tree (no display toggle) but take no space. */
 .field-msg:empty, .page-note:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
 .confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--danger); border-radius: 12px; }
+.source-details { display: grid; gap: 8px; border: 1px solid var(--rule); border-radius: 12px; padding: 14px; }
+.source-details h3, .source-details p { margin: 0; }
+.source-modified { color: var(--danger); font-weight: 700; }
+.source-actions, .dlg-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.compat-warning { border: 1px solid var(--danger); border-radius: 10px; padding: 10px 12px; color: var(--ink); background: var(--panel); }
+.compat-warning summary { cursor: pointer; font-weight: 700; }
+.compat-warning ul { margin-bottom: 0; padding-left: 22px; }
+.matchup-warning { margin: 14px 0; }
+.import-dlg { max-height: min(90vh, 900px); overflow-y: auto; }
+.import-dlg .dlg-actions { position: sticky; bottom: -20px; padding: 12px 0; background: var(--panel); border-top: 1px solid var(--rule); justify-content: end; }
+.import-results { display: grid; gap: 12px; }
+.import-card { border: 1px solid var(--rule); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.import-card h3 { overflow-wrap: anywhere; }
+.import-select { display: flex; align-items: start; gap: 10px; }
+.import-select input, .import-issues input { width: 18px; height: 18px; accent-color: var(--accent); flex: 0 0 auto; }
+.import-select span { display: grid; gap: 4px; }
+.import-select small { color: var(--muted); }
+.import-preview { display: grid; gap: 10px; }
+.import-preview p { margin: 0; }
+.import-issues { border: 1px solid var(--rule); border-radius: 10px; display: grid; gap: 8px; }
+.import-issues ul { margin: 0; max-height: 180px; overflow: auto; padding-left: 22px; }
+.import-issues label { display: flex; gap: 8px; align-items: start; }
+.error { color: var(--danger); }
 @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
 
 /* Forced colors: gradients and shadows drop out, so state is carried by borders and system colors. */
@@ -166,3 +191,10 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .bump, dialog[open] { animation: none; }
   .ballrail, .press { transition: none; }
 }
+
+.rule-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.rule-toggle input { width: 18px; height: 18px; }
+.num-field:has(.rule-toggle input:not(:checked)) > label:not(.rule-toggle) { opacity: 0.55; }
+.field-note { font-size: 12px; color: var(--muted); }
+.rule-group { border: 0; padding: 0; }
+.rule-group > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }

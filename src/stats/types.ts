@@ -21,7 +21,10 @@ export interface PlayerStats {
     xpMade: number;
     xpAttempts: number;
     madeDistances: number[]; // parsed from play text
+    missedDistances?: number[]; // parsed from play text
   };
+  /** Yards of each touchdown the player scored, parsed from play text, for length bonuses. */
+  tdYards?: { pass: number[]; rush: number[]; rec: number[] };
   twoPointConversions: number;
   safeties: number;
 }
@@ -33,6 +36,7 @@ export interface DefenseStats {
   touchdowns: number; // defensive plus kick and punt return TDs
   safeties: number;
   pointsAllowed: number; // the opponent's score
+  yardsAllowed?: number; // the opponent's total yards
 }
 
 export interface Situation {
