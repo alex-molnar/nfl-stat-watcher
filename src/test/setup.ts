@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { setPaused } from '../storage/pause';
 import { reloadAllStores } from '../storage/store';
 
 // Tests never reach the network. Tests that need data call mockFetch().
@@ -10,6 +11,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  setPaused(false);
   localStorage.clear();
   reloadAllStores();
   vi.unstubAllGlobals();

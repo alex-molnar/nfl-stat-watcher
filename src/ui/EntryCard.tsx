@@ -50,7 +50,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const them = game ? (home ? game.away : game.home) : null;
   const color = us?.color ?? '#555555';
   const versus = them ? `${home ? 'vs' : 'at'} ${them.abbr}` : null;
-  const note = freshness(summary.isError, summary.dataUpdatedAt);
+  const note = paused ? null : freshness(summary.isError, summary.dataUpdatedAt); // nothing retries while paused
   const situation = live ? stats?.situation : null;
   const role = entry.kind === 'defense' ? 'Team defense' : entry.position;
 

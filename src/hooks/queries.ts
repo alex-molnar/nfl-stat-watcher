@@ -35,6 +35,7 @@ export function useScoreboard(paused = false) {
     queryFn: async () => toGames(await getScoreboard()),
     refetchInterval: (query) => scoreboardRefetch(query.state.status, query.state.data, paused),
     refetchOnWindowFocus: !paused,
+    refetchOnReconnect: !paused,
   });
 }
 
@@ -46,6 +47,7 @@ export function useGameSummary(game: GameInfo | null, paused = false) {
     enabled: polling.enabled && game !== null,
     refetchInterval: polling.refetchInterval,
     refetchOnWindowFocus: !paused,
+    refetchOnReconnect: !paused,
     staleTime: polling.staleTime,
   });
 }

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { freshness, useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
 import { followedStore, moveEntry, removeEntry, withValidProfiles } from '../storage/followed';
+import { isPaused, setPaused, subscribePause } from '../storage/pause';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
@@ -22,7 +23,7 @@ export function MainPage() {
   usePageTitle('Players');
   const profiles = useStore(profilesStore);
   const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id));
-  const [paused, setPaused] = useState(false); // session only, never persisted
+  const paused = useSyncExternalStore(subscribePause, isPaused, isPaused); // session only, never persisted
   const scoreboard = useScoreboard(paused);
   const client = useQueryClient();
   const [adding, setAdding] = useState(false);
@@ -60,7 +61,7 @@ export function MainPage() {
 
   function togglePause() {
     setPaused(!paused);
-    if (paused) void client.refetchQueries({ predicate: (q) => q.queryKey[0] === 'scoreboard' || q.queryKey[0] === 'summary' });
+    if (paused) void client.refetchQueries({ type: 'active', predicate: (q) => q.queryKey[0] === 'scoreboard' || q.queryKey[0] === 'summary' });
   }
 
   const opener = useRef<HTMLElement | null>(null);

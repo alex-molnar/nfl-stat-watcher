@@ -19,6 +19,7 @@ describe('ThemeToggle with the OS theme', () => {
     document.documentElement.dataset.theme = 'light';
     const osChange = mockOs(false);
     const stop = followSystemTheme();
+    try {
     render(<ThemeToggle />);
     expect(screen.getByRole('button', { name: 'Dark mode' })).toBeInTheDocument();
 
@@ -30,18 +31,23 @@ describe('ThemeToggle with the OS theme', () => {
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(localStorage.getItem('nflsw:v1:theme')).toBe('"light"');
     expect(screen.getByRole('button', { name: 'Dark mode' })).toBeInTheDocument();
-    stop();
+    } finally {
+      stop();
+    }
   });
 
   it('ignores OS changes once the user has chosen a theme', async () => {
     document.documentElement.dataset.theme = 'light';
     const osChange = mockOs(false);
     const stop = followSystemTheme();
-    render(<ThemeToggle />);
-    await userEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
-    osChange(false);
-    expect(document.documentElement.dataset.theme).toBe('dark');
-    expect(screen.getByRole('button', { name: 'Light mode' })).toBeInTheDocument();
-    stop();
+    try {
+      render(<ThemeToggle />);
+      await userEvent.click(screen.getByRole('button', { name: 'Dark mode' }));
+      osChange(false);
+      expect(document.documentElement.dataset.theme).toBe('dark');
+      expect(screen.getByRole('button', { name: 'Light mode' })).toBeInTheDocument();
+    } finally {
+      stop();
+    }
   });
 });

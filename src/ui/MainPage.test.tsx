@@ -221,6 +221,28 @@ describe('pause live updates', () => {
   });
 });
 
+describe('pause details', () => {
+  beforeEach(() => seed([warren, pitDefense, mahomes], profilesFixture));
+
+  it('survives leaving the page and coming back', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    await screen.findByText('15.60');
+    await userEvent.click(screen.getByRole('button', { name: 'Pause live updates' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Players' }));
+    expect(screen.getByRole('button', { name: 'Resume live updates' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('hides the card retry note while paused', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': status(500) });
+    renderAt('/');
+    expect(await screen.findAllByText('Live data unavailable, retrying')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button', { name: 'Pause live updates' }));
+    expect(screen.queryByText('Live data unavailable, retrying')).not.toBeInTheDocument();
+  });
+});
+
 describe('orphaned entries', () => {
   const orphan = { ...warren, profileId: 'deleted' };
 
