@@ -160,8 +160,14 @@ describe('vs page', () => {
     const real = globalThis.fetch;
     let release!: () => void;
     const gate = new Promise<void>((r) => { release = r; });
+    let gatedDone = false;
     vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
-      if (String(input).includes('summary?event=401872999')) await gate;
+      if (String(input).includes('summary?event=401872999')) {
+        await gate;
+        const res = await real(input);
+        gatedDone = true;
+        return res;
+      }
       return real(input);
     });
     renderAt('/vs');
@@ -170,11 +176,12 @@ describe('vs page', () => {
     new MutationObserver(() => seen.push(statusLine().textContent ?? '')).observe(statusLine(), { childList: true, subtree: true, characterData: true });
     act(() => addEntry({ ...mahomes, profileId: 'p1', side: 'opponent' }));
     await within(oppCol()).findByText('Patrick Mahomes');
-    await new Promise((r) => setTimeout(r, 30)); // the new card's summary is still gated here
+    expect(gatedDone).toBe(false); // the new card's summary is still gated here
     expect(statusLine()).toHaveTextContent(/^You lead$/);
     release();
-    await waitFor(() => expect(bar()).toHaveTextContent('Opponent'));
-    await new Promise((r) => setTimeout(r, 30));
+    await waitFor(() => expect(gatedDone).toBe(true));
+    await act(async () => { await Promise.resolve(); });
+    expect(statusLine()).toHaveTextContent(/^You lead$/);
     expect(seen.filter((t) => t !== 'You lead')).toEqual([]);
   });
 
@@ -184,16 +191,30 @@ describe('vs page', () => {
     const real = globalThis.fetch;
     let release!: () => void;
     const gate = new Promise<void>((r) => { release = r; });
+    let summaryAsked = false;
     vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
-      if (String(input).includes('summary')) await gate;
+      if (String(input).includes('summary')) {
+        summaryAsked = true;
+        await gate;
+      }
       return real(input);
     });
     renderAt('/vs');
-    await waitFor(() => expect(bar()).toBeInTheDocument());
-    await new Promise((r) => setTimeout(r, 30));
+    await waitFor(() => expect(summaryAsked).toBe(true)); // scoreboard loaded, the summary is the one thing pending
     expect(statusLine()).not.toHaveTextContent(/Tied|lead/);
     release();
     await waitFor(() => expect(statusLine()).toHaveTextContent(/^You lead$/));
+  });
+
+  it('starts each Add dialog with an empty search, not the other side\'s last one', async () => {
+    seed([], profilesFixture);
+    mockFetch({ ...routes, 'search?query=bills': { items: [] }, standings: teams });
+    renderAt('/vs');
+    await userEvent.click(screen.getByRole('button', { name: 'Add player to your side' }));
+    await userEvent.type(within(screen.getByRole('dialog')).getByLabelText('Search'), 'bills');
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add player to opponent side' }));
+    expect(within(screen.getByRole('dialog')).getByLabelText('Search')).toHaveValue('');
   });
 
   it('publishes the measured score bar height for scroll-padding and clears it on leaving', () => {

@@ -52,7 +52,7 @@ side?: 'opponent'; // absent means "mine"
 Cards on /vs have no league select (a deliberate accessibility deviation from the first draft): moving a card between leagues stays on the Players page, since a select that fires change on an arrow key would remove the card mid-keypress.
 
 ```
- League: [My league v]                         [Pause live updates] [Add player]
+ League: [My league v]                                        [Pause live updates]
  +---------------------- score bar (sticky) ------------------------+
  |  YOU  84.20           leading by 12.40           OPP  71.80      |
  +------------------------------+-----------------------------------+
@@ -77,7 +77,7 @@ Cards on /vs have no league select (a deliberate accessibility deviation from th
 
 ### Add dialog
 
-- `AddDialog` gets a `side: 'mine' | 'opponent'` prop and an optional fixed `profileId`. On `/vs` it is opened with the picker's league and the chosen side, and its own league select is hidden (the side and league are shown in the dialog title: "Add to your side" / "Add to opponent side, My league").
+- `AddDialog` gets a `side: 'mine' | 'opponent'` prop and an optional fixed `profileId`. On `/vs` it is opened with the picker's league and the chosen side, and its own league select is hidden (the side and league are shown in the dialog title: "Add to your side, My league" / "Add to opponent side, My league").
 - On the Players page nothing changes (side mine, league select shown).
 - `isFollowed` checks the same `side` and `profileId`, so a player already on the other side can still be added.
 - Added entries carry `side: 'opponent'` when side is opponent (the key is absent for mine).
@@ -88,7 +88,7 @@ The Pause toggle (src/storage/pause.ts, session only) applies to the vs page as 
 
 ## 6. Accessibility
 
-- WCAG 2.2 AA is the floor, same as the PoC. New patterns to verify: sticky bar does not obscure focus (2.4.11) and works at 320px reflow (1.4.10); score bar contrast and not color-only (leader stated in text); column structure uses headings (h2 per column) and lists; the league select and both Add buttons are labelled; focus after Remove follows the existing next, previous, header button rule within the vs page; focus after dialog close returns to the Add button that opened it; `aria-current` on the Vs nav link.
+- WCAG 2.2 AA is the floor, same as the PoC. New patterns to verify: sticky bar does not obscure focus (2.4.11) and works at 320px reflow (1.4.10); score bar contrast and not color-only (leader stated in text); column structure uses headings (h2 per column) and lists; the league select and both Add buttons are labelled; focus after Remove follows the existing next, previous, that column's Add button rule within the vs page; focus after dialog close returns to the Add button that opened it; `aria-current` on the Vs nav link.
 - Forced colors and reduced motion: no new motion; the score bar uses system colors in forced-colors mode.
 
 ## 7. Testing

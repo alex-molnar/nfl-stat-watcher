@@ -49,5 +49,5 @@ export function useMatchup(profileId: string, paused: boolean): Matchup {
   }));
   const mine = rows.filter((r) => sideOf(r.entry) === 'mine');
   const opponent = rows.filter((r) => sideOf(r.entry) === 'opponent');
-  return { profile, mine, opponent, totals: { mine: sum(mine), opponent: sum(opponent) }, scoreboard, settled: !scoreboard.isLoading && !summaries.some((q) => q.isLoading) };
+  return { profile, mine, opponent, totals: { mine: sum(mine), opponent: sum(opponent) }, scoreboard, settled: rows.length === 0 || (!scoreboard.isLoading && !summaries.some((q) => q.isLoading)) };
 }

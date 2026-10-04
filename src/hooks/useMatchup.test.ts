@@ -22,6 +22,14 @@ describe('useMatchup', () => {
     expect(result.current.profile.id).toBe('p1');
   });
 
+  it('is settled when both sides are empty, even while the scoreboard is still loading', () => {
+    seed([], profilesFixture);
+    vi.stubGlobal('fetch', () => new Promise(() => {}));
+    const { result } = run('p1');
+    expect(result.current.scoreboard.isLoading).toBe(true);
+    expect(result.current.settled).toBe(true);
+  });
+
   it('scores another league with that league\'s profile', async () => {
     mockFetch(routes);
     const { result } = run('p2');

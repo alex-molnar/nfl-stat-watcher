@@ -38,6 +38,7 @@ export function AddDialog({ open, onClose, side = 'mine', profileId: fixedProfil
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
+      setQuery(''); // each opening starts clean, not with the other side's last search
       dialog.showModal();
       inputRef.current?.focus();
     }
