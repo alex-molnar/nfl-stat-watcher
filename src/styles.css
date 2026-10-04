@@ -41,6 +41,7 @@ main.wrap { padding-bottom: 48px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 14px; list-style: none; margin: 0; padding: 0; }
 .grid.live { grid-template-columns: repeat(auto-fill, minmax(min(470px, 100%), 1fr)); }
 .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.card { container-type: inline-size; }
 .card.is-rz { border-color: var(--pylon); box-shadow: 0 0 0 1px var(--pylon); }
 .hd { display: flex; align-items: center; gap: 12px; }
 .badge { width: 42px; height: 42px; border-radius: 50%; background: var(--team); color: var(--team-ink); display: grid; place-items: center; font: 800 13px/1 Anybody, sans-serif; font-stretch: 110%; flex: none; }
@@ -91,12 +92,16 @@ main.wrap { padding-bottom: 48px; }
 .vs { display: grid; gap: 0 20px; }
 .vs-col { min-width: 0; }
 .vs-col-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.vs-list { grid-template-columns: 1fr; }
+.vs-list { grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); }
+.vs-list.live { grid-template-columns: 1fr; }
 /* Focused cards scroll clear of the sticky score bar (WCAG 2.4.11). VsPage publishes the measured bar height as --score-bar-h; the fallbacks cover the moment before it runs. */
 html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 112px) + 8px); }
 @media (min-width: 720px) {
   .score-bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "mine lead opp"; }
-  .vs { grid-template-columns: 1fr 1fr; align-items: start; }
+  /* Rows: column heading, then one per game group (live, final, later, bye). Each column borrows them from .vs, so the same group lines up across both sides and the shorter side leaves empty space. */
+  .vs { grid-template-columns: 1fr 1fr; grid-template-rows: auto repeat(4, auto); align-items: start; }
+  .vs-col { display: grid; grid-template-rows: subgrid; grid-row: 1 / span 5; align-content: start; }
+  .vs-col-head { grid-row: 1; }
   html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 72px) + 8px); }
 }
 /* Very short viewports (400% zoom, landscape phones): a sticky bar would cover most of the screen (WCAG 1.4.10). */
@@ -201,3 +206,14 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .starter-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .vs-col-head { flex-wrap: wrap; gap: 8px; }
 .group-title { margin: 14px 0 8px; font: 700 13px/1.2 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+/* Narrow cards (two to a row on the Vs screen, small phones) tighten up so names read as words, not letter stacks. */
+@container (max-width: 340px) {
+  .hd { gap: 8px; }
+  .badge { width: 34px; height: 34px; font-size: 11px; }
+  .nm { font-size: 15px; font-stretch: 100%; overflow-wrap: break-word; }
+  .chip { white-space: nowrap; }
+  .pts b { font-size: 22px; font-stretch: 105%; }
+  .stat b { font-size: 17px; }
+  .stats { gap: 6px 14px; }
+}

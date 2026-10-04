@@ -104,13 +104,14 @@ export function VsPage() {
         )}
       </div>
       {rows[side].length === 0 ? (
-        <p className="muted">{COLUMNS[side].empty}</p>
+        <p className="muted" style={{ gridRow: 2 }}>{COLUMNS[side].empty}</p>
       ) : loading ? null : ( // Wait for the schedule so cards do not reorder after mounting.
-        GROUPS.map(({ key, title }) => {
+        GROUPS.map(({ key, title }, slot) => {
           const group = rows[side].filter((r) => (r.game?.state ?? 'none') === key);
           if (group.length === 0) return null;
           return (
-            <section key={key} aria-labelledby={`vs-${side}-${key}`}>
+            // One fixed row per group, shared by both columns, so each group starts at the same height on either side.
+            <section key={key} aria-labelledby={`vs-${side}-${key}`} style={{ gridRow: slot + 2 }}>
               <h3 className="group-title" id={`vs-${side}-${key}`}>{key === 'none' && !hasSchedule ? 'Followed' : title}</h3>
               <ul className={`grid vs-list${key === 'in' ? ' live' : ''}`}>
                 {group.map(({ entry, game }) => (
