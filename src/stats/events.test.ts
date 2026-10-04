@@ -36,12 +36,53 @@ describe('scoringEvent', () => {
   });
 
   it('ignores ordinary stat growth and anything that did not increase', () => {
-    expect(scoringEvent(player({}), stats({ receiving: { receptions: 1, targets: 1, yards: 9, touchdowns: 0 } }), stats({ receiving: { receptions: 2, targets: 2, yards: 20, touchdowns: 0 } }))).toBeNull();
+    expect(scoringEvent(player({}), stats({ receiving: { receptions: 1, targets: 1, yards: 9, touchdowns: 0 } }), stats({ receiving: { receptions: 2, targets: 2, yards: 18, touchdowns: 0 } }))).toBeNull();
     expect(scoringEvent(dst, stats({}, { sacks: 2 }), stats({}, { sacks: 2 }))).toBeNull();
   });
 
   it('does not credit an offensive player with a sack-like stat', () => {
     const d = (sacks: number) => stats({ defense: { totalTackles: 0, soloTackles: 0, sacks, tacklesForLoss: 0, passesDefended: 0, qbHits: 0, touchdowns: 0 } });
     expect(scoringEvent(player({ position: 'QB' }), d(0), d(1))).toBeNull();
+  });
+
+  describe('tiers', () => {
+    const rec = (receptions: number, yards: number) => stats({ receiving: { receptions, targets: receptions, yards, touchdowns: 0 } });
+    const rush = (attempts: number, yards: number) => stats({ rushing: { attempts, yards, touchdowns: 0 } });
+    const pass = (completions: number, yards: number) => stats({ passing: { completions, attempts: completions, yards, touchdowns: 0, interceptions: 0 } });
+    const kick = (xp: number) => stats({ kicking: { fgMade: 0, fgAttempts: 0, longest: 0, xpMade: xp, xpAttempts: xp, madeDistances: [] } });
+
+    it('puts touchdowns, field goals, interceptions, fumble recoveries and safeties in the big tier', () => {
+      expect(scoringEvent(dst, stats(), stats({}, { interceptions: 1 }))).toMatchObject({ kind: 'int', tier: 'big' });
+      expect(scoringEvent(dst, stats(), stats({}, { fumbleRecoveries: 1 }))).toMatchObject({ tier: 'big' });
+      expect(scoringEvent(dst, stats(), stats({}, { safeties: 1 }))).toMatchObject({ tier: 'big' });
+      expect(scoringEvent(player({}), rec(0, 0), stats({ receiving: { receptions: 1, targets: 1, yards: 30, touchdowns: 1 } }))).toMatchObject({ kind: 'td', tier: 'big' });
+    });
+
+    it('puts extra points, sacks, blocked kicks and long gains in the small tier', () => {
+      expect(scoringEvent(player({ position: 'K' }), kick(0), kick(1))).toMatchObject({ kind: 'xp', tier: 'small', label: 'Extra point' });
+      expect(scoringEvent(dst, stats(), stats({}, { sacks: 1 }))).toMatchObject({ kind: 'sack', tier: 'small' });
+      expect(scoringEvent(dst, stats(), stats({}, { blockedKicks: 1 }))).toMatchObject({ kind: 'block', tier: 'small' });
+      expect(scoringEvent(player({ position: 'WR' }), rec(2, 20), rec(3, 30))).toMatchObject({ kind: 'catch', tier: 'small', label: '10-yard catch' });
+      expect(scoringEvent(player({ position: 'RB' }), rush(5, 20), rush(6, 34))).toMatchObject({ kind: 'run', tier: 'small', label: '14-yard run' });
+      expect(scoringEvent(player({ position: 'QB' }), pass(5, 50), pass(6, 75))).toMatchObject({ kind: 'pass', tier: 'small', label: '25-yard pass' });
+    });
+
+    it('gives nothing for a short gain, a 19-yard pass or a 9-yard carry', () => {
+      expect(scoringEvent(player({ position: 'WR' }), rec(2, 20), rec(3, 29))).toBeNull();
+      expect(scoringEvent(player({ position: 'RB' }), rush(5, 20), rush(6, 29))).toBeNull();
+      expect(scoringEvent(player({ position: 'QB' }), pass(5, 50), pass(6, 69))).toBeNull();
+    });
+
+    it('does not read several plays bundled in one refresh as one long gain', () => {
+      expect(scoringEvent(player({ position: 'WR' }), rec(2, 20), rec(4, 45))).toBeNull(); // two catches, 25 yards between refreshes
+      expect(scoringEvent(player({ position: 'QB' }), pass(5, 50), pass(8, 140))).toBeNull();
+    });
+
+    it('lets a big play win over a small one in the same refresh', () => {
+      const before = stats({ receiving: { receptions: 1, targets: 1, yards: 10, touchdowns: 0 } });
+      const after = stats({ receiving: { receptions: 2, targets: 2, yards: 40, touchdowns: 1 } });
+      expect(scoringEvent(player({}), before, after)).toMatchObject({ kind: 'td', tier: 'big' });
+      expect(scoringEvent(dst, stats(), stats({}, { sacks: 1, interceptions: 1 }))?.kind).toBe('int');
+    });
   });
 });

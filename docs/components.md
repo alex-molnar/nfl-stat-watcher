@@ -95,9 +95,15 @@ The rank is recomputed from the latest game data on every refresh (`useLiveOrder
 
 ## Scoring play highlight
 
-When a live card's player or defense makes a big play, `EntryCard` takes over the whole card for a moment: the card floods from its centre with the play's colour (gold for a touchdown or field goal, the theme accent for defensive plays), the play name ("Touchdown", "Field goal", "Interception", "Fumble recovery", "Safety", "Blocked kick", "Sack") pops in across it at a size taken from the card width, and a touchdown throws sparks. Touchdowns and field goals last about 2.6 seconds, defensive plays 1.8. It then clears to reveal the card with a small tag on its top edge, which goes after about four seconds. Nothing loops, and a screen reader hears "<name>: <play>" through a polite live region on the card.
+A live card celebrates a play in one of three tiers, decided by the single `TIERS` table in `src/stats/events.ts` (move a play by editing one line):
 
-`scoringEvent` (`src/stats/events.ts`) compares two refreshes of the same game and reports the biggest play whose count grew: any touchdown, a made field goal, and for defenses and IDP players interceptions, fumble recoveries, safeties, blocked kicks and sacks (biggest first). `useCelebration` calls it when new data arrives for a live game. The first data a card sees is only a baseline, so a reload never replays old plays, and games that are not live never animate. With reduced motion there is no sweep, pop or sparks: the colour and the word simply appear and fade out. In forced colors the overlay uses system colors and a highlight border.
+- **Big** (touchdown, field goal, interception, fumble recovery, safety): `EntryCard` takes over the whole card. It floods from the centre in the play's colour (gold for scores, the theme accent for turnovers), the play name pops in across it at a size taken from the card width, and a touchdown throws sparks. Touchdowns and field goals last about 2.6 seconds, the other big plays 1.8. It then clears to a small tag on the card's top edge.
+- **Small** (extra point, 2-point conversion, sack, blocked kick, a single 10+ yard run or catch, a single 20+ yard pass): one ring from the card edge and a tag on the corner, with the label ("Sack", "14-yard catch"). Gold for kicks, the accent for defense, blue for long gains.
+- **None**: shorter gains, tackles and anything else.
+
+A long gain counts only when exactly one carry, catch or completion arrived in the refresh, so several plays bundled into one refresh are never reported as one big play. A big play wins over a small one in the same refresh. The tag goes after about four seconds. Nothing loops, and a screen reader hears "<name>: <play>" through a polite live region on the card.
+
+`scoringEvent` (`src/stats/events.ts`) compares two refreshes of the same game and reports the highest tier play whose count grew or whose single-play gain met the threshold. `useCelebration` calls it when new data arrives for a live game. The first data a card sees is only a baseline, so a reload never replays old plays, and games that are not live never animate. With reduced motion there is no sweep, pop, sparks or ring: the colour and the word simply appear and fade out, and small plays show just the tag. In forced colors the overlay uses system colors and a highlight border.
 
 
 ## Injury designations

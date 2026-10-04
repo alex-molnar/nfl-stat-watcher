@@ -24,8 +24,8 @@ interface Props {
   onRemove: (entry: FollowedEntry, button: HTMLElement) => void;
 }
 
-/** Touchdowns and field goals get the long takeover; defensive plays a shorter one. */
-const BIG = new Set(['td', 'fg']);
+/** The long takeover is for scores; the other big plays get a shorter one. */
+const LONG = new Set(['td', 'fg']);
 /** Eighteen sparks fanned out from the card centre, spread evenly with a few different distances. */
 const SPARKS: CSSProperties[] = Array.from({ length: 18 }, (_, i) => ({ '--a': `${i * 20}deg`, '--d': `${95 + (i % 3) * 38}px` }) as CSSProperties);
 
@@ -79,15 +79,20 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       className={`card${live ? ' live' : ''}${onField && !redZone ? ' on-field' : ''}${redZone ? ' is-rz' : ''}${paused ? ' still' : ''}`}
       style={{ '--team': color, '--team-ink': textOn(color) } as CSSProperties}
     >
-      {celebration && (
+      {celebration && (celebration.event.tier === 'big' ? (
         <>
-          <span key={`fx-${celebration.id}`} className={`celebrate celebrate-${celebration.event.kind}${BIG.has(celebration.event.kind) ? ' celebrate-big' : ''}`} aria-hidden="true">
+          <span key={`fx-${celebration.id}`} className={`celebrate celebrate-${celebration.event.kind}${LONG.has(celebration.event.kind) ? ' celebrate-long' : ''}`} aria-hidden="true">
             {celebration.event.kind === 'td' && SPARKS.map((spark, i) => <i key={i} style={spark} />)}
             <span className="celebrate-word" style={{ '--chars': celebration.event.label.length } as CSSProperties}>{celebration.event.label}</span>
           </span>
+          <span key={`tag-${celebration.id}`} className={`play-tag play-late play-${celebration.event.kind}`} aria-hidden="true">{celebration.event.label}</span>
+        </>
+      ) : (
+        <>
+          <span key={`ring-${celebration.id}`} className={`burst burst-${celebration.event.kind}`} aria-hidden="true" />
           <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}`} aria-hidden="true">{celebration.event.label}</span>
         </>
-      )}
+      ))}
       <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${entry.name}: ${celebration.event.label.toLowerCase()}` : ''}</span>
       <div className="hd">
         <div className="badge" aria-hidden="true">{entry.teamAbbr}</div>
