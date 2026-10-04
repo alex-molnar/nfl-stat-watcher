@@ -19,6 +19,10 @@ Everything you follow and every scoring profile is stored in your browser's loca
 
 Known limits: forced fumbles are not scored (ESPN's box score has no forced fumbles), and team defense points allowed is the opponent's full score.
 
+## Vs mode
+
+Open Vs in the header to see one league as a matchup: your players against your league opponent's players, both scored with that league's scoring profile, and a score bar that says who leads and by how much. Pick the league at the top; each side has its own Add player button. The two sides sit next to each other on wider screens and stack on phones, with the score bar kept in view. Opponent players are stored with your followed players, marked as opponent, and never show on the Players page. Deleting a league in Settings moves your own cards as before and removes that league's opponent cards.
+
 ## Container
 
     docker build -t stat-watch:0.1.0 .

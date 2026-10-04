@@ -1,3 +1,5 @@
+import type { Ref } from 'react';
+
 export type Leader = 'mine' | 'opponent' | 'tied';
 
 /** Compares whole cents, so float noise never decides the lead. */
@@ -16,9 +18,9 @@ export function leadText(mine: number, opponent: number): string {
 export const LEADER_TEXT: Record<Leader, string> = { mine: 'You lead', opponent: 'Opponent leads', tied: 'Tied' };
 
 /** One element whose visible text is its accessible text. The page owns the status announcement. */
-export function ScoreBar({ mine, opponent }: { mine: number; opponent: number }) {
+export function ScoreBar({ mine, opponent, ref }: { mine: number; opponent: number; ref?: Ref<HTMLDivElement> }) {
   return (
-    <div className="score-bar">
+    <div className="score-bar" ref={ref}>
       <span className="sb-mine">You <b>{mine.toFixed(2)}</b></span>{' '}
       <span className="sb-lead">{leadText(mine, opponent)}</span>{' '}
       <span className="sb-opp">Opponent <b>{opponent.toFixed(2)}</b></span>

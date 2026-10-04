@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
+import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import teams from '../test/fixtures/standings.json';
 import summary from '../test/fixtures/summary-pit-cle.json';
@@ -93,6 +94,64 @@ describe('vs page', () => {
     expect(pts(mineCol(), 'Pittsburgh Steelers')).toHaveFocus();
     await userEvent.click(screen.getByRole('button', { name: 'Remove Pittsburgh Steelers from Office league' }));
     expect(screen.getByRole('button', { name: 'Add player to your side' })).toHaveFocus();
+  });
+
+  it('moves focus to the previous card when the last card in a column is removed', async () => {
+    seed([warren, pitDefense], profilesFixture);
+    mockFetch(routes);
+    renderAt('/vs');
+    await within(mineCol()).findByText('15.60');
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Pittsburgh Steelers from Office league' }));
+    expect(pts(mineCol(), 'Jaylen Warren')).toHaveFocus();
+  });
+
+  it('takes a card of mine out of the matchup when its League select moves it, and focuses the next card', async () => {
+    seed([warren, pitDefense], profilesFixture);
+    mockFetch(routes);
+    renderAt('/vs');
+    await within(mineCol()).findByText('15.60');
+    const card = within(mineCol()).getByText('Jaylen Warren').closest('li')!;
+    await userEvent.selectOptions(within(card).getByLabelText('League'), 'Friends league');
+    expect(within(mineCol()).queryByText('Jaylen Warren')).not.toBeInTheDocument();
+    expect(pts(mineCol(), 'Pittsburgh Steelers')).toHaveFocus();
+    expect(bar()).toHaveTextContent('You 6.00 You lead by 6.00 Opponent 0.00');
+    expect(stored().find((e: { name: string }) => e.name === 'Jaylen Warren').profileId).toBe('p2');
+  });
+
+  it('stays silent about the leader until the matchup data has settled, then announces it once', async () => {
+    seed([warren, opponent(pitDefense)], profilesFixture);
+    mockFetch(routes);
+    const real = globalThis.fetch;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+      if (String(input).includes('summary')) await gate;
+      return real(input);
+    });
+    renderAt('/vs');
+    await waitFor(() => expect(bar()).toBeInTheDocument());
+    await new Promise((r) => setTimeout(r, 30));
+    expect(statusLine()).not.toHaveTextContent(/Tied|lead/);
+    release();
+    await waitFor(() => expect(statusLine()).toHaveTextContent(/^You lead$/));
+  });
+
+  it('publishes the measured score bar height for scroll-padding and clears it on leaving', () => {
+    let notify!: () => void;
+    const disconnect = vi.fn();
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(cb: () => void) { notify = cb; }
+      observe() {}
+      disconnect = disconnect;
+    });
+    seed([], profilesFixture);
+    const view = renderAt('/vs');
+    vi.spyOn(bar(), 'getBoundingClientRect').mockReturnValue({ height: 137.4 } as DOMRect);
+    notify();
+    expect(document.documentElement.style.getPropertyValue('--score-bar-h')).toBe('138px');
+    view.unmount();
+    expect(disconnect).toHaveBeenCalled();
+    expect(document.documentElement.style.getPropertyValue('--score-bar-h')).toBe('');
   });
 
   it('announces the leader only when the lead changes hands, in the one status line', async () => {

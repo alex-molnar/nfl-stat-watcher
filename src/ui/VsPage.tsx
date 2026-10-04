@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMatchup } from '../hooks/useMatchup';
 import { entryKey, moveEntry, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
@@ -21,7 +21,7 @@ export function VsPage() {
   const profiles = useStore(profilesStore);
   const [pickedId, setPickedId] = useState(profiles[0]!.id); // memory only, never stored
   const paused = usePaused();
-  const { profile, mine, opponent, totals, scoreboard } = useMatchup(pickedId, paused);
+  const { profile, mine, opponent, totals, scoreboard, settled } = useMatchup(pickedId, paused);
   const rows = { mine, opponent };
   const [adding, setAdding] = useState(false);
   const [dialogSide, setDialogSide] = useState<Side>('mine');
@@ -30,6 +30,23 @@ export function VsPage() {
   const loading = mine.length + opponent.length > 0 && scoreboard.isPending;
   const note = pageNote(loading, paused, scoreboard);
   const { leader } = leaderOf(totals.mine, totals.opponent);
+
+  // Scroll padding follows the bar's real height (it wraps with long names, text zoom and text spacing),
+  // so a focused card never sits under the sticky bar (WCAG 2.4.11). CSS has a fallback until this runs.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty('--score-bar-h', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--score-bar-h');
+    };
+  }, []);
 
   // Remove, or moving one of my cards to another league (which takes it out of this matchup):
   // next card's points button in the same column, else the previous one, else that column's Add button.
@@ -103,9 +120,9 @@ export function VsPage() {
         {/* The one status line: the page note, plus the leader, which changes only when the lead changes hands. */}
         <p className="page-note" role="status">
           {note ? `${note} ` : null}
-          <span className="sr">{LEADER_TEXT[leader]}</span>
+          <span className="sr">{settled ? LEADER_TEXT[leader] : ''}</span>
         </p>
-        <ScoreBar mine={totals.mine} opponent={totals.opponent} />
+        <ScoreBar ref={barRef} mine={totals.mine} opponent={totals.opponent} />
         <div className="vs">
           {column('mine')}
           {column('opponent')}

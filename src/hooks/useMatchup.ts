@@ -16,6 +16,8 @@ export interface Matchup {
   opponent: MatchupRow[];
   totals: { mine: number; opponent: number };
   scoreboard: ReturnType<typeof useScoreboard>;
+  /** False while the scoreboard or any needed summary is still loading, so totals may still jump. */
+  settled: boolean;
 }
 
 // Live first, then final, later and bye: the order of the Players page groups.
@@ -47,5 +49,5 @@ export function useMatchup(profileId: string, paused: boolean): Matchup {
   }));
   const mine = rows.filter((r) => sideOf(r.entry) === 'mine');
   const opponent = rows.filter((r) => sideOf(r.entry) === 'opponent');
-  return { profile, mine, opponent, totals: { mine: sum(mine), opponent: sum(opponent) }, scoreboard };
+  return { profile, mine, opponent, totals: { mine: sum(mine), opponent: sum(opponent) }, scoreboard, settled: !scoreboard.isLoading && !summaries.some((q) => q.isLoading) };
 }

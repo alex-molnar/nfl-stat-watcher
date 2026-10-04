@@ -92,12 +92,12 @@ main.wrap { padding-bottom: 48px; }
 .vs-col { min-width: 0; }
 .vs-col-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .vs-list { grid-template-columns: 1fr; }
-/* Focused cards scroll clear of the sticky score bar (WCAG 2.4.11). The bar is two lines below 720px, one above. */
-html:has(.score-bar) { scroll-padding-top: 112px; }
+/* Focused cards scroll clear of the sticky score bar (WCAG 2.4.11). VsPage publishes the measured bar height as --score-bar-h; the fallbacks cover the moment before it runs. */
+html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 112px) + 8px); }
 @media (min-width: 720px) {
   .score-bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "mine lead opp"; }
   .vs { grid-template-columns: 1fr 1fr; align-items: start; }
-  html:has(.score-bar) { scroll-padding-top: 72px; }
+  html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 72px) + 8px); }
 }
 
 /* Changed numbers */
