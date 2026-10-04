@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { freshness, useAthlete, useGameSummary } from '../hooks/queries';
+import { useCelebration } from '../hooks/useCelebration';
 import { scoreEntry } from '../scoring/score';
 import type { Profile } from '../scoring/types';
 import type { GameInfo } from '../stats/scoreboard';
@@ -46,6 +47,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const items = statLine(entry, stats);
   const live = game?.state === 'in';
   const redZone = isRedZone(entry, game, stats);
+  const celebration = useCelebration(entry, stats, live);
   const home = game?.home.id === entry.teamId;
   const us = game ? (home ? game.home : game.away) : null;
   const them = game ? (home ? game.away : game.home) : null;
@@ -69,6 +71,13 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       className={`card${live ? ' live' : ''}${onField && !redZone ? ' on-field' : ''}${redZone ? ' is-rz' : ''}${paused ? ' still' : ''}`}
       style={{ '--team': color, '--team-ink': textOn(color) } as CSSProperties}
     >
+      {celebration && (
+        <>
+          <span key={`ring-${celebration.id}`} className={`burst burst-${celebration.event.kind}`} aria-hidden="true" />
+          <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}`} aria-hidden="true">{celebration.event.label}</span>
+        </>
+      )}
+      <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${entry.name}: ${celebration.event.label.toLowerCase()}` : ''}</span>
       <div className="hd">
         <div className="badge" aria-hidden="true">{entry.teamAbbr}</div>
         <div className="id">

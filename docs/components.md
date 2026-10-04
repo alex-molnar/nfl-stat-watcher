@@ -91,3 +91,10 @@ The rank is recomputed from the latest game data on every refresh (`useLiveOrder
 ## Drive end detection
 
 `normalizeSummary` marks the live situation `driveOver` as soon as the offense is done, instead of waiting for the next team to run a play. A drive is over when ESPN's drive `result` is set, or when the last real play is a score, kick, turnover, conversion attempt or kickoff. Timeouts, period breaks and the two minute warning are looked past, because ESPN appends them to a drive right after a touchdown or field goal. While `driveOver` is set, nobody counts as being in the red zone or on the right side of the ball, so cards lose that styling and drop in the order until the next offense starts. Turnovers on downs and some fumbles have an ordinary last play, so they only clear once ESPN sets the drive result.
+
+
+## Scoring play highlight
+
+When a live card's player or defense makes a big play, `EntryCard` shows a one-time highlight: an expanding ring around the card and a labelled tag on its top edge ("Touchdown", "Field goal", "Interception", "Fumble recovery", "Safety", "Blocked kick", "Sack"). Offense scores are gold; defensive plays use the theme accent. The tag clears itself after about four seconds, nothing loops, and a screen reader hears "<name>: <play>" through a polite live region on the card.
+
+`scoringEvent` (`src/stats/events.ts`) compares two refreshes of the same game and reports the biggest play whose count grew: any touchdown, a made field goal, and for defenses and IDP players interceptions, fumble recoveries, safeties, blocked kicks and sacks (biggest first). `useCelebration` calls it when new data arrives for a live game. The first data a card sees is only a baseline, so a reload never replays old plays, and games that are not live never animate. With reduced motion the ring is dropped and only the tag shows; in forced colors the tag takes a system-color border.
