@@ -19,6 +19,27 @@ const stored = () => JSON.parse(localStorage.getItem('nflsw:v1:followed') ?? '[]
 const pts = (col: HTMLElement, name: string) =>
   within(within(col).getByText(name).closest('li')!).getByRole('button', { name: /fantasy pts/ });
 
+describe('vs page grouping', () => {
+  const sf = { ...warren, espnId: '1', name: 'Brock Purdy', teamId: '25', teamAbbr: 'SF', position: 'QB' };
+  const live = {
+    events: scoreboardFixture.events.map((event) => event.id === '401872975' ? { ...event, status: { ...event.status, type: { ...event.status.type, state: 'in' as const } } } : event),
+  };
+
+  it('puts live games first with bigger cards, then the rest under their own headings, in each column', async () => {
+    seed([warren, sf, opponent(pitDefense), opponent({ ...sf, espnId: '2', name: 'Bo Nix', teamId: '7', teamAbbr: 'DEN' })], profilesFixture);
+    mockFetch({ ...routes, scoreboard: live });
+    renderAt('/vs');
+    await within(mineCol()).findByText('Jaylen Warren');
+    const headings = (col: HTMLElement) => [...col.querySelectorAll('.group-title')].map((h) => h.textContent);
+    expect(headings(mineCol())).toEqual(['Live now', 'Final']);
+    expect(headings(oppCol())).toEqual(['Live now', 'Final']);
+    const liveList = within(mineCol()).getByRole('region', { name: 'Live now' }).querySelector('ul')!;
+    expect(liveList).toHaveClass('live');
+    expect(within(liveList).getByText('Brock Purdy')).toBeInTheDocument();
+    expect(within(within(mineCol()).getByRole('region', { name: 'Final' })).getByText('Jaylen Warren')).toBeInTheDocument();
+  });
+});
+
 describe('vs page', () => {
   it('shows both sides of the first league with totals and who leads', async () => {
     seed([warren, opponent(pitDefense), mahomes], profilesFixture);

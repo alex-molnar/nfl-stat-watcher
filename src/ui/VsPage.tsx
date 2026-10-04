@@ -12,6 +12,7 @@ import { Header } from './Header';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
 import { LEADER_TEXT, ScoreBar, leaderOf } from './ScoreBar';
 import { usePageTitle } from './usePageTitle';
+import { GROUPS } from './gameGroups';
 
 /** Programmatic focus that also scrolls clear of the sticky bar: scrollIntoView honours scroll-padding (WCAG 2.4.11). */
 function focusVisible(el: HTMLElement | null | undefined) {
@@ -105,20 +106,29 @@ export function VsPage() {
       {rows[side].length === 0 ? (
         <p className="muted">{COLUMNS[side].empty}</p>
       ) : loading ? null : ( // Wait for the schedule so cards do not reorder after mounting.
-        <ul className="grid vs-list">
-          {rows[side].map(({ entry, game }) => (
-            <EntryCard
-              key={entryKey(entry)}
-              entry={entry}
-              game={game}
-              profiles={profiles}
-              hasSchedule={hasSchedule}
-              paused={paused}
-              movable={false}
-              onRemove={removeAndFocus}
-            />
-          ))}
-        </ul>
+        GROUPS.map(({ key, title }) => {
+          const group = rows[side].filter((r) => (r.game?.state ?? 'none') === key);
+          if (group.length === 0) return null;
+          return (
+            <section key={key} aria-labelledby={`vs-${side}-${key}`}>
+              <h3 className="group-title" id={`vs-${side}-${key}`}>{key === 'none' && !hasSchedule ? 'Followed' : title}</h3>
+              <ul className={`grid vs-list${key === 'in' ? ' live' : ''}`}>
+                {group.map(({ entry, game }) => (
+                  <EntryCard
+                    key={entryKey(entry)}
+                    entry={entry}
+                    game={game}
+                    profiles={profiles}
+                    hasSchedule={hasSchedule}
+                    paused={paused}
+                    movable={false}
+                    onRemove={removeAndFocus}
+                  />
+                ))}
+              </ul>
+            </section>
+          );
+        })
       )}
     </section>
   );

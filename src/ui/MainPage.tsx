@@ -11,13 +11,7 @@ import { Header } from './Header';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
 import type { FollowedEntry } from '../storage/types';
 import { usePageTitle } from './usePageTitle';
-
-const GROUPS = [
-  { key: 'in', title: 'Live now' },
-  { key: 'post', title: 'Final' },
-  { key: 'pre', title: 'Later' },
-  { key: 'none', title: 'Bye week' },
-] as const;
+import { GROUPS } from './gameGroups';
 
 export function MainPage() {
   usePageTitle('Players');

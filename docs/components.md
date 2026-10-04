@@ -69,3 +69,8 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 ## ImportStartersDialog
 
 Props: `open`, `onClose`, `side` (`mine` or `opponent`, default `mine`), `profileId` (optional, fixes the league; vs mode passes it). Lists imported leagues when no `profileId` is given. Loads the league's rosters, shows a "Your team in this league" select (saved on the profile as `source.teamId`), previews the target team's starters and adds them with `addEntry`, skipping ones already followed. Access denied shows the paste guide for the roster data. Status and errors are announced through `role="status"` and `role="alert"` regions.
+
+
+## Vs page grouping
+
+Each column (your players, opponent players) groups its cards like the Players screen: **Live now** first with the larger live card (field strip, big points), then **Final**, **Later** and **Bye week** with the compact card, each under an `h3.group-title` and its own list. Empty groups are not rendered. The order and titles live in `src/ui/gameGroups.ts`, shared with the Players screen.
