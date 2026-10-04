@@ -228,20 +228,50 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .stats { gap: 6px 14px; }
 }
 
-/* Scoring play highlight: an expanding ring and a labelled tag, once, then gone. Offense scores are gold, defensive plays use the accent. */
-.burst-td, .burst-fg, .play-td, .play-fg { --tag-bg: #FFC83D; --tag-ink: #1A1300; }
-.burst-int, .burst-fumble, .burst-safety, .burst-block, .burst-sack, .play-int, .play-fumble, .play-safety, .play-block, .play-sack { --tag-bg: var(--accent); --tag-ink: var(--accent-ink); }
-.burst { position: absolute; inset: -2px; border-radius: inherit; border: 3px solid var(--tag-bg); pointer-events: none; z-index: 2; animation: burst 1000ms cubic-bezier(.16, 1, .3, 1) both; }
-@keyframes burst { from { opacity: .95; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }
-.play-tag { position: absolute; top: -12px; right: 16px; z-index: 3; padding: 3px 12px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-ink); font: 800 12px/1.3 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); animation: tag-in 380ms cubic-bezier(.16, 1, .3, 1) both, tag-out 300ms ease-in 3.9s forwards; }
+/* Scoring play highlight: the whole card floods from the centre in the play's colour, the play name pops in across it,
+   touchdowns throw sparks, then it clears to leave a small tag. Offense scores are gold, defensive plays use the accent. */
+.celebrate-td, .celebrate-fg, .play-td, .play-fg { --tag-bg: #FFC83D; --tag-ink: #1A1300; }
+.celebrate-int, .celebrate-fumble, .celebrate-safety, .celebrate-block, .celebrate-sack, .play-int, .play-fumble, .play-safety, .play-block, .play-sack { --tag-bg: var(--accent); --tag-ink: var(--accent-ink); }
+.celebrate { --dur: 1.8s; position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; overflow: hidden; border-radius: inherit; pointer-events: none; color: var(--tag-ink);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--tag-bg) 100%, white 18%) 0%, var(--tag-bg) 55%, color-mix(in srgb, var(--tag-bg) 88%, black) 100%);
+  animation: celebrate-wash var(--dur) cubic-bezier(.22, 1, .36, 1) both; }
+.celebrate-big { --dur: 2.6s; }
+@keyframes celebrate-wash {
+  0% { opacity: 1; clip-path: circle(0% at 50% 50%); }
+  16% { opacity: 1; clip-path: circle(85% at 50% 50%); }
+  62% { opacity: .96; clip-path: circle(85% at 50% 50%); }
+  100% { opacity: 0; clip-path: circle(85% at 50% 50%); }
+}
+/* The word is sized from the card width (the card is a size container) and its length, so it fills any card. */
+.celebrate-word { position: relative; max-width: 94%; text-align: center; text-transform: uppercase; white-space: nowrap; font: 900 clamp(14px, calc(70cqi / var(--chars)), 64px)/1 Anybody, sans-serif; font-stretch: 125%; letter-spacing: .02em; animation: celebrate-word var(--dur) cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes celebrate-word {
+  0%, 8% { opacity: 0; transform: scale(.45); }
+  22% { opacity: 1; transform: scale(1.14); }
+  30% { transform: scale(1); }
+  72% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+.celebrate i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #FFFFFF; animation: celebrate-spark 1.5s cubic-bezier(.2, .8, .3, 1) .12s both; }
+.celebrate i:nth-child(3n) { background: #1A1300; width: 9px; height: 9px; }
+.celebrate i:nth-child(3n + 1) { background: #FF7A2E; }
+@keyframes celebrate-spark {
+  from { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1); }
+  70% { opacity: 1; }
+  to { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scale(.4); }
+}
+.play-tag { position: absolute; top: -12px; right: 16px; z-index: 5; padding: 3px 12px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-ink); font: 800 12px/1.3 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); animation: tag-in 380ms cubic-bezier(.16, 1, .3, 1) 1.6s both, tag-out 300ms ease-in 3.9s forwards; }
 @keyframes tag-in { from { opacity: 0; transform: translateY(6px) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes tag-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .burst { display: none; }
+  /* No sweep, pop or sparks: the colour wash and the word just appear and fade out. */
+  .celebrate { animation-name: celebrate-fade; }
+  .celebrate-word { animation: none; }
+  .celebrate i { display: none; }
   .play-tag { animation: tag-out 300ms ease-in 3.9s forwards; }
 }
+@keyframes celebrate-fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 @media (forced-colors: active) {
-  .burst { border-color: Highlight; }
+  .celebrate { background: Canvas; color: CanvasText; border: 3px solid Highlight; }
   .play-tag { background: Canvas; color: CanvasText; border: 2px solid Highlight; box-shadow: none; }
 }
 

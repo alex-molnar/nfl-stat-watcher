@@ -24,6 +24,11 @@ interface Props {
   onRemove: (entry: FollowedEntry, button: HTMLElement) => void;
 }
 
+/** Touchdowns and field goals get the long takeover; defensive plays a shorter one. */
+const BIG = new Set(['td', 'fg']);
+/** Eighteen sparks fanned out from the card centre, spread evenly with a few different distances. */
+const SPARKS: CSSProperties[] = Array.from({ length: 18 }, (_, i) => ({ '--a': `${i * 20}deg`, '--d': `${95 + (i % 3) * 38}px` }) as CSSProperties);
+
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
 export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, movable = true, onMove, onRemove }: Props) {
@@ -76,7 +81,10 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
     >
       {celebration && (
         <>
-          <span key={`ring-${celebration.id}`} className={`burst burst-${celebration.event.kind}`} aria-hidden="true" />
+          <span key={`fx-${celebration.id}`} className={`celebrate celebrate-${celebration.event.kind}${BIG.has(celebration.event.kind) ? ' celebrate-big' : ''}`} aria-hidden="true">
+            {celebration.event.kind === 'td' && SPARKS.map((spark, i) => <i key={i} style={spark} />)}
+            <span className="celebrate-word" style={{ '--chars': celebration.event.label.length } as CSSProperties}>{celebration.event.label}</span>
+          </span>
           <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}`} aria-hidden="true">{celebration.event.label}</span>
         </>
       )}
