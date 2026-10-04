@@ -2,16 +2,6 @@
   "detector": {
     "ignoreRules": [],
     "ignoreFiles": [],
-    "ignoreValues": [
-      {
-        "rule": "side-tab",
-        "value": "*",
-        "files": [
-          "prototypes/main-screen.html"
-        ],
-        "createdAt": "2026-10-04T12:41:12.823Z",
-        "reason": "assistant judgment: the only one-edge accent is the 4px bottom bar marking red-zone state on Broadcast rows; it encodes live game state, not decoration; throwaway prototype file"
-      }
-    ]
+    "ignoreValues": []
   }
 }
