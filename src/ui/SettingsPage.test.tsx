@@ -1,6 +1,10 @@
-import { screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { StrictMode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
+import { AppRoutes } from '../App';
 import summary from '../test/fixtures/summary-pit-cle.json';
 import { profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
@@ -57,6 +61,32 @@ describe('settings page', () => {
     expect(screen.getByLabelText('Move 1 followed card to')).toHaveFocus();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveFocus();
+  });
+
+  it('does not steal focus on mount and still moves it correctly in StrictMode', async () => {
+    seed([warren], profilesFixture);
+    render(
+      <StrictMode>
+        <QueryClientProvider client={new QueryClient()}>
+          <MemoryRouter initialEntries={['/settings']}>
+            <AppRoutes />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </StrictMode>,
+    );
+    const del = screen.getByRole('button', { name: 'Delete profile' });
+    expect(del).not.toHaveFocus();
+    await userEvent.click(del);
+    expect(screen.getByLabelText('Move 1 followed card to')).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveFocus();
+  });
+
+  it('focuses Cancel when no followed cards use the profile', async () => {
+    seed([], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
   });
 
   it('trims a name on blur and falls back when empty', async () => {

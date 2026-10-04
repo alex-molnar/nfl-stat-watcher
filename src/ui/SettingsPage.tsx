@@ -70,14 +70,14 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
   const [moveTo, setMoveTo] = useState(others[0]?.id ?? '');
   const deleteBtn = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
-  const firstRender = useRef(true);
+  const cancelBtn = useRef<HTMLButtonElement>(null);
+  // Set by the click handlers only, so mounting (or StrictMode re-running effects) never moves focus.
+  const pendingFocus = useRef<'confirm' | 'delete' | null>(null);
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    if (deleting) confirmRef.current?.querySelector<HTMLElement>('select, button')?.focus();
-    else deleteBtn.current?.focus();
+    const target = pendingFocus.current;
+    pendingFocus.current = null;
+    if (target === 'confirm') (confirmRef.current?.querySelector<HTMLElement>('select') ?? cancelBtn.current)?.focus();
+    if (target === 'delete') deleteBtn.current?.focus();
   }, [deleting]);
 
   function choosePreset(preset: PresetId) {
@@ -110,7 +110,10 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
 
       {!deleting && (
         <div>
-          <button ref={deleteBtn} type="button" className="btn btn-danger" disabled={others.length === 0} aria-describedby={others.length === 0 ? 'last-profile-note' : undefined} onClick={() => setDeleting(true)}>
+          <button ref={deleteBtn} type="button" className="btn btn-danger" disabled={others.length === 0} aria-describedby={others.length === 0 ? 'last-profile-note' : undefined} onClick={() => {
+              pendingFocus.current = 'confirm';
+              setDeleting(true);
+            }}>
             Delete profile
           </button>
           {others.length === 0 && <p id="last-profile-note" className="muted">You need at least one profile.</p>}
@@ -137,7 +140,17 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
           >
             Delete {profile.name}
           </button>
-          <button type="button" className="btn" onClick={() => setDeleting(false)}>Cancel</button>
+          <button
+            ref={cancelBtn}
+            type="button"
+            className="btn"
+            onClick={() => {
+              pendingFocus.current = 'delete';
+              setDeleting(false);
+            }}
+          >
+            Cancel
+          </button>
         </div>
       )}
     </section>
