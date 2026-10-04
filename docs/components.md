@@ -5,7 +5,7 @@ Props: `actions?: ReactNode` (extra buttons, for example "Add player").
 Shows the app name, Players and Settings links (current page marked with `aria-current`), and the theme toggle.
 
 ## ThemeToggle
-No props. Shows "Dark mode" in the light theme and "Light mode" in the dark theme. Stores the choice in `nflsw:v1:theme`.
+No props. Shows "Dark mode" in the light theme and "Light mode" in the dark theme. The label names the action and follows the effective theme (stored choice, else the OS preference, including OS changes while open), so it never goes stale. Stores the choice in `nflsw:v1:theme`.
 
 ## MainPage
 No props. States: empty (nothing followed), grouped (Live now, Final, Later, Bye week), schedule unavailable (one "Followed" group, cards say "Game status unavailable"), scoreboard error with older data (note under the header), loading games ("Loading games"). Page-level notes (loading and retry) use `role="status"`.
