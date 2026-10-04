@@ -101,7 +101,13 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
           ))}
           {hits.map((h, i) => {
             const a = details[i]?.data?.athlete;
-            const meta = details[i]?.isPending ? 'Loading team' : a?.team ? `${a.team.abbreviation} ${a.position?.abbreviation ?? ''}`.trim() : 'Free agent';
+            const meta = details[i]?.isPending
+              ? 'Loading team'
+              : details[i]?.isError
+                ? 'Details unavailable'
+                : a?.team
+                  ? `${a.team.abbreviation} ${a.position?.abbreviation ?? ''}`.trim()
+                  : 'Free agent';
             return (
               <li key={`p${h.id}`}>
                 <span className="r"><b>{h.displayName}</b><small>{meta}</small></span>

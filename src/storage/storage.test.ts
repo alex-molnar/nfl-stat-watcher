@@ -4,7 +4,7 @@ import type { Profile } from '../scoring/types';
 import type { FollowedEntry } from './types';
 import { addEntry, followedStore, moveEntry, removeEntry, updateEntryTeam, withValidProfiles } from './followed';
 import { addProfile, applyPreset, deleteProfile, profilesStore, setTier, setValue } from './profiles';
-import { setTheme, themeStore } from './theme';
+import { followSystemTheme, setTheme, themeStore } from './theme';
 import { reloadAllStores } from './store';
 
 const purdy = (profileId: string): FollowedEntry => ({
@@ -191,5 +191,42 @@ describe('orphaned followed entries', () => {
     expect(stored).toHaveLength(1);
     expect(ids).toContain(stored[0].profileId);
     expect(followedStore.get()[0]?.profileId).toBe(stored[0].profileId);
+  });
+});
+
+describe('system theme', () => {
+  function mockMedia() {
+    let listener: ((e: { matches: boolean }) => void) | undefined;
+    const mql = {
+      matches: false,
+      addEventListener: (_: string, l: typeof listener) => { listener = l; },
+      removeEventListener: () => { listener = undefined; },
+    };
+    vi.stubGlobal('matchMedia', () => mql);
+    return { change: (matches: boolean) => listener?.({ matches }), attached: () => listener !== undefined };
+  }
+
+  it('follows an OS theme change while no theme is stored', () => {
+    const media = mockMedia();
+    const stop = followSystemTheme();
+    media.change(true);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    media.change(false);
+    expect(document.documentElement.dataset.theme).toBe('light');
+    stop();
+    expect(media.attached()).toBe(false);
+  });
+
+  it('ignores OS changes once the user has chosen a theme', () => {
+    const media = mockMedia();
+    followSystemTheme();
+    setTheme('light');
+    media.change(true);
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('does nothing without matchMedia', () => {
+    vi.stubGlobal('matchMedia', undefined);
+    expect(() => followSystemTheme()()).not.toThrow();
   });
 });

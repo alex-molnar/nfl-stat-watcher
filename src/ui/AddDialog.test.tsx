@@ -63,6 +63,14 @@ describe('add dialog', () => {
     expect(await screen.findByText('Search is unavailable right now. Try again in a moment.')).toBeInTheDocument();
   });
 
+  it('says details are unavailable, not free agent, when the athlete lookup fails', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=josh%20allen': search, 'athletes/3918298': status(500), standings: teams });
+    await openDialog();
+    await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
+    expect(await screen.findByText('Details unavailable', {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(screen.queryByText('Free agent')).not.toBeInTheDocument();
+  });
+
   it('closes with the close button', async () => {
     mockFetch({ scoreboard: scoreboardFixture, standings: teams });
     const dialog = await openDialog();

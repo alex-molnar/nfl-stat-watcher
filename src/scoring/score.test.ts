@@ -54,6 +54,10 @@ describe('scorePlayer edge cases', () => {
     const d = { twoPointConversions: 0, safeties: 0, defense: dline, fumbles };
     expect(recoveries(scorePlayer(d, ppr))).toEqual([{ label: 'Fumble recoveries', points: 2 }]);
   });
+  it('scores fumble recoveries for a defender with no defense line but an interception line', () => {
+    const d = { twoPointConversions: 0, safeties: 0, interceptions: { interceptions: 1, touchdowns: 0 }, fumbles };
+    expect(recoveries(scorePlayer(d, ppr))).toEqual([{ label: 'Fumble recoveries', points: 2 }]);
+  });
   it('scores at most fgMade parsed distances', () => {
     const k = { twoPointConversions: 0, safeties: 0, kicking: { fgMade: 1, fgAttempts: 1, longest: 50, xpMade: 0, xpAttempts: 0, madeDistances: [31, 50] } };
     expect(scorePlayer(k, ppr).total).toBeCloseTo(3);

@@ -54,9 +54,9 @@ export function scorePlayer(s: PlayerStats, v: ScoringValues): ScoreResult {
       add('QB hits', d.qbHits * v.qbHit);
       add('Passes defended', d.passesDefended * v.passDefended);
       add('Defensive TDs', d.touchdowns * v.defensiveTd);
-      // Only pure defenders score recoveries; ESPN gives offensive players a defense line after turnovers.
-      if (s.fumbles && !s.passing && !s.rushing && !s.receiving) add('Fumble recoveries', s.fumbles.recovered * v.fumbleRecovery);
     }
+    // Only pure defenders score recoveries; ESPN gives offensive players a defense line after turnovers.
+    if (s.fumbles && !s.passing && !s.rushing && !s.receiving && (s.defense || s.interceptions)) add('Fumble recoveries', s.fumbles.recovered * v.fumbleRecovery);
     if (s.interceptions) add('Interceptions', s.interceptions.interceptions * v.idpInterception);
     add('Safeties', s.safeties * v.safety);
   });
