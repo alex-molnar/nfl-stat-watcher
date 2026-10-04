@@ -14,7 +14,7 @@ export class EspnLoadError extends Error {
   }
 }
 
-function failure(status: number): EspnLoadError {
+export function failure(status: number): EspnLoadError {
   if (status === 401 || status === 403) return new EspnLoadError('access-denied', 'This ESPN account cannot access this league', status);
   if (status === 404) return new EspnLoadError('not-found', 'ESPN could not find this league for that season', status);
   if (status === 429) return new EspnLoadError('rate-limited', 'ESPN is temporarily rate limiting settings requests', status);

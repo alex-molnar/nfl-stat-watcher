@@ -5,6 +5,7 @@ import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfi
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
+import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
@@ -26,6 +27,8 @@ export function MainPage() {
   const paused = usePaused();
   const scoreboard = useScoreboard(paused);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const hasImported = profiles.some((profile) => profile.source);
   const hasSchedule = scoreboard.data !== undefined;
   const games = scoreboard.data ?? [];
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
@@ -74,6 +77,7 @@ export function MainPage() {
         actions={
           <>
             <PauseButton />
+            {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Import starters</button>}
             {addButton(headerAdd)}
           </>
         }
@@ -115,6 +119,7 @@ export function MainPage() {
         )}
       </main>
       <AddDialog open={adding} onClose={closeDialog} />
+      <ImportStartersDialog open={importing} onClose={() => setImporting(false)} />
     </>
   );
 }

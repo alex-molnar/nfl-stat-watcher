@@ -19,6 +19,12 @@ Only scoring and lineup settings are kept; teams, members and rosters in the pas
 
 The optional Chrome companion in `extensions/espn-connector/` still exists for a one-click path. The **Connect ESPN and retry** button only appears when the build has `VITE_ESPN_CONNECTOR_ID` set to an installed companion; without one, use the paste guide above. See `docs/adr/0001-espn-private-settings-connector.md` and the companion README for its status.
 
+## Import starters from the matchup
+
+Once a league is imported, **Import starters** appears on the Players screen (your team) and in each column of the Vs screen (your team or the opponent). It loads the league's current rosters from ESPN, asks which fantasy team is yours (remembered on the profile, kept across refreshes), and adds that team's starting lineup, or its opponent's for the current matchup period, as followed cards in that league. Starters are every non-bench, non-injured-reserve slot, including FLEX and K and D/ST. Cards already followed are skipped and nothing is removed. A D/ST is followed as the NFL team's defense.
+
+ESPN's roster view is large (about 3 MB for ten teams) because it carries all player stats, so loading takes a moment. A private league uses the same paste guide as settings, with the roster link; only starting lineups and matchup pairings are kept. The lineup is the one ESPN holds right now, so change it in ESPN and import again to pick up swaps.
+
 ## Scoring rules and switches
 
 Every ESPN scoring rule the importer recognizes becomes a rule on the profile with its own weight and an On/Off switch (**Settings**, then the profile's groups). Turning a rule off scores nothing for it but keeps its weight, so turning it back on restores it. An imported profile starts with only the rules that league scores switched on, so a league without long-touchdown bonuses has those off and a league with them has them on.

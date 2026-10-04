@@ -6,6 +6,7 @@ import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
+import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
@@ -33,6 +34,7 @@ export function VsPage() {
   const rows = { mine, opponent };
   const [adding, setAdding] = useState(false);
   const [dialogSide, setDialogSide] = useState<Side>('mine');
+  const [importSide, setImportSide] = useState<Side | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const hasSchedule = scoreboard.data !== undefined;
   const loading = mine.length + opponent.length > 0 && scoreboard.isPending;
@@ -94,6 +96,11 @@ export function VsPage() {
         <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
           Add player
         </button>
+        {profile.source && (
+          <button type="button" className="btn press" aria-label={`Import ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
+            Import starters
+          </button>
+        )}
       </div>
       {rows[side].length === 0 ? (
         <p className="muted">{COLUMNS[side].empty}</p>
@@ -144,6 +151,7 @@ export function VsPage() {
           {column('opponent')}
         </div>
       </main>
+      <ImportStartersDialog open={importSide !== null} side={importSide ?? 'mine'} profileId={profile.id} onClose={() => { setImportSide(null); focusVisible(opener.current); }} />
       <AddDialog open={adding} side={dialogSide} profileId={profile.id} onClose={closeDialog} />
     </>
   );

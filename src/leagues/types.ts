@@ -45,6 +45,8 @@ export interface LeagueSource {
   baselineValues: ScoringValues;
   lineupSlotCounts: Record<string, number>;
   issues: ImportIssue[];
+  /** The user's fantasy team in this league, chosen when importing starters. */
+  teamId?: string;
 }
 
 export interface LeagueImportDraft {
@@ -80,6 +82,7 @@ export function isLeagueSource(value: unknown): value is LeagueSource {
     && Number.isInteger(source.mappingVersion)
     && validRawSettings(source.rawSettings)
     && validLineupSlots(source.lineupSlotCounts)
+    && (source.teamId === undefined || (typeof source.teamId === 'string' && /^\d{1,4}$/.test(source.teamId)))
     && Array.isArray(source.issues)
     && source.issues.length <= 500
     && source.issues.every((issue) => validImportIssue(issue))

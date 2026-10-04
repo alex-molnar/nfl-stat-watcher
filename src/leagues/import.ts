@@ -95,7 +95,8 @@ export function commitLeagueImports(
       name: availableName(draft.name, next, profileId),
       preset: 'custom',
       values: copyValues(targetModified && targets.find((candidate) => candidate.sourceIdentity === key)?.localEditDecision === 'preserve' ? target!.values : draft.values),
-      source: structuredClone(draft.source),
+      // A refresh keeps the user's team choice for the same league and season.
+      source: { ...structuredClone(draft.source), ...(target?.source?.teamId ? { teamId: target.source.teamId } : {}) },
     };
     if (target) next = next.map((candidate) => candidate.id === target.id ? profile : candidate);
     else next.push(profile);
@@ -104,6 +105,10 @@ export function commitLeagueImports(
 
   const persisted = profilesStore.set(next);
   return { importedIds, persisted };
+}
+
+export function setLeagueTeam(profileId: string, teamId: string): void {
+  profilesStore.set(profilesStore.get().map((profile) => (profile.id === profileId && profile.source ? { ...profile, source: { ...profile.source, teamId } } : profile)));
 }
 
 export function disconnectLeagueSource(profileId: string): void {

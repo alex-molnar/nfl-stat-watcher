@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { espnSettingsQueryKey, loadEspnLeagueSettings, EspnLoadError } from '../leagues/espn/client';
+import { PrivateLeagueHelp } from './PrivateLeagueHelp';
 import { isConnectorConfigured } from '../leagues/espn/connection';
 import { EspnSettingsError, parseEspnLeagueInput, parsePastedEspnSettings } from '../leagues/espn/parse';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
@@ -58,28 +59,6 @@ function settingsUrl(input: string, season: string): string | null {
   } catch {
     return null;
   }
-}
-
-/** Private leagues need the user's own ESPN session, which the app never sees: the user copies the page text across. */
-function PrivateLeagueHelp({ input, season, leagueLabel, onImport }: { input: string; season: string; leagueLabel: string; onImport: (text: string) => string | null }) {
-  const [text, setText] = useState('');
-  const [problem, setProblem] = useState('');
-  const url = settingsUrl(input, season);
-  return (
-    <details className="private-help" open>
-      <summary>Import {leagueLabel} from your own ESPN session</summary>
-      <ol>
-        <li>Stay signed in to ESPN in this browser{url ? <>, then <a href={url} target="_blank" rel="noreferrer">open this league’s settings data</a> in a new tab</> : ''}.</li>
-        <li>Select everything on that page (Cmd or Ctrl plus A), copy it and paste it below. Only scoring and lineup settings are kept; nothing leaves your browser.</li>
-      </ol>
-      <label className="field-label">
-        Settings JSON for {leagueLabel}
-        <textarea rows={4} value={text} onChange={(event) => { setText(event.target.value); setProblem(''); }} placeholder="Paste the copied ESPN settings here" />
-      </label>
-      {problem && <p className="error" role="alert">{problem}</p>}
-      <button type="button" className="btn" disabled={!text.trim()} onClick={() => setProblem(onImport(text) ?? '')}>Use pasted settings for {leagueLabel}</button>
-    </details>
-  );
 }
 
 export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileId }: Props) {
@@ -308,7 +287,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
                         setBusy(true);
                         void loadOne(entry.input, controller.signal, entry.selected).finally(() => setBusy(false));
                       }}>Connect ESPN and retry</button>}
-                      {entry.needsAccess && <PrivateLeagueHelp input={entry.input} season={season} leagueLabel={leagueLabel} onImport={(text) => importPasted(entry, text)} />}
+                      {entry.needsAccess && <PrivateLeagueHelp url={settingsUrl(entry.input, season)} what="settings" leagueLabel={leagueLabel} onImport={(text) => importPasted(entry, text)} />}
                     </div>
                   )}
                   {draft && (

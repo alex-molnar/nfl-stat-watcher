@@ -64,3 +64,8 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 - Forced colors: the field, endzones, line of scrimmage, ball, red zone card outline and the selected profile use borders and system colors (CanvasText, Highlight).
 - Press scale does not apply to `aria-disabled` buttons.
 - Score bar: sticky at the top, panel background, a 2px `--field-border` bottom border (5.4:1 light, 8.1:1 dark against the page background). The leader is stated in text, never by color. Below 720px it is two lines (both totals, then the status), one line above. On viewports shorter than 30em it stops sticking. `html:has(.score-bar)` sets `scroll-padding-top` to `var(--score-bar-h)` plus 8px, with 112px (below 720px) and 72px fallbacks until the measurement runs, so a focused card never hides under it (WCAG 2.4.11), including with text zoom or text spacing. Forced colors: Canvas background, CanvasText text and border.
+
+
+## ImportStartersDialog
+
+Props: `open`, `onClose`, `side` (`mine` or `opponent`, default `mine`), `profileId` (optional, fixes the league; vs mode passes it). Lists imported leagues when no `profileId` is given. Loads the league's rosters, shows a "Your team in this league" select (saved on the profile as `source.teamId`), previews the target team's starters and adds them with `addEntry`, skipping ones already followed. Access denied shows the paste guide for the roster data. Status and errors are announced through `role="status"` and `role="alert"` regions.
