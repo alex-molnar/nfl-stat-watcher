@@ -15,7 +15,7 @@ export interface GameInfo {
 const side = (c: EspnCompetitor): TeamSide => ({
   id: c.team.id,
   abbr: c.team.abbreviation,
-  color: `#${c.team.color ?? '555555'}`,
+  color: /^[0-9a-f]{6}$/i.test(c.team.color ?? '') ? `#${c.team.color}` : '#555555',
   score: Number(c.score ?? 0) || 0,
 });
 

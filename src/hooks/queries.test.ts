@@ -1,5 +1,5 @@
 import type { GameInfo } from '../stats/scoreboard';
-import { freshness, scoreboardInterval, summaryPolling } from './queries';
+import { freshness, scoreboardInterval, scoreboardRefetch, summaryPolling } from './queries';
 
 const game = (state: GameInfo['state']) => ({ state }) as GameInfo;
 
@@ -8,6 +8,12 @@ describe('polling rules', () => {
     expect(scoreboardInterval([game('post'), game('in')])).toBe(60_000);
     expect(scoreboardInterval([game('pre')])).toBe(600_000);
     expect(scoreboardInterval(undefined)).toBe(600_000);
+  });
+
+  it('retries a failed scoreboard load after a minute, even with no data yet', () => {
+    expect(scoreboardRefetch('error', undefined)).toBe(60_000);
+    expect(scoreboardRefetch('success', [game('pre')])).toBe(600_000);
+    expect(scoreboardRefetch('success', [game('in')])).toBe(60_000);
   });
 
   it('polls live summaries, fetches finals once and skips scheduled games', () => {

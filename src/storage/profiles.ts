@@ -1,6 +1,6 @@
 import { PRESETS, copyValues } from '../scoring/presets';
 import type { PresetId, Profile, ScoringValues } from '../scoring/types';
-import { reassignProfile } from './followed';
+import { followedStore, reassignProfile, withValidProfiles } from './followed';
 import { createStore } from './store';
 
 const newProfile = (name: string): Profile => ({ id: crypto.randomUUID(), name, preset: 'ppr', values: copyValues(PRESETS.ppr) });
@@ -31,6 +31,15 @@ export const profilesStore = createStore<Profile[]>({
   isValid: (v): v is Profile[] => Array.isArray(v) && v.length > 0 && v.every(isProfile),
   repair: (ps) => ps.map((p) => ({ ...p, values: repairValues(p.values) })),
 });
+
+/** Persists the repair of entries that point at a missing profile (spec section 7), once at startup and after every reload. */
+function repairFollowed() {
+  const current = followedStore.get();
+  const next = withValidProfiles(current, profilesStore.get().map((p) => p.id));
+  if (JSON.stringify(next) !== JSON.stringify(current)) followedStore.set(next);
+}
+repairFollowed();
+profilesStore.subscribe(repairFollowed);
 
 function update(id: string, change: (p: Profile) => Profile) {
   profilesStore.set(profilesStore.get().map((p) => (p.id === id ? change(p) : p)));

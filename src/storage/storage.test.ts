@@ -56,6 +56,7 @@ describe('store loading', () => {
   });
 
   it('persists and reloads', () => {
+    seedProfiles(profile('p1', 'Office'));
     addEntry(purdy('p1'));
     reloadAllStores();
     expect(followedStore.get()).toEqual([purdy('p1')]);
@@ -176,5 +177,19 @@ describe('theme', () => {
     expect(document.documentElement.dataset.theme).toBe('dark');
     reloadAllStores();
     expect(themeStore.get()).toBe('dark');
+  });
+});
+
+describe('orphaned followed entries', () => {
+  it('are moved to an existing profile in storage when profiles fall back to a default', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.setItem('nflsw:v1:followed', JSON.stringify([purdy('gone')]));
+    localStorage.setItem('nflsw:v1:profiles', '{');
+    reloadAllStores();
+    const ids = profilesStore.get().map((p) => p.id);
+    const stored = JSON.parse(localStorage.getItem('nflsw:v1:followed')!);
+    expect(stored).toHaveLength(1);
+    expect(ids).toContain(stored[0].profileId);
+    expect(followedStore.get()[0]?.profileId).toBe(stored[0].profileId);
   });
 });

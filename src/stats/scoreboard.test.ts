@@ -26,6 +26,14 @@ describe('toGames', () => {
   });
 });
 
+describe('team colors', () => {
+  it('falls back to grey for malformed colors', () => {
+    const bad = structuredClone(sb);
+    bad.events[0]!.competitions[0]!.competitors[0]!.team.color = 'red;}body{display:none';
+    expect(toGames(bad)[0]!.home.color).toBe('#555555');
+  });
+});
+
 describe('gameForTeam', () => {
   it('finds a game by home or away team, or null for a bye', () => {
     const games = toGames(sb);

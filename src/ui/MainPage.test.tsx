@@ -146,3 +146,25 @@ describe('main page', () => {
     expect(screen.getByRole('button', { name: 'Add player' })).toHaveFocus();
   });
 });
+
+describe('orphaned entries', () => {
+  const orphan = { ...warren, profileId: 'deleted' };
+
+  it('can be removed after being repaired to the first league', async () => {
+    seed([orphan], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Jaylen Warren from Office league' }));
+    expect(screen.queryByText('Jaylen Warren')).not.toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([]);
+  });
+
+  it('can be moved with the league select', async () => {
+    seed([orphan], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    await screen.findByText('15.60');
+    await userEvent.selectOptions(within(card('Jaylen Warren')).getByLabelText('League'), 'Friends league');
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)[0].profileId).toBe('p2');
+  });
+});

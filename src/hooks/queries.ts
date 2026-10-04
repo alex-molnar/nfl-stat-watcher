@@ -7,6 +7,10 @@ import { toGames, type GameInfo } from '../stats/scoreboard';
 export const scoreboardInterval = (games: GameInfo[] | undefined) =>
   games?.some((g) => g.state === 'in') ? 60_000 : 600_000;
 
+/** A failed scoreboard load retries in a minute, not in ten, so live games are picked up soon. */
+export const scoreboardRefetch = (status: string, games: GameInfo[] | undefined) =>
+  status === 'error' ? 60_000 : scoreboardInterval(games);
+
 export function summaryPolling(state: GameInfo['state'] | undefined): {
   enabled: boolean;
   refetchInterval: number | false;
@@ -28,7 +32,7 @@ export function useScoreboard() {
   return useQuery({
     queryKey: ['scoreboard'],
     queryFn: async () => toGames(await getScoreboard()),
-    refetchInterval: (query) => scoreboardInterval(query.state.data),
+    refetchInterval: (query) => scoreboardRefetch(query.state.status, query.state.data),
   });
 }
 
