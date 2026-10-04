@@ -1,4 +1,5 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
+import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import summary from '../test/fixtures/summary-pit-cle.json';
 import { mahomes, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
@@ -60,5 +61,41 @@ describe('main page', () => {
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/');
     expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+  });
+
+  it('keeps the last numbers and shows an updated note when a live refetch fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const [final, upcoming] = scoreboardFixture.events;
+      const liveBoard = {
+        events: [
+          { ...final!, status: { period: 2, displayClock: '6:41', type: { state: 'in', completed: false, shortDetail: '2nd' } } },
+          upcoming!,
+        ],
+      };
+      const routes = { scoreboard: liveBoard };
+      mockFetch({ ...routes, 'summary?event=401872964': summary });
+      renderAt('/');
+      expect(await screen.findByText('15.60')).toBeInTheDocument();
+      expect(screen.queryByText(/retrying/)).not.toBeInTheDocument();
+
+      mockFetch({ ...routes, 'summary?event=401872964': status(500) });
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+
+      expect(await screen.findAllByText(/Updated \d{1,2}:\d{2}.*, retrying/)).toHaveLength(2);
+      expect(within(card('Jaylen Warren')).getByText('15.60')).toBeInTheDocument();
+      expect(within(card('Jaylen Warren')).getByText('93')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still shows followed cards when the scoreboard fails', async () => {
+    mockFetch({ scoreboard: status(500) });
+    renderAt('/');
+    expect(await screen.findByRole('heading', { name: 'Followed' })).toBeInTheDocument();
+    expect(screen.getAllByText('Game status unavailable')).toHaveLength(3);
+    expect(screen.getByText('Live data unavailable, retrying')).toBeInTheDocument();
+    expect(within(card('Jaylen Warren')).getByText('0.00')).toBeInTheDocument();
   });
 });
