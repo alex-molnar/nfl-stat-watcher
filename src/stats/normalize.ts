@@ -50,6 +50,11 @@ const FIELD_GOAL = /(\d+) yard field goal is GOOD/i;
 const FIELD_GOAL_MISS = /(\d+) yard field goal is (?:No Good|BLOCKED)/i;
 /** "punt is BLOCKED by S.Fehoko", "extra point is Blocked (T.Booker)", "field goal is BLOCKED (W.Anderson)". */
 const BLOCKED_KICK = /\b(?:field goal|punt|extra point|PAT) is blocked(?: by |\s*\()([^,)]+)/i;
+/** "FUMBLES (J.Parrish)" names the player who forced it; sack plays add "Fumble Forced by 98-M.Crosby". */
+const FUMBLE_BY = /FUMBLES \(([^)]+)\)/;
+const FUMBLE_FORCED_BY = /Fumble Forced by (?:\d+-)?([^,. ]+\.[^,. ]+)/i;
+/** "... for no gain (G.Gaines; T.Bernard)": a rush for no gain or a loss with its tacklers. */
+const STUFF = /\bfor (?:no gain|-\d+ yards?)\s*\(([^)]*)\)/;
 const TD_YARDS = /for (-?\d+) yards?, TOUCHDOWN/i;
 const TD_VOID = /NULLIFIED|REVERSED|WIPED/i;
 const TWO_POINT = /TWO-POINT CONVERSION ATTEMPT\.(.*?)ATTEMPT SUCCEEDS/i;
@@ -115,6 +120,21 @@ function applyPlays(
       if (defense) defenses[defense]!.blockedKicks = (defenses[defense]!.blockedKicks ?? 0) + 1;
       const blocker = names.find((n) => n.teamId !== offense && n.short === block[1]!.trim());
       if (blocker) players[blocker.id]!.blockedKicks = (players[blocker.id]!.blockedKicks ?? 0) + 1;
+    }
+
+    if (!TD_VOID.test(play.text)) {
+      const forcer = (FUMBLE_FORCED_BY.exec(play.text)?.[1] ?? FUMBLE_BY.exec(play.text)?.[1])?.trim();
+      const forced = forcer && names.find((n) => n.teamId !== offense && n.short === forcer);
+      if (forced) players[forced.id]!.forcedFumbles = (players[forced.id]!.forcedFumbles ?? 0) + 1;
+
+      const stop = play.type?.text === 'Rush' ? STUFF.exec(play.text) : null;
+      if (stop) {
+        const tacklers = stop[1]!.split(';').map((name) => name.trim()).filter(Boolean);
+        for (const name of tacklers) {
+          const tackler = names.find((n) => n.teamId !== offense && n.short === name);
+          if (tackler) players[tackler.id]!.stuffs = (players[tackler.id]!.stuffs ?? 0) + 1 / tacklers.length;
+        }
+      }
     }
 
     const two = TWO_POINT.exec(play.text);

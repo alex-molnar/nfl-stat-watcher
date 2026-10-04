@@ -117,7 +117,7 @@ export const ESPN_STAT_MAP: Readonly<Record<number, StatRule>> = {
   109: rule('total tackles', t('soloTackle', 'idp'), t('assistedTackle', 'idp')),
   110: rule('every 3 total tackles', st('tackle', 'idp', 3)),
   111: rule('every 5 total tackles', st('tackle', 'idp', 5)),
-  112: rule('stuffs', t('tackleForLoss', 'idp')),
+  112: rule('stuffs', t('stuff', 'idp')),
   113: rule('passes defended', t('passDefended', 'idp')),
   116: rule('every 10 kickoff return yards', st('kickReturnYards', 'offense', 10)),
   117: rule('every 25 kickoff return yards', st('kickReturnYards', 'offense', 25)),

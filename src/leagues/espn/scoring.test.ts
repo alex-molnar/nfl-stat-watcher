@@ -98,10 +98,10 @@ describe('normalizeEspnLeague', () => {
   });
 
   it('warns about unknown, unrepresentable and not-live stats', () => {
-    const draft = normalizeEspnLeague(league([item(106, 2), item(999, 1), item(120, 1)]));
+    const draft = normalizeEspnLeague(league([item(63, 2), item(999, 1), item(120, 1)]));
     expect(draft.source.issues.some(({ code }) => code === 'unknown-rule')).toBe(true);
     expect(draft.source.issues.some(({ code }) => code === 'unrepresentable-rule')).toBe(true);
-    expect(draft.source.issues.some(({ code, message }) => code === 'stat-limitation' && message.includes('Forced fumble'))).toBe(true);
+    expect(draft.source.issues.some(({ code, message }) => code === 'stat-limitation' && message.includes('Fumble recovered for TD'))).toBe(true);
   });
 
   it('imports blocked kicks but warns that they depend on ESPN play wording', () => {

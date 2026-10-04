@@ -119,6 +119,8 @@ export function scorePlayer(s: PlayerStats, values: ScoringValues): ScoreResult 
     if (s.interceptions) add('Interceptions', s.interceptions.interceptions * v.idpInterception);
     add('Safeties', s.safeties * v.safety);
     add('Blocked kicks', (s.blockedKicks ?? 0) * v.blockedKick);
+    add('Forced fumbles', (s.forcedFumbles ?? 0) * v.forcedFumble);
+    add('Stuffs', (s.stuffs ?? 0) * v.stuff);
   });
 }
 

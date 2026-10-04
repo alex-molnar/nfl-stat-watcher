@@ -307,10 +307,15 @@ describe('settings page', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByText('Offense bonuses', { selector: 'summary' }));
     expect(within(fieldset('Offense bonuses')).getByLabelText('40+ yard passing TD')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Offense volume', { selector: 'summary' }));
+    const recoveryTd = within(fieldset('Offense volume')).getByLabelText('Fumble recovered for TD');
+    expect(within(fieldset('Offense volume')).queryByText(/never scores/)).not.toBeInTheDocument();
+    await userEvent.clear(recoveryTd);
+    await userEvent.type(recoveryTd, '6');
+    expect(within(fieldset('Offense volume')).getByText(/never scores/)).toBeInTheDocument();
     const forced = within(fieldset('IDP')).getByLabelText('Forced fumble');
-    expect(within(fieldset('IDP')).queryByText(/never scores/)).not.toBeInTheDocument();
     await userEvent.clear(forced);
-    await userEvent.type(forced, '1');
-    expect(within(fieldset('IDP')).getByText(/never scores/)).toBeInTheDocument();
+    await userEvent.type(forced, '2');
+    expect(within(fieldset('IDP')).getByText(/may be inaccurate/)).toBeInTheDocument();
   });
 });

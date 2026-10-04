@@ -29,6 +29,10 @@ export interface PlayerStats {
   safeties: number;
   /** Kicks the player blocked, read from play text. */
   blockedKicks?: number;
+  /** Fumbles the player forced, read from play text. */
+  forcedFumbles?: number;
+  /** Rushes stopped for no gain or a loss, shared between listed tacklers, read from play text. */
+  stuffs?: number;
 }
 
 export interface DefenseStats {

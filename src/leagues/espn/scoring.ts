@@ -144,12 +144,12 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
       message: `Imported, but the live game feed does not supply these stats, so they never score: ${notLive.join(', ')}.`,
     });
   }
-  const approx = FIELD_GROUPS.flatMap(({ fields }) => fields.filter((field) => field.approx && values[field.key] !== 0).map((field) => field.label));
+  const approx = [...new Set(FIELD_GROUPS.flatMap(({ fields }) => fields.filter((field) => field.approx && values[field.key] !== 0).map((field) => field.label.toLowerCase())))];
   if (approx.length > 0) {
     addIssue(issues, {
       code: 'stat-limitation',
       providerKeys: ['stats:playText'],
-      message: 'Blocked kicks are read from ESPN’s play-by-play wording (punts, field goals and extra points), so they might not be accurate if ESPN words a play differently.',
+      message: `These stats are read from ESPN’s play-by-play wording (${approx.join(', ')}), so they might not be accurate if ESPN words a play differently.`,
     });
   }
   addIssue(issues, {

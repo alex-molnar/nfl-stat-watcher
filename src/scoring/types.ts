@@ -5,7 +5,7 @@ export const VALUE_KEYS = [
   'recTarget', 'reception', 'recYards', 'recTd', 'recTd40', 'recTd50', 'rec100', 'rec200',
   'twoPoint', 'fumble', 'fumbleLost', 'fumbleRecoveryTd', 'returnTd', 'kickReturnYards', 'puntReturnYards',
   'fg0to39', 'fg40to49', 'fg50to59', 'fg60plus', 'fgMissed', 'fgMissed0to39', 'fgMissed40to49', 'fgMissed50to59', 'fgMissed60plus', 'xpMade', 'xpMissed',
-  'soloTackle', 'assistedTackle', 'sack', 'tackleForLoss', 'qbHit', 'passDefended', 'idpInterception', 'fumbleRecovery', 'forcedFumble', 'defensiveTd', 'safety', 'blockedKick',
+  'soloTackle', 'assistedTackle', 'sack', 'tackleForLoss', 'qbHit', 'passDefended', 'idpInterception', 'fumbleRecovery', 'forcedFumble', 'stuff', 'defensiveTd', 'safety', 'blockedKick',
   'dstSack', 'dstInterception', 'dstFumbleRecovery', 'dstSafety', 'dstTd', 'dstBlockedKick', 'twoPointReturn', 'onePointSafety',
   'yardsAllowed0', 'yardsAllowed100', 'yardsAllowed200', 'yardsAllowed300', 'yardsAllowed350', 'yardsAllowed400', 'yardsAllowed450', 'yardsAllowed500', 'yardsAllowed550',
 ] as const;

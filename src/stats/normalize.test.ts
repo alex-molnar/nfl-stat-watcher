@@ -122,3 +122,35 @@ describe('blocked kicks from play text', () => {
     expect(Object.values(g.defenses).every((d) => !d.blockedKicks)).toBe(true);
   });
 });
+
+describe('forced fumbles and stuffs from play text', () => {
+  const side = (id: string, names: string[]) => ({ team: { id }, statistics: [{ name: 'defensive', keys: [] as string[], totals: [] as string[], athletes: names.map((n, i) => ({ athlete: { id: `${id}${i}`, displayName: n }, stats: [] as string[] })) }] });
+  const game = (plays: { type: string; text: string }[]) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] },
+    boxscore: { players: [side('9', ['Jordan Love']), side('27', ['Antoine Winfield', 'Terrel Bernard', 'Gaines Gaines'])] },
+    drives: { previous: [{ plays: plays.map((p, i) => ({ id: String(i), text: p.text, type: { text: p.type }, start: { team: { id: '9' } } })) }] },
+  } as unknown as EspnSummary);
+
+  it('credits a forced fumble to the named defender, but not on a play replay reversed', () => {
+    const g = game([
+      { type: 'Pass Reception', text: 'J.Love pass short right to M.Lloyd to TB 16 for 16 yards (A.Winfield). FUMBLES (A.Winfield), ball out of bounds at TB 16.' },
+      { type: 'Pass Incompletion', text: 'J.Love pass short left to M.Golden to GB 42 for 11 yards (J.Parrish). FUMBLES (A.Winfield), RECOVERED by TB-A.Winfield at GB 47.The Replay Official reviewed the pass completion ruling, and the play was REVERSED.' },
+    ]);
+    expect(g.players['270']?.forcedFumbles).toBe(1);
+  });
+
+  it('prefers "Fumble Forced by" over the sacker named in parentheses', () => {
+    const g = game([{ type: 'Sack', text: 'T.Shough sacked at LV 30 for -10 yards (J.Chinn). FUMBLES (J.Chinn) [J.Chinn], RECOVERED by LV-T.Johnson at LV 32. Fumble Forced by 27-A.Winfield.' }]);
+    expect(g.players['270']?.forcedFumbles).toBe(1);
+  });
+
+  it('splits a stuff between the tacklers of a no gain or losing rush and ignores ordinary gains', () => {
+    const g = game([
+      { type: 'Rush', text: 'R.Stevenson up the middle to NE 19 for no gain (G.Gaines; T.Bernard).' },
+      { type: 'Rush', text: 'T.Henderson up the middle to NE 21 for 1 yard (T.Bernard).' },
+      { type: 'Rush', text: 'T.Henderson up the middle to NE 21 for -3 yards (T.Bernard).' },
+    ]);
+    expect(g.players['271']?.stuffs).toBeCloseTo(1.5);
+    expect(g.players['272']?.stuffs).toBeCloseTo(0.5);
+  });
+});
