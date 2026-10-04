@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FollowedEntry } from '../storage/types';
-import { liveRank } from './liveOrder';
+import { RankHolds, liveRank } from './liveOrder';
 import type { GameInfo } from './scoreboard';
 import type { GameStats } from './types';
 
@@ -76,5 +76,40 @@ describe('injured players', () => {
   });
   it('never marks a team defense out', () => {
     expect(liveRank(entry({ kind: 'defense', position: 'D/ST', espnId: '1' }), game, withInjury('Out'))).toBeLessThan(50);
+  });
+});
+
+describe('RankHolds', () => {
+  it('keeps the rank from before the play while the hold runs, then lets the card drop', () => {
+    const holds = new RankHolds();
+    holds.hold('scorer', 1, 5_000, 1_000);
+    expect(holds.rank('scorer', 20, 1_000)).toBe(1);
+    expect(holds.rank('scorer', 20, 4_999)).toBe(1);
+    expect(holds.rank('scorer', 20, 5_000)).toBe(20);
+    expect(holds.rank('scorer', 22, 6_000)).toBe(22);
+  });
+
+  it('never holds a card that was not involved, which moves at once', () => {
+    const holds = new RankHolds();
+    holds.hold('scorer', 1, 5_000, 1_000);
+    expect(holds.rank('bystander', 20, 2_000)).toBe(20);
+  });
+
+  it('keeps the original rank when a second play lands during a hold, and lasts longer', () => {
+    const holds = new RankHolds();
+    holds.hold('scorer', 1, 5_000, 1_000);
+    holds.hold('scorer', 20, 7_000, 3_000);
+    expect(holds.rank('scorer', 22, 6_000)).toBe(1);
+    expect(holds.rank('scorer', 22, 7_000)).toBe(22);
+  });
+
+  it('says when the next hold ends, so the page can re-sort then', () => {
+    const holds = new RankHolds();
+    expect(holds.nextExpiry(0)).toBeNull();
+    holds.hold('a', 1, 5_000, 0);
+    holds.hold('b', 2, 3_000, 0);
+    expect(holds.nextExpiry(1_000)).toBe(3_000);
+    expect(holds.nextExpiry(4_000)).toBe(5_000);
+    expect(holds.nextExpiry(6_000)).toBeNull();
   });
 });

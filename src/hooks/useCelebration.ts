@@ -3,7 +3,7 @@ import { scoringEvent, type PlayEvent } from '../stats/events';
 import type { GameStats } from '../stats/types';
 import type { FollowedEntry } from '../storage/types';
 
-const SHOW_MS = 4200; // the badge stays long enough to read, then clears itself (no looping motion, WCAG 2.2.2)
+export const SHOW_MS = 4200; // the badge stays long enough to read, then clears itself (no looping motion, WCAG 2.2.2)
 
 export interface Celebration {
   event: PlayEvent;

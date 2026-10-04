@@ -34,3 +34,35 @@ export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats 
   const bucket = isRedZone(entry, game, stats) ? 0 : onRightSide(entry, situation) ? 1 : 2;
   return bucket * 10 + tier(entry);
 }
+
+/**
+ * Keeps a card at the rank it had before its own play for a few seconds, so a card whose celebration is playing
+ * does not slide away mid-animation. Cards not involved in the play are never held and move at once.
+ */
+export class RankHolds {
+  private held = new Map<string, { rank: number; until: number }>();
+
+  /** Hold `rank` until `until` (ms). A hold already running keeps its original rank and only lasts longer. */
+  hold(key: string, rank: number, until: number, now: number) {
+    const existing = this.held.get(key);
+    if (existing && existing.until > now) existing.until = Math.max(existing.until, until);
+    else this.held.set(key, { rank, until });
+  }
+
+  /** The held rank while a hold is running, else the current one. */
+  rank(key: string, current: number, now: number): number {
+    const hold = this.held.get(key);
+    if (!hold) return current;
+    if (now >= hold.until) {
+      this.held.delete(key);
+      return current;
+    }
+    return hold.rank;
+  }
+
+  /** When the next running hold ends, so the caller can re-sort then; null when none is running. */
+  nextExpiry(now: number): number | null {
+    const ends = [...this.held.values()].map((hold) => hold.until).filter((until) => until > now);
+    return ends.length ? Math.min(...ends) : null;
+  }
+}
