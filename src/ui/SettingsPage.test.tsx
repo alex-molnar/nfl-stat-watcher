@@ -50,6 +50,7 @@ describe('settings page', () => {
     const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
     await userEvent.clear(passTd);
     await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
     await userEvent.click(document.body);
     expect(passTd).toHaveValue(4);
   });
@@ -131,17 +132,80 @@ describe('settings page', () => {
     expect(profiles().map((p: { name: string }) => p.name)).toEqual(['My league', 'Dynasty']);
   });
 
-  it('applies a preset only after confirmation', async () => {
+  it('applies a preset only after confirmation on the Apply preset button', async () => {
     seed([], profilesFixture);
     renderAt('/settings');
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
     await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
+    expect(confirm).not.toHaveBeenCalled();
     expect(profiles()[0].values.reception).toBe(1);
-    expect(screen.getByLabelText('Preset')).toHaveValue('ppr');
-    await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
+    expect(profiles()[0].values.reception).toBe(1);
+    expect(screen.getByLabelText('Preset')).toHaveValue('standard');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
     expect(profiles()[0].values.reception).toBe(0);
     expect(profiles()[0].preset).toBe('standard');
     expect(confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables Apply preset while the preset reads Custom', async () => {
+    renderAt('/settings');
+    const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
+    await userEvent.clear(passTd);
+    await userEvent.type(passTd, '6');
+    expect(screen.getByRole('button', { name: 'Apply preset' })).toBeDisabled();
+  });
+
+  it('says what was restored when a number field is left invalid, and clears it on the next edit', async () => {
+    renderAt('/settings');
+    const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
+    await userEvent.clear(passTd);
+    await userEvent.tab();
+    const msg = screen.getByText('Enter a number. Restored 4.');
+    expect(msg).toHaveAttribute('role', 'status');
+    expect(passTd).toHaveAccessibleDescription('Enter a number. Restored 4.');
+    await userEvent.type(passTd, '5');
+    expect(screen.queryByText('Enter a number. Restored 4.')).not.toBeInTheDocument();
+    expect(passTd).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('says why a profile name was corrected and clears it on the next edit', async () => {
+    seed([], profilesFixture);
+    renderAt('/settings');
+    const name = screen.getByLabelText('Name');
+    await userEvent.clear(name);
+    await userEvent.tab();
+    expect(name).toHaveAccessibleDescription('Name was empty. Using Untitled league.');
+    await userEvent.type(name, 'x');
+    expect(name).not.toHaveAccessibleDescription();
+    await userEvent.clear(name);
+    await userEvent.type(name, 'friends league');
+    await userEvent.tab();
+    expect(name).toHaveAccessibleDescription('That name is taken. Using friends league 2.');
+    await userEvent.type(name, '!');
+    expect(screen.queryByText(/That name is taken/)).not.toBeInTheDocument();
+  });
+
+  it('does not report a correction when a name only needed trimming', async () => {
+    renderAt('/settings');
+    const name = screen.getByLabelText('Name');
+    await userEvent.type(name, '  ');
+    await userEvent.tab();
+    expect(name).not.toHaveAccessibleDescription();
+  });
+
+  it('describes the delete question on the focused Cancel button', async () => {
+    seed([], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription('Delete Office league? No followed cards use it.');
+  });
+
+  it('lists profiles in a plain list under a heading, not a nav', () => {
+    renderAt('/settings');
+    expect(screen.queryByRole('navigation', { name: 'Profiles' })).not.toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Profiles' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Profiles' })).toBeInTheDocument();
   });
 
   it('does not allow deleting the last profile', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { FIELD_GROUPS } from '../scoring/fields';
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
@@ -10,6 +10,8 @@ import { usePageTitle } from './usePageTitle';
 
 function NumberField({ label, value, step, onChange }: { label: string; value: number; step: number; onChange: (n: number) => void }) {
   const [text, setText] = useState(String(value));
+  const [msg, setMsg] = useState('');
+  const msgId = useId();
   // Follow outside changes (presets) without fighting partial input such as "0." or "".
   useEffect(() => {
     if (Number.parseFloat(text) !== value) setText(String(value));
@@ -19,18 +21,24 @@ function NumberField({ label, value, step, onChange }: { label: string; value: n
       {label}
       <input
         type="number"
+        aria-describedby={msg ? msgId : undefined}
         inputMode="decimal"
         step={step}
         value={text}
         onBlur={() => {
-          if (!Number.isFinite(Number.parseFloat(text))) setText(String(value));
+          if (!Number.isFinite(Number.parseFloat(text))) {
+            setText(String(value));
+            setMsg(`Enter a number. Restored ${value}.`);
+          }
         }}
         onChange={(e) => {
+          setMsg('');
           setText(e.target.value);
           const n = Number.parseFloat(e.target.value);
           if (Number.isFinite(n)) onChange(n);
         }}
       />
+      <span id={msgId} className="field-msg" role="status">{msg}</span>
     </label>
   );
 }
@@ -45,22 +53,29 @@ function uniqueName(raw: string, others: Profile[]): string {
 
 function NameField({ profile, others }: { profile: Profile; others: Profile[] }) {
   const [text, setText] = useState(profile.name);
+  const [msg, setMsg] = useState('');
+  const msgId = useId();
   return (
     <label className="field-label">
       Name
       <input
         value={text}
+        aria-describedby={msg ? msgId : undefined}
         onChange={(e) => {
+          setMsg('');
           setText(e.target.value);
           // An empty name is never stored, so the profile always has an accessible name.
           if (e.target.value.trim()) renameProfile(profile.id, e.target.value);
         }}
         onBlur={() => {
           const name = uniqueName(text, others);
+          if (!text.trim()) setMsg(`Name was empty. Using ${name}.`);
+          else if (name !== text.trim()) setMsg(`That name is taken. Using ${name}.`);
           setText(name);
           renameProfile(profile.id, name);
         }}
       />
+      <span id={msgId} className="field-msg" role="status">{msg}</span>
     </label>
   );
 }
@@ -81,20 +96,30 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
     if (target === 'delete') deleteBtn.current?.focus();
   }, [deleting]);
 
-  function choosePreset(preset: PresetId) {
-    if (window.confirm(`Replace all values in ${profile.name} with the ${PRESET_LABELS[preset]} preset?`)) applyPreset(profile.id, preset);
+  // Picking in the select changes nothing; only the Apply preset button asks for confirmation (WCAG 3.2.2).
+  const [picked, setPicked] = useState<PresetId | null>(null);
+  const preset: PresetId | 'custom' = picked ?? profile.preset;
+  function applyPicked() {
+    if (preset === 'custom') return;
+    if (window.confirm(`Replace all values in ${profile.name} with the ${PRESET_LABELS[preset]} preset?`)) {
+      applyPreset(profile.id, preset);
+      setPicked(null);
+    }
   }
 
   return (
     <section className="profile-form" aria-label={`Edit ${profile.name}`}>
       <NameField profile={profile} others={others} />
-      <label className="field-label">
-        Preset
-        <select value={profile.preset} onChange={(e) => choosePreset(e.target.value as PresetId)}>
-          {(Object.keys(PRESET_LABELS) as PresetId[]).map((id) => <option key={id} value={id}>{PRESET_LABELS[id]}</option>)}
-          <option value="custom" disabled>Custom</option>
-        </select>
-      </label>
+      <div className="preset-row">
+        <label className="field-label">
+          Preset
+          <select value={preset} onChange={(e) => setPicked(e.target.value as PresetId)}>
+            {(Object.keys(PRESET_LABELS) as PresetId[]).map((id) => <option key={id} value={id}>{PRESET_LABELS[id]}</option>)}
+            <option value="custom" disabled>Custom</option>
+          </select>
+        </label>
+        <button type="button" className="btn press" disabled={preset === 'custom'} onClick={applyPicked}>Apply preset</button>
+      </div>
 
       {FIELD_GROUPS.map((group) => (
         <fieldset key={group.title}>
@@ -130,7 +155,7 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
               </select>
             </label>
           ) : (
-            <p>Delete {profile.name}? No followed cards use it.</p>
+            <p id="confirm-question">Delete {profile.name}? No followed cards use it.</p>
           )}
           <button
             type="button"
@@ -144,6 +169,7 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
           <button
             ref={cancelBtn}
             type="button"
+            aria-describedby={usedBy > 0 ? undefined : 'confirm-question'}
             className="btn"
             onClick={() => {
               pendingFocus.current = 'delete';
@@ -179,8 +205,9 @@ export function SettingsPage() {
       <main className="wrap">
         <h2 className="section-title" tabIndex={-1} data-page-title>Scoring profiles</h2>
         <div className="settings-grid">
-          <nav aria-label="Profiles">
-            <ul className="profile-list">
+          <div>
+            <h3 className="sr" id="profiles-heading">Profiles</h3>
+            <ul className="profile-list" aria-labelledby="profiles-heading">
               {profiles.map((p) => (
                 <li key={p.id}>
                   <button type="button" data-profile={p.id} aria-current={p.id === profile.id ? 'true' : undefined} onClick={() => setSelectedId(p.id)}>
@@ -192,7 +219,7 @@ export function SettingsPage() {
             <button type="button" className="btn press" onClick={() => setSelectedId(addProfile('New league'))}>
               Add profile
             </button>
-          </nav>
+          </div>
           <ProfileForm
             key={profile.id}
             profile={profile}
