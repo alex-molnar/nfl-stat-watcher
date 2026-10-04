@@ -8,7 +8,7 @@ const newProfile = (name: string): Profile => ({ id: crypto.randomUUID(), name, 
 function isProfile(v: unknown): v is Profile {
   if (typeof v !== 'object' || v === null) return false;
   const p = v as Record<string, unknown>;
-  return typeof p.id === 'string' && typeof p.name === 'string' && typeof p.preset === 'string' && typeof p.values === 'object' && p.values !== null;
+  return typeof p.id === 'string' && typeof p.name === 'string' && (p.preset === 'custom' || (typeof p.preset === 'string' && p.preset in PRESETS)) && typeof p.values === 'object' && p.values !== null;
 }
 
 /** Keeps stored profiles usable when new scoring fields are added later. */
@@ -55,10 +55,12 @@ export function deleteProfile(id: string, moveTo: string): boolean {
 }
 
 export function setValue(id: string, key: Exclude<keyof ScoringValues, 'pointsAllowed'>, value: number) {
+  if (!Number.isFinite(value)) return;
   update(id, (p) => ({ ...p, preset: 'custom', values: { ...p.values, [key]: value } }));
 }
 
 export function setTier(id: string, index: number, value: number) {
+  if (!Number.isFinite(value) || !Number.isInteger(index) || index < 0 || index > 6) return;
   update(id, (p) => ({
     ...p,
     preset: 'custom',

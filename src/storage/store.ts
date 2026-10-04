@@ -21,17 +21,32 @@ export function createStore<T>(opts: {
   const listeners = new Set<() => void>();
   const notify = () => listeners.forEach((l) => l());
 
+  function persist(next: T) {
+    try {
+      localStorage.setItem(opts.key, JSON.stringify(next));
+    } catch {
+      console.warn(`Stat Watch: could not save ${opts.key}, keeping it in memory only`);
+    }
+  }
+
+  // The fallback is written back so generated ids stay stable across reloads.
+  function useFallback(): T {
+    const next = opts.fallback();
+    persist(next);
+    return next;
+  }
+
   function load(): T {
     try {
       const raw = localStorage.getItem(opts.key);
-      if (raw === null) return opts.fallback();
+      if (raw === null) return useFallback();
       const parsed: unknown = JSON.parse(raw);
       if (opts.isValid(parsed)) return opts.repair ? opts.repair(parsed) : parsed;
     } catch {
       // unreadable JSON or blocked storage: fall through to defaults
     }
     console.warn(`Stat Watch: stored data in ${opts.key} is invalid, using defaults`);
-    return opts.fallback();
+    return useFallback();
   }
 
   let value = load();
@@ -39,11 +54,7 @@ export function createStore<T>(opts: {
     get: () => value,
     set(next) {
       value = next;
-      try {
-        localStorage.setItem(opts.key, JSON.stringify(next));
-      } catch {
-        // storage full or blocked: keep the in-memory value
-      }
+      persist(next);
       notify();
     },
     subscribe(listener) {

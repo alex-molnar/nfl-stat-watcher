@@ -24,6 +24,37 @@ describe('store loading', () => {
     expect(p?.preset).toBe('ppr');
   });
 
+  it('keeps the default profile id stable across reloads', () => {
+    const id = profilesStore.get()[0]!.id;
+    reloadAllStores();
+    expect(profilesStore.get()[0]!.id).toBe(id);
+  });
+
+  it('replaces a corrupt stored value with the persisted fallback', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.setItem('nflsw:v1:profiles', '{');
+    reloadAllStores();
+    const id = profilesStore.get()[0]!.id;
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:profiles')!)[0].id).toBe(id);
+    reloadAllStores();
+    expect(profilesStore.get()[0]!.id).toBe(id);
+  });
+
+  it('rejects a stored profile with an unknown preset', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.setItem('nflsw:v1:profiles', JSON.stringify([{ ...profile('p1', 'Old'), preset: 'bogus' }]));
+    reloadAllStores();
+    expect(profilesStore.get()[0]?.name).toBe('My league');
+  });
+
+  it('warns when a write to localStorage fails', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('full'); });
+    addEntry(purdy('p1'));
+    expect(followedStore.get()).toEqual([purdy('p1')]);
+    expect(warn).toHaveBeenCalled();
+  });
+
   it('persists and reloads', () => {
     addEntry(purdy('p1'));
     reloadAllStores();
@@ -98,6 +129,18 @@ describe('profiles', () => {
     expect(p.values.passTd).toBe(6);
     expect(p.values.pointsAllowed[0]).toBe(12);
     expect(p.preset).toBe('custom');
+  });
+
+  it('ignores non-finite values and out-of-range tier indexes', () => {
+    const id = profilesStore.get()[0]!.id;
+    const before = profilesStore.get();
+    setValue(id, 'passTd', NaN);
+    setValue(id, 'passTd', Infinity);
+    setTier(id, 7, 5);
+    setTier(id, -1, 5);
+    setTier(id, 0, NaN);
+    expect(profilesStore.get()).toEqual(before);
+    expect(profilesStore.get()[0]!.preset).toBe('ppr');
   });
 
   it('applies a preset', () => {
