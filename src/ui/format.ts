@@ -46,7 +46,7 @@ export function isRedZone(entry: FollowedEntry, game: GameInfo | null, stats: Ga
   const s = stats?.situation;
   return (
     entry.kind === 'player' && isOffense(entry.position) && game?.state === 'in' &&
-    !!s && s.possessionTeamId === entry.teamId && s.yardsToEndzone <= 20
+    !!s && !s.driveOver && s.possessionTeamId === entry.teamId && s.yardsToEndzone <= 20
   );
 }
 

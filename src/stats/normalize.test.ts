@@ -1,6 +1,6 @@
 import summaryJson from '../test/fixtures/summary-pit-cle.json';
 import type { EspnPlay, EspnSummary } from '../espn/types';
-import { allPlays, normalizeSummary, shortName, situationFrom } from './normalize';
+import { allPlays, endsDrive, normalizeSummary, shortName, situationFrom } from './normalize';
 
 const summary = summaryJson as unknown as EspnSummary;
 const game = normalizeSummary(summary);
@@ -152,5 +152,35 @@ describe('forced fumbles and stuffs from play text', () => {
     ]);
     expect(g.players['271']?.stuffs).toBeCloseTo(1.5);
     expect(g.players['272']?.stuffs).toBeCloseTo(0.5);
+  });
+});
+
+describe('drive end detection', () => {
+  const play = (type: string, text = type, extra: Partial<EspnPlay> = {}): EspnPlay => ({ id: `${type}${text}`.slice(0, 40), text, type: { text: type }, start: { team: { id: '25' }, yardsToEndzone: 4 }, ...extra });
+
+  it('knows a drive is over right after a score, even though ESPN appends a timeout to it', () => {
+    expect(endsDrive([play('Rush'), play('Rushing Touchdown', 'J.Cook for 4 yards, TOUCHDOWN.'), play('Official Timeout')])).toBe(true);
+    expect(endsDrive([play('Pass Reception'), play('Field Goal Good'), play('Official Timeout')])).toBe(true);
+    expect(endsDrive([play('Pass Reception'), play('Punt'), play('End Period')])).toBe(true);
+  });
+
+  it('knows from the drive result alone when the last play looks ordinary (a turnover on downs)', () => {
+    expect(endsDrive([play('Pass Incompletion')])).toBe(false);
+    expect(endsDrive([play('Pass Incompletion')], 'DOWNS')).toBe(true);
+  });
+
+  it('keeps a drive alive through timeouts and period breaks in the middle of it', () => {
+    expect(endsDrive([play('Rush'), play('Pass Reception'), play('Official Timeout')])).toBe(false);
+    expect(endsDrive([play('Sack'), play('End Period')])).toBe(false);
+  });
+
+  it('treats the kickoff after a score as nobody having the ball yet', () => {
+    expect(endsDrive([play('Kickoff')])).toBe(true);
+  });
+
+  it('flags the situation as drive over, so the scorer is no longer in the red zone', () => {
+    const s = situationFrom([play('Rushing Touchdown'), play('Official Timeout')], true);
+    expect(s).toMatchObject({ possessionTeamId: '25', yardsToEndzone: 4, driveOver: true });
+    expect(situationFrom([play('Rush')], false)).not.toHaveProperty('driveOver');
   });
 });

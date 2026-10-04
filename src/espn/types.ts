@@ -63,13 +63,20 @@ export interface EspnPlay {
   end?: EspnPlaySpot;
 }
 
+/** `result` ("TD", "FG", "PUNT", "INT", ...) appears once the drive has ended. */
+export interface EspnDrive {
+  plays: EspnPlay[];
+  result?: string;
+  isScore?: boolean;
+}
+
 export interface EspnSummary {
   header: { id: string; competitions: { competitors: EspnCompetitor[] }[] };
   boxscore: {
     players?: { team: { id: string; abbreviation?: string }; statistics: EspnStatCategory[] }[];
     teams?: { team: { id: string }; statistics: { name: string; displayValue: string }[] }[];
   };
-  drives?: { previous?: { plays: EspnPlay[] }[]; current?: { plays: EspnPlay[] } };
+  drives?: { previous?: EspnDrive[]; current?: EspnDrive };
 }
 
 export interface EspnSearchItem {

@@ -11,7 +11,8 @@ function tier(entry: FollowedEntry): number {
 }
 
 /** Whether the card's side of the ball is on the field: offense with possession, defense without it. */
-export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId: string }): boolean {
+export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId: string; driveOver?: true }): boolean {
+  if (situation.driveOver) return false; // between drives nobody is on offense or defense yet
   const hasBall = situation.possessionTeamId === entry.teamId;
   return entry.kind === 'player' && isOffense(entry.position) ? hasBall : !hasBall;
 }

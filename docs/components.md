@@ -86,3 +86,8 @@ The rank is recomputed from the latest game data on every refresh (`useLiveOrder
 ## Live card styling
 
 `EntryCard` marks a live card by the side of the ball (`onRightSide` in `src/stats/liveOrder.ts`): no class on the wrong side (the plain card), `on-field` on the right side (an accent bar on the left edge and a faint accent tint, plus screen reader text "Offense on the field" or "Defense on the field"), and `is-rz` in the red zone (the orange border and a pulsing glow instead of the on-field look, never both). The glow is a `::before` layer whose opacity pulses over 2.4 seconds, so nothing repaints or moves. It is static when the page's Pause button is on (the card gets `still`, WCAG 2.2.2), when the user prefers reduced motion, and absent in forced colors, where the thicker border carries the state.
+
+
+## Drive end detection
+
+`normalizeSummary` marks the live situation `driveOver` as soon as the offense is done, instead of waiting for the next team to run a play. A drive is over when ESPN's drive `result` is set, or when the last real play is a score, kick, turnover, conversion attempt or kickoff. Timeouts, period breaks and the two minute warning are looked past, because ESPN appends them to a drive right after a touchdown or field goal. While `driveOver` is set, nobody counts as being in the red zone or on the right side of the ball, so cards lose that styling and drop in the order until the next offense starts. Turnovers on downs and some fumbles have an ordinary last play, so they only clear once ESPN sets the drive result.

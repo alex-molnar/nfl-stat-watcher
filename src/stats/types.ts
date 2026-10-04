@@ -48,6 +48,8 @@ export interface DefenseStats {
 
 export interface Situation {
   possessionTeamId: string;
+  /** The drive just ended (score, turnover, punt, missed kick) or a kickoff is next: nobody is on offense yet. Set only when true. */
+  driveOver?: true;
   yardsToEndzone: number;
   downDistanceText: string; // for example "2nd & 6 at DEN 12"
   lastPlayText: string;

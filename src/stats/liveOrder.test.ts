@@ -51,3 +51,12 @@ describe('liveRank', () => {
     expect(rank(entry({ teamId: '7', kind: 'defense', position: 'D/ST' }))).toBeLessThan(sf('RB', '7'));
   });
 });
+
+describe('after a score', () => {
+  const over = { players: {}, defenses: {}, situation: { possessionTeamId: '25', yardsToEndzone: 2, downDistanceText: '', lastPlayText: '', driveOver: true as const } };
+  it('drops the scorer from red zone and from the side of the ball, and so does the defense', () => {
+    for (const e of [entry({}), entry({ position: 'QB' }), entry({ teamId: '7', kind: 'defense', position: 'D/ST' }), entry({ teamId: '7', position: 'LB' })]) {
+      expect(Math.floor(liveRank(e, game, over)! / 10)).toBe(2);
+    }
+  });
+});

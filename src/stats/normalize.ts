@@ -31,7 +31,23 @@ export function allPlays(s: EspnSummary): EspnPlay[] {
   return plays.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
 }
 
-export function situationFrom(plays: EspnPlay[]): Situation | null {
+/** Plays after which the offense that ran them is done: scores, kicks, turnovers, conversions and the kickoff that follows. */
+const DRIVE_ENDING = /Touchdown|Field Goal|Punt|Interception|Safety|Turnover|Fumble Recovery \(Opponent\)|Kickoff|Onside|Extra Point|Two[- ]?Point/i;
+/** Entries ESPN appends after a score or at a break that are not football plays. */
+const NOT_A_PLAY = /Timeout|End Period|End of (Half|Game|Quarter)|Two[- ]Minute/i;
+
+/**
+ * Whether the drive has ended: ESPN's drive result is set, or the last real play (looking past timeouts and
+ * period breaks that ESPN appends right after a score) is a score, kick or turnover. Without the second
+ * check the offense looks like it still has the ball until the next team runs a play.
+ */
+export function endsDrive(plays: EspnPlay[], driveResult?: string): boolean {
+  if (driveResult) return true;
+  const last = [...plays].reverse().find((play) => !NOT_A_PLAY.test(play.type?.text ?? ''));
+  return !!last && (last.scoringPlay === true || DRIVE_ENDING.test(last.type?.text ?? ''));
+}
+
+export function situationFrom(plays: EspnPlay[], driveOver = false): Situation | null {
   const last = plays.at(-1);
   if (!last) return null;
   const spot = last.end?.team?.id && last.end.yardsToEndzone != null ? last.end : last.start;
@@ -41,6 +57,7 @@ export function situationFrom(plays: EspnPlay[]): Situation | null {
     yardsToEndzone: spot.yardsToEndzone,
     downDistanceText: spot.downDistanceText ?? '',
     lastPlayText: last.text,
+    ...(driveOver ? { driveOver: true as const } : {}),
   };
 }
 
@@ -247,5 +264,8 @@ export function normalizeSummary(s: EspnSummary): GameStats {
 
   const plays = allPlays(s);
   applyPlays(plays, players, defenses, names);
-  return { players, defenses, situation: situationFrom(plays) };
+  const last = plays.at(-1);
+  const drives = [...(s.drives?.previous ?? []), ...(s.drives?.current ? [s.drives.current] : [])];
+  const lastDrive = last ? [...drives].reverse().find((d) => d.plays.some((p) => p.id === last.id)) : undefined;
+  return { players, defenses, situation: situationFrom(plays, endsDrive(lastDrive?.plays ?? plays, lastDrive?.result)) };
 }
