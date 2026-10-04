@@ -113,6 +113,11 @@ ESPN's game summary carries an injury report per team (status such as Out, Quest
 `EntryCard` shows the designation as a chip beside the name ("Out · Ankle", "Questionable · Hamstring"); the word carries the meaning and the colour reinforces it (red for out, orange for doubtful, amber for questionable, neutral otherwise). A player ruled out (`isOut` in `src/stats/injury.ts`: out, injured reserve, suspension, PUP) is ranked last in the Live now group whatever the ball is doing, even before the game situation is known, and never gets the on-field or red zone styling. Questionable and doubtful players keep their normal order. Byes and games ESPN has no report for show no chip.
 
 
-## Order during a celebration
+## Order during and after a celebration
 
-When a refresh shows a celebrated play by a card's own player or defense (`scoringEvent`), `useLiveOrder` holds that card at the rank it had before the play (`RankHolds` in `src/stats/liveOrder.ts`) for as long as the celebration lasts (`SHOW_MS`, about four seconds), then lets it drop to its new place. Cards not involved in the play are never held and move at once, so after a touchdown the rest of the offense and the opposing defense slide back immediately while the scorer's card stays put under its animation. A second play during a hold keeps the original rank and extends the hold. The hook sets a timer for the hold's end so the page re-sorts then.
+When a refresh shows a celebrated play by a card's own player or defense (`scoringEvent`, any tier), `useLiveOrder` does two things to that card only (`RankHolds` in `src/stats/liveOrder.ts`; every other card moves at once):
+
+- **Hold:** for as long as the celebration lasts (`SHOW_MS`, about four seconds) the card never sits lower than the rank it had before the play. After a touchdown the rest of the offense and the opposing defense slide back immediately while the scorer's card stays put under its animation. A hold only stops a card sliding down; it never delays one moving up.
+- **Boost:** for `BOOST_MS` (30 seconds) the card sits at the top of its own group (red zone, on the field, or the rest), keeping position order among boosted cards, but never past the group above it. A quarterback with a 25-yard pass outside the red zone rises above the skill players, and stays below everyone in the red zone. Another play extends the boost. Unranked and ruled-out cards are not boosted.
+
+A second play during a hold keeps the original held rank and extends it. The hook sets a timer for the next hold or boost end so the page re-sorts then.

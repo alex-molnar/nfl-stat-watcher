@@ -35,12 +35,28 @@ export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats 
   return bucket * 10 + tier(entry);
 }
 
+/** How long a card stays at the top of its group after a celebrated play of its own. */
+export const BOOST_MS = 30_000;
+
 /**
- * Keeps a card at the rank it had before its own play for a few seconds, so a card whose celebration is playing
- * does not slide away mid-animation. Cards not involved in the play are never held and move at once.
+ * A rank moved to the top of its own group: ahead of everyone else in the same bucket (red zone, on the field, or
+ * the rest), keeping the position order among boosted cards, but never past the bucket above. Unranked and
+ * ruled-out cards (rank 40 and up) are left alone.
+ */
+export function boostedRank(rank: number): number {
+  const bucket = Math.floor(rank / 10);
+  if (bucket >= 4) return rank;
+  return bucket * 10 - 1 + (rank % 10) / 10;
+}
+
+/**
+ * Per-card timing on top of liveRank. A hold keeps a card at the rank it had before its own play for a few
+ * seconds, so a card whose celebration is playing does not slide away mid-animation. A boost then lifts the card
+ * to the top of its group for a while. Cards not involved in a play are never held or boosted and move at once.
  */
 export class RankHolds {
   private held = new Map<string, { rank: number; until: number }>();
+  private boosted = new Map<string, number>();
 
   /** Hold `rank` until `until` (ms). A hold already running keeps its original rank and only lasts longer. */
   hold(key: string, rank: number, until: number, now: number) {
@@ -49,20 +65,33 @@ export class RankHolds {
     else this.held.set(key, { rank, until });
   }
 
-  /** The held rank while a hold is running, else the current one. */
-  rank(key: string, current: number, now: number): number {
-    const hold = this.held.get(key);
-    if (!hold) return current;
-    if (now >= hold.until) {
-      this.held.delete(key);
-      return current;
-    }
-    return hold.rank;
+  /** Lift the card to the top of its group until `until` (ms); another play extends it. */
+  boost(key: string, until: number) {
+    this.boosted.set(key, Math.max(until, this.boosted.get(key) ?? 0));
   }
 
-  /** When the next running hold ends, so the caller can re-sort then; null when none is running. */
+  /**
+   * The current rank, lifted to the top of its group while a boost runs. While a hold runs the card never sits lower
+   * than its held rank: a hold stops a card sliding away mid-celebration, it never delays one moving up.
+   */
+  rank(key: string, current: number, now: number): number {
+    let settled = current;
+    const boostUntil = this.boosted.get(key);
+    if (boostUntil !== undefined) {
+      if (now < boostUntil) settled = boostedRank(current);
+      else this.boosted.delete(key);
+    }
+    const hold = this.held.get(key);
+    if (hold) {
+      if (now < hold.until) return Math.min(hold.rank, settled);
+      this.held.delete(key);
+    }
+    return settled;
+  }
+
+  /** When the next running hold or boost ends, so the caller can re-sort then; null when none is running. */
   nextExpiry(now: number): number | null {
-    const ends = [...this.held.values()].map((hold) => hold.until).filter((until) => until > now);
+    const ends = [...[...this.held.values()].map((hold) => hold.until), ...this.boosted.values()].filter((until) => until > now);
     return ends.length ? Math.min(...ends) : null;
   }
 }

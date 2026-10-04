@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { scoringEvent } from '../stats/events';
-import { RankHolds, liveRank } from '../stats/liveOrder';
+import { BOOST_MS, RankHolds, liveRank } from '../stats/liveOrder';
 import type { GameInfo } from '../stats/scoreboard';
 import type { GameStats } from '../stats/types';
 import { entryKey } from '../storage/followed';
@@ -16,7 +16,8 @@ type Row = { entry: FollowedEntry; game: GameInfo | null };
 /**
  * A comparator that orders live cards by liveRank, from the latest data: when the ball changes hands the
  * order follows on the next refresh. A card whose own play is being celebrated keeps the rank it had before
- * that play until the celebration is over, then drops; cards not involved in the play move at once.
+ * that play until the celebration is over, then rises to the top of its group for BOOST_MS (never past the group
+ * above it); cards not involved in the play move at once.
  * Shares the summary cache entries the cards already subscribe to, so it adds no requests.
  */
 export function useLiveOrder(rows: Row[], paused: boolean) {
@@ -37,7 +38,10 @@ export function useLiveOrder(rows: Row[], paused: boolean) {
     if (!before || before === after) continue;
     for (const row of rows) {
       if (row.game?.eventId !== game.eventId || !scoringEvent(row.entry, before, after)) continue;
-      holds.current.hold(entryKey(row.entry), liveRank(row.entry, game, before) ?? UNKNOWN, now + SHOW_MS, now);
+      const key = entryKey(row.entry);
+      // The rank to hold is where the card sits right now, including any boost from an earlier play.
+      holds.current.hold(key, holds.current.rank(key, liveRank(row.entry, game, before) ?? UNKNOWN, now), now + SHOW_MS, now);
+      holds.current.boost(key, now + BOOST_MS);
     }
   }
 

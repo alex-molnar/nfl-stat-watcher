@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FollowedEntry } from '../storage/types';
-import { RankHolds, liveRank } from './liveOrder';
+import { BOOST_MS, RankHolds, boostedRank, liveRank } from './liveOrder';
 import type { GameInfo } from './scoreboard';
 import type { GameStats } from './types';
 
@@ -111,5 +111,57 @@ describe('RankHolds', () => {
     expect(holds.nextExpiry(1_000)).toBe(3_000);
     expect(holds.nextExpiry(4_000)).toBe(5_000);
     expect(holds.nextExpiry(6_000)).toBeNull();
+  });
+});
+
+describe('boosts', () => {
+  it('lifts a rank to the top of its own group and never into the group above', () => {
+    // Groups: red zone 0-3, on the field 10-13, the rest 20-23.
+    expect(boostedRank(11)).toBeLessThan(10); // a quarterback on the field passes the skill players (10)...
+    expect(boostedRank(11)).toBeGreaterThan(3); // ...but stays below every red zone card
+    expect(boostedRank(13)).toBeLessThan(10);
+    expect(boostedRank(21)).toBeLessThan(20);
+    expect(boostedRank(21)).toBeGreaterThan(13);
+    expect(boostedRank(1)).toBeLessThan(0); // the top group simply lifts within itself
+  });
+
+  it('keeps the position order among boosted cards and leaves unranked and out cards alone', () => {
+    expect(boostedRank(10)).toBeLessThan(boostedRank(11));
+    expect(boostedRank(11)).toBeLessThan(boostedRank(13));
+    expect(boostedRank(40)).toBe(40);
+    expect(boostedRank(50)).toBe(50);
+  });
+
+  it('boosts for a while, extends on another play, and then lets the card settle back', () => {
+    const holds = new RankHolds();
+    holds.boost('qb', 10_000);
+    expect(holds.rank('qb', 11, 5_000)).toBe(boostedRank(11));
+    expect(holds.rank('other', 10, 5_000)).toBe(10);
+    holds.boost('qb', 20_000);
+    expect(holds.rank('qb', 11, 15_000)).toBe(boostedRank(11));
+    expect(holds.rank('qb', 11, 20_000)).toBe(11);
+  });
+
+  it('holds first, then boosts, and reports the next time either ends', () => {
+    const holds = new RankHolds();
+    holds.hold('qb', 11, 4_000, 0);
+    holds.boost('qb', 30_000);
+    expect(holds.nextExpiry(1_000)).toBe(4_000);
+    expect(holds.rank('qb', 21, 1_000)).toBe(11);
+    expect(holds.rank('qb', 21, 4_000)).toBe(boostedRank(21));
+    expect(holds.nextExpiry(5_000)).toBe(30_000);
+    expect(BOOST_MS).toBe(30_000);
+  });
+
+  it('never lets a hold delay a card moving up, only stop it sliding down', () => {
+    const holds = new RankHolds();
+    holds.hold('qb', 11, 4_000, 0);
+    holds.boost('qb', 30_000);
+    expect(holds.rank('qb', 11, 1_000)).toBe(boostedRank(11)); // lifted straight away, not pinned at 11
+    const scorer = new RankHolds();
+    scorer.hold('wr', 0, 4_000, 0);
+    scorer.boost('wr', 30_000);
+    expect(scorer.rank('wr', 20, 1_000)).toBe(0); // a card whose rank would fall is held
+    expect(scorer.rank('wr', 20, 4_000)).toBe(boostedRank(20));
   });
 });
