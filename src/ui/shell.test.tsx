@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderAt } from '../test/render';
 
@@ -51,5 +51,16 @@ describe('app shell', () => {
     renderAt('/nope');
     expect(screen.getByRole('heading', { name: 'Stat Watch', level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Players' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('links to the matchup page between Players and Settings, with a title and focus on its heading', async () => {
+    renderAt('/');
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['Players', 'Vs', 'Settings']);
+    await userEvent.click(within(nav).getByRole('link', { name: 'Vs' }));
+    expect(screen.getByRole('heading', { name: 'Matchup' })).toHaveFocus();
+    expect(document.title).toBe('Matchup · Stat Watch');
+    // Each page renders its own Header, so look the nav up again.
+    expect(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Vs' })).toHaveAttribute('aria-current', 'page');
   });
 });

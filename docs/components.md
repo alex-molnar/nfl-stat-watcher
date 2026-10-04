@@ -2,7 +2,7 @@
 
 ## Header
 Props: `actions?: ReactNode` (extra buttons, for example "Add player").
-Shows the app name, Players and Settings links (current page marked with `aria-current`), and the theme toggle.
+Shows the app name, Players, Vs and Settings links (current page marked with `aria-current`), and the theme toggle.
 
 ## ThemeToggle
 No props. Shows "Dark mode" in the light theme and "Light mode" in the dark theme. The label names the action and follows the effective theme (stored choice, else the OS preference, including OS changes while open), so it never goes stale. Stores the choice in `nflsw:v1:theme`.
@@ -10,7 +10,14 @@ No props. Shows "Dark mode" in the light theme and "Light mode" in the dark them
 ## MainPage
 No props. Shows only your own entries; opponent entries (vs mode) never appear here, in cards or in the empty state. States: empty (nothing of yours followed), grouped (Live now, Final, Later, Bye week), schedule unavailable (one "Followed" group, cards say "Game status unavailable"), scoreboard error with older data (note under the header), loading games ("Loading games"). Page-level notes (loading, paused, retry) share one `role="status"` element that stays mounted and only changes its text.
 
-Pause live updates: a header button with `aria-pressed`, labelled "Pause live updates" or "Resume live updates". While paused, scoreboard and live summary polling and window-focus refetching stop, loaded data stays visible and the status line says "Live updates are paused. The numbers shown may be out of date." Resuming refetches the scoreboard and loaded summaries immediately. The choice lives in an in-memory store (`src/storage/pause.ts`): it survives navigation within the session but is never stored. Card retry notes are hidden while paused, and window-focus and reconnect refetching stop too. `EntryCard` takes an optional `paused` prop and `onMove` and `onRemove` callbacks (the page owns focus handling).
+Pause live updates: a header button (`PauseButton`, shared with the vs page) with `aria-pressed`, labelled "Pause live updates" or "Resume live updates". While paused, scoreboard and live summary polling and window-focus refetching stop, loaded data stays visible and the status line says "Live updates are paused. The numbers shown may be out of date." Resuming refetches the scoreboard and loaded summaries immediately. The choice lives in an in-memory store (`src/storage/pause.ts`): it survives navigation within the session but is never stored. Card retry notes are hidden while paused, and window-focus and reconnect refetching stop too. `EntryCard` takes an optional `paused` prop and `onMove` and `onRemove` callbacks (the page owns focus handling).
+
+## VsPage
+Route `/vs`, no props. Title "Matchup · Stat Watch" and a visually hidden "Matchup" `h2` (`data-page-title`). A native League select picks the matchup; it starts on the first league and the choice lives in React state only, never in storage. The header holds the shared PauseButton. One `role="status"` paragraph carries the page note (loading, paused, retry) and a visually hidden leader phrase ("You lead", "Opponent leads", "Tied") that changes only when the lead changes hands. Below it the sticky ScoreBar, then two `.vs-col` sections, each with an `h2` ("Your players", "Opponent players"), an "Add player" button named "Add player to your side" or "Add player to opponent side", and one list of cards ordered live, final, later, bye (no group headings). Columns sit side by side from 720px and stack below, mine first. Opponent cards have no league select. Moving one of my cards to another league takes it out of the matchup.
+States: empty side ("No players on your side yet", "No opponent players yet"; the column Add button stays), both empty (0.00 against 0.00, "Tied"), loading games (columns wait for the schedule), a card whose game failed shows the retry note and counts 0.00 while the other side keeps scoring, paused.
+
+## PauseButton
+No props. The `aria-pressed` "Pause live updates" / "Resume live updates" button described under MainPage. The same file exports `usePaused()` (the session-only flag from `src/storage/pause.ts`) and `pageNote(loading, paused, scoreboard)`, the shared page status text.
 
 ## EntryCard
 The card name is an `h3`.
@@ -41,7 +48,8 @@ No props. Profile list plus the selected profile's form: name, preset (a select 
 Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur and says "Enter a number. Restored 4."; an empty or duplicate profile name says "Name was empty. Using Untitled league." or "That name is taken. Using Dynasty 2." Each message is a `role="status"` sibling of the label (so it never becomes part of the field's name), linked with `aria-describedby` and cleared on the next edit.
 
 ## Focus management
-- After a link navigation (not on first load, not on redirects) focus moves to the page heading (`data-page-title`, `tabindex="-1"`): the visually hidden "Players" `h2` on the main page, "Scoring profiles" on settings.
+- After a link navigation (not on first load, not on redirects) focus moves to the page heading (`data-page-title`, `tabindex="-1"`): the visually hidden "Players" `h2` on the main page, the visually hidden "Matchup" `h2` on the vs page, "Scoring profiles" on settings.
+- On the vs page, Remove (or moving one of my cards to another league) focuses the next card's points button in the same column, else the previous one, else that column's Add player button. Closing the add dialog returns focus to the Add player button that opened it.
 - Remove on a card focuses the next card's points button, else the previous card's, else the header "Add player" button.
 - Changing the league on a card keeps focus on that card's league select (the card remounts under its new key).
 - Deleting a profile in settings focuses the newly selected profile's list button.
@@ -52,3 +60,4 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 - The card Remove link is at least 24px by 24px.
 - Forced colors: the field, endzones, line of scrimmage, ball, red zone card outline and the selected profile use borders and system colors (CanvasText, Highlight).
 - Press scale does not apply to `aria-disabled` buttons.
+- Score bar: sticky at the top, panel background, a 2px `--field-border` bottom border (5.4:1 light, 8.1:1 dark against the page background). The leader is stated in text, never by color. Below 720px it is two lines (both totals, then the status), one line above. `html:has(.score-bar)` sets `scroll-padding-top` so a focused card never hides under it (WCAG 2.4.11). Forced colors: Canvas background, CanvasText text and border.

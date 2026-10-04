@@ -77,6 +77,29 @@ main.wrap { padding-bottom: 48px; }
 .rm { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; text-decoration: underline; padding: 0 4px; min-height: 24px; min-width: 24px; margin-left: auto; } /* stays right on opponent cards, which have no league select */
 .empty { background: var(--panel); border-radius: 16px; padding: 40px; text-align: center; margin-top: 24px; }
 
+/* Vs mode */
+.vs-league { max-width: 320px; margin-top: 16px; }
+.score-bar {
+  position: sticky; top: 0; z-index: 2; margin-top: 12px; padding: 10px 16px;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "mine opp" "lead lead"; gap: 2px 12px; align-items: baseline;
+  background: var(--panel); border: 1px solid var(--rule); border-bottom: 2px solid var(--field-border); border-radius: 0 0 12px 12px;
+} /* bottom border 6.3:1 light, 7.3:1 dark on the panel; 5.4:1 and 8.1:1 against the page background */
+.sb-mine { grid-area: mine; }
+.sb-opp { grid-area: opp; text-align: right; }
+.sb-lead { grid-area: lead; text-align: center; font-weight: 700; }
+.score-bar b { font: 900 22px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.vs { display: grid; gap: 0 20px; }
+.vs-col { min-width: 0; }
+.vs-col-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vs-list { grid-template-columns: 1fr; }
+/* Focused cards scroll clear of the sticky score bar (WCAG 2.4.11). The bar is two lines below 720px, one above. */
+html:has(.score-bar) { scroll-padding-top: 112px; }
+@media (min-width: 720px) {
+  .score-bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "mine lead opp"; }
+  .vs { grid-template-columns: 1fr 1fr; align-items: start; }
+  html:has(.score-bar) { scroll-padding-top: 72px; }
+}
+
 /* Changed numbers */
 .bump { animation: bump 900ms ease-out; }
 @keyframes bump { from { background: var(--bump); } to { background: transparent; } }
@@ -129,6 +152,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .card.is-rz { border-width: 3px; }
   .profile-list button[aria-current="true"] { border: 2px solid Highlight; box-shadow: none; }
   .btn:disabled { color: GrayText; border-color: GrayText; }
+  .score-bar { background: Canvas; color: CanvasText; border-color: CanvasText; }
   .nav a[aria-current="page"] { box-shadow: none; text-decoration: underline 2px; text-underline-offset: 4px; }
 }
 

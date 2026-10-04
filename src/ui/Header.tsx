@@ -8,6 +8,7 @@ export function Header({ actions }: { actions?: ReactNode }) {
       <h1 className="brand">Stat Watch</h1>
       <nav className="nav" aria-label="Main">
         <NavLink to="/" end>Players</NavLink>
+        <NavLink to="/vs">Vs</NavLink>
         <NavLink to="/settings">Settings</NavLink>
       </nav>
       <ThemeToggle />
