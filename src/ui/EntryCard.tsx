@@ -7,7 +7,8 @@ import { entryKey, sideOf, updateEntryTeam } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
 import { Bump } from './Bump';
 import { MiniField } from './MiniField';
-import { isRedZone, kickoffText, resultText, statLine, textOn } from './format';
+import { onRightSide } from '../stats/liveOrder';
+import { isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
 
 interface Props {
   entry: FollowedEntry;
@@ -52,6 +53,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const versus = them ? `${home ? 'vs' : 'at'} ${them.abbr}` : null;
   const note = paused ? null : freshness(summary.isError, summary.dataUpdatedAt); // nothing retries while paused
   const situation = live ? stats?.situation : null;
+  const onField = !!situation && onRightSide(entry, situation);
   const role = entry.kind === 'defense' ? 'Team defense' : entry.position;
   const opposing = sideOf(entry) === 'opponent'; // opponent cards never move between leagues
 
@@ -64,7 +66,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   return (
     <li
       data-entry={entryKey(entry)}
-      className={`card${live ? ' live' : ''}${redZone ? ' is-rz' : ''}`}
+      className={`card${live ? ' live' : ''}${onField ? ' on-field' : ''}${redZone ? ' is-rz' : ''}${paused ? ' still' : ''}`}
       style={{ '--team': color, '--team-ink': textOn(color) } as CSSProperties}
     >
       <div className="hd">
@@ -74,6 +76,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <div className="sub">
             <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
             <span className="chip">{profile.name}</span>
+            {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
           </div>
         </div>
         <button

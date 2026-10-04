@@ -311,4 +311,19 @@ describe('live ordering', () => {
     await screen.findByText('SF runner');
     await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
   });
+
+  it('styles the right side of the ball, and pulses a red zone card only until the page is paused', async () => {
+    seed([sf('4', 'SF runner', 'RB'), { ...pitDefense, espnId: '7', name: 'Denver D/ST', teamId: '7', teamAbbr: 'DEN' }, sf('1', 'DEN receiver', 'WR', '7', 'DEN')], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    const card = (name: string) => screen.getByText(name).closest('.card')!;
+    await waitFor(() => expect(card('SF runner')).toHaveClass('is-rz', 'on-field'));
+    expect(card('Denver D/ST')).toHaveClass('on-field');
+    expect(card('Denver D/ST')).not.toHaveClass('is-rz');
+    expect(card('DEN receiver')).not.toHaveClass('on-field');
+    expect(within(card('Denver D/ST') as HTMLElement).getByText('Defense on the field')).toBeInTheDocument();
+    expect(card('SF runner')).not.toHaveClass('still');
+    await userEvent.click(screen.getByRole('button', { name: /Pause live updates/ }));
+    expect(card('SF runner')).toHaveClass('still');
+  });
 });

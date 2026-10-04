@@ -10,6 +10,12 @@ function tier(entry: FollowedEntry): number {
   return entry.position === 'QB' ? 1 : 0;
 }
 
+/** Whether the card's side of the ball is on the field: offense with possession, defense without it. */
+export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId: string }): boolean {
+  const hasBall = situation.possessionTeamId === entry.teamId;
+  return entry.kind === 'player' && isOffense(entry.position) ? hasBall : !hasBall;
+}
+
 /**
  * Sort rank for a card in a live game: red zone first, then players whose side has the ball (offense
  * with possession, defense without), then everyone else. Null until the game's situation is known.
@@ -18,8 +24,6 @@ function tier(entry: FollowedEntry): number {
 export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats | undefined): number | null {
   const situation = stats?.situation;
   if (!situation) return null;
-  const hasBall = situation.possessionTeamId === entry.teamId;
-  const onField = entry.kind === 'player' && isOffense(entry.position) ? hasBall : !hasBall;
-  const bucket = isRedZone(entry, game, stats) ? 0 : onField ? 1 : 2;
+  const bucket = isRedZone(entry, game, stats) ? 0 : onRightSide(entry, situation) ? 1 : 2;
   return bucket * 10 + tier(entry);
 }

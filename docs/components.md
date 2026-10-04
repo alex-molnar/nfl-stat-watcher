@@ -81,3 +81,8 @@ Each column (your players, opponent players) groups its cards like the Players s
 Inside the **Live now** group, on both the Players and Vs screens, cards are ordered by `liveRank` (`src/stats/liveOrder.ts`): red zone first, then players whose side has the ball (offense with possession, defense and team defenses without it), then everyone else. Within a bucket: RB, WR, TE and FLEX, then QB, then kickers, then team defenses and IDP; equal cards keep the order they were added in. Other groups keep their order.
 
 The rank is read once per card, when its game's situation (possession and field position) is first known, and then kept for as long as the page is open (`useLiveOrder`), so cards never shuffle under the user's eyes. A reload ranks again. A card whose game has no situation yet sits after the ranked ones until it arrives. Each Vs column is ordered on its own.
+
+
+## Live card styling
+
+`EntryCard` marks a live card by the side of the ball (`onRightSide` in `src/stats/liveOrder.ts`): no class on the wrong side (the plain card), `on-field` on the right side (an accent bar on the left edge and a faint accent tint, plus screen reader text "Offense on the field" or "Defense on the field"), and `is-rz` in the red zone (the on-field look, the orange border and a pulsing glow). The glow is a `::before` layer whose opacity pulses over 2.4 seconds, so nothing repaints or moves. It is static when the page's Pause button is on (the card gets `still`, WCAG 2.2.2), when the user prefers reduced motion, and absent in forced colors, where the thicker border carries the state.

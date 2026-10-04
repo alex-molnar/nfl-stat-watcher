@@ -42,7 +42,14 @@ main.wrap { padding-bottom: 48px; }
 .grid.live { grid-template-columns: repeat(auto-fill, minmax(min(470px, 100%), 1fr)); }
 .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .card { container-type: inline-size; }
-.card.is-rz { border-color: var(--pylon); box-shadow: 0 0 0 1px var(--pylon); }
+/* Live card states. Wrong side of the ball: plain card. Right side: an accent bar and a faint tint. Red zone: that, plus the orange border and a slow pulsing glow. */
+.card { position: relative; isolation: isolate; }
+.card.on-field { background: color-mix(in srgb, var(--accent) 7%, var(--panel)); box-shadow: inset 4px 0 0 var(--accent); }
+.card.is-rz { border-color: var(--pylon); box-shadow: 0 0 0 1px var(--pylon), inset 4px 0 0 var(--accent); }
+/* The glow is a separate layer whose opacity pulses, so the animation never repaints the card or moves layout. */
+.card.is-rz::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; z-index: -1; pointer-events: none; box-shadow: 0 0 16px 3px var(--pylon); opacity: .35; animation: rz-glow 2.4s ease-in-out infinite; }
+@keyframes rz-glow { 50% { opacity: .95; } }
+.card.is-rz.still::before { animation: none; opacity: .6; } /* paused by the page's Pause button (WCAG 2.2.2) */
 .hd { display: flex; align-items: center; gap: 12px; }
 .badge { width: 42px; height: 42px; border-radius: 50%; background: var(--team); color: var(--team-ink); display: grid; place-items: center; font: 800 13px/1 Anybody, sans-serif; font-stretch: 110%; flex: none; }
 .id { flex: 1; min-width: 0; }
@@ -186,6 +193,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .los { background: Highlight; width: 3px; }
   .ball { background: CanvasText; box-shadow: none; border: 2px solid Highlight; }
   .card.is-rz { border-width: 3px; }
+  .card.on-field { border-left-width: 6px; }
+  .card.is-rz::before { display: none; }
   .profile-list button[aria-current="true"] { border: 2px solid Highlight; box-shadow: none; }
   .btn:disabled { color: GrayText; border-color: GrayText; }
   .score-bar { background: Canvas; color: CanvasText; border-color: CanvasText; }
@@ -194,6 +203,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
   .bump, dialog[open] { animation: none; }
+  .card.is-rz::before { animation: none; opacity: .6; }
   .ballrail, .press { transition: none; }
 }
 
