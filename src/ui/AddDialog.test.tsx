@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import teams from '../test/fixtures/teams.json';
+import teams from '../test/fixtures/standings.json';
 import { profilesFixture, scoreboardFixture } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
@@ -24,7 +24,7 @@ describe('add dialog', () => {
   beforeEach(() => seed([], profilesFixture));
 
   it('finds an NFL player, shows team and position, and adds them to the chosen league', async () => {
-    mockFetch({ scoreboard: scoreboardFixture, 'search?query=josh%20allen': search, 'athletes/3918298': allen, '/teams': teams });
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=josh%20allen': search, 'athletes/3918298': allen, standings: teams });
     await openDialog();
     await userEvent.selectOptions(screen.getByLabelText('League'), 'Friends league');
     await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
@@ -36,7 +36,7 @@ describe('add dialog', () => {
   });
 
   it('finds a team defense by nickname', async () => {
-    mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, '/teams': teams });
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, standings: teams });
     await openDialog();
     await userEvent.type(screen.getByLabelText('Search'), 'bills');
     await userEvent.click(await screen.findByRole('button', { name: 'Add Buffalo Bills' }));
@@ -44,21 +44,21 @@ describe('add dialog', () => {
   });
 
   it('says when nothing matches', async () => {
-    mockFetch({ scoreboard: scoreboardFixture, 'search?query=zzzz': { items: [] }, '/teams': teams });
+    mockFetch({ scoreboard: scoreboardFixture, 'search?query=zzzz': { items: [] }, standings: teams });
     await openDialog();
     await userEvent.type(screen.getByLabelText('Search'), 'zzzz');
     expect(await screen.findByText('No NFL player or team matches "zzzz".')).toBeInTheDocument();
   });
 
   it('explains when search is unavailable', async () => {
-    mockFetch({ scoreboard: scoreboardFixture, search: status(500), '/teams': teams });
+    mockFetch({ scoreboard: scoreboardFixture, search: status(500), standings: teams });
     await openDialog();
     await userEvent.type(screen.getByLabelText('Search'), 'purdy');
     expect(await screen.findByText('Search is unavailable right now. Try again in a moment.')).toBeInTheDocument();
   });
 
   it('closes with the close button', async () => {
-    mockFetch({ scoreboard: scoreboardFixture, '/teams': teams });
+    mockFetch({ scoreboard: scoreboardFixture, standings: teams });
     const dialog = await openDialog();
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(dialog).not.toHaveAttribute('open');

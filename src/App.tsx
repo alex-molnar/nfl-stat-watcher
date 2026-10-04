@@ -3,7 +3,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { MainPage } from './ui/MainPage';
 import { SettingsPage } from './ui/SettingsPage';
 
-const queryClient = new QueryClient();
+// networkMode 'always': while the browser is offline, react-query would otherwise pause fetches
+// silently and the retry note would never show.
+export const queryDefaults = { queries: { networkMode: 'always' as const } };
+const queryClient = new QueryClient({ defaultOptions: queryDefaults });
 
 export function AppRoutes() {
   return (

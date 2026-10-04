@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
-import { EspnError, getScoreboard, getSummary, searchPlayers } from './client';
+import standings from '../test/fixtures/standings.json';
+import { EspnError, getScoreboard, getTeams, getSummary, searchPlayers } from './client';
 
 const okFetch = (body: unknown) =>
   vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
@@ -32,6 +33,15 @@ describe('espn client', () => {
   it('returns an empty list when search has no items field', async () => {
     vi.stubGlobal('fetch', okFetch({}));
     expect(await searchPlayers('zz')).toEqual([]);
+  });
+
+  it('lists the 32 teams from the CORS-enabled standings endpoint, not /teams', async () => {
+    const f = okFetch(standings);
+    vi.stubGlobal('fetch', f);
+    const teams = await getTeams();
+    expect(f).toHaveBeenCalledWith('https://site.api.espn.com/apis/v2/sports/football/nfl/standings');
+    expect(teams).toHaveLength(32);
+    expect(teams.find((t) => t.abbreviation === 'PIT')?.displayName).toBe('Pittsburgh Steelers');
   });
 
   it('throws EspnError with the status on a non-2xx response', async () => {

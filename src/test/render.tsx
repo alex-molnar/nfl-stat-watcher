@@ -1,13 +1,13 @@
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
-import { AppRoutes } from '../App';
+import { AppRoutes, queryDefaults } from '../App';
 import type { Profile } from '../scoring/types';
 import { reloadAllStores } from '../storage/store';
 import type { FollowedEntry } from '../storage/types';
 
 export function renderAt(path = '/') {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { ...queryDefaults.queries, retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>

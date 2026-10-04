@@ -3,7 +3,8 @@ import type {
   EspnScoreboard,
   EspnSearchItem,
   EspnSummary,
-  EspnTeamsResponse,
+  EspnStandings,
+  EspnTeamRef,
 } from './types';
 
 const SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
@@ -34,7 +35,13 @@ export async function searchPlayers(query: string): Promise<EspnSearchItem[]> {
 export const getAthlete = (id: string) =>
   getJson<EspnAthleteResponse>(`${WEB}/sports/football/nfl/athletes/${id}`);
 
-export const getTeams = () => getJson<EspnTeamsResponse>(`${SITE}/teams`);
+// ESPN's /teams endpoint sends no CORS headers, so a browser cannot call it. Standings does and lists all 32 teams.
+const STANDINGS = 'https://site.api.espn.com/apis/v2/sports/football/nfl/standings';
+
+export async function getTeams(): Promise<EspnTeamRef[]> {
+  const res = await getJson<EspnStandings>(STANDINGS);
+  return res.children.flatMap((c) => c.standings.entries.map((e) => e.team));
+}
 
 export const getScoreboard = () => getJson<EspnScoreboard>(`${SITE}/scoreboard`);
 

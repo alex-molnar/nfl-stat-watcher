@@ -1,4 +1,5 @@
 import { act, screen, within } from '@testing-library/react';
+import { onlineManager } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import summary from '../test/fixtures/summary-pit-cle.json';
@@ -87,6 +88,17 @@ describe('main page', () => {
       expect(within(card('Jaylen Warren')).getByText('93')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it('shows the retry note while the browser is offline', async () => {
+    onlineManager.setOnline(false);
+    try {
+      mockFetch({ scoreboard: status(500) });
+      renderAt('/');
+      expect(await screen.findByText('Live data unavailable, retrying')).toBeInTheDocument();
+    } finally {
+      onlineManager.setOnline(true);
     }
   });
 

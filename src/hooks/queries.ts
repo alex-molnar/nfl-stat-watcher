@@ -58,7 +58,6 @@ export function useTeams() {
     queryKey: ['teams'],
     queryFn: getTeams,
     staleTime: Infinity,
-    select: (res) => res.sports[0]?.leagues[0]?.teams.map((t) => t.team) ?? [],
   });
 }
 

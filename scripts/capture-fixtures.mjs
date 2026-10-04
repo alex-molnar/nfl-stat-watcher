@@ -14,5 +14,5 @@ async function get(url) {
 await mkdir(dir, { recursive: true });
 const { header, boxscore, drives } = await get(`${SITE}/summary?event=401872964`);
 await writeFile(`${dir}/summary-pit-cle.json`, JSON.stringify({ header, boxscore, drives }));
-await writeFile(`${dir}/teams.json`, JSON.stringify(await get(`${SITE}/teams`)));
+await writeFile(`${dir}/standings.json`, JSON.stringify(await get('https://site.api.espn.com/apis/v2/sports/football/nfl/standings')));
 console.log('Fixtures written to', dir);

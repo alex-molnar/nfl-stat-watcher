@@ -84,6 +84,6 @@ export interface EspnAthleteResponse {
   };
 }
 
-export interface EspnTeamsResponse {
-  sports: { leagues: { teams: { team: EspnTeamRef }[] }[] }[];
+export interface EspnStandings {
+  children: { standings: { entries: { team: EspnTeamRef }[] } }[];
 }
