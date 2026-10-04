@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { getAthlete, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
 import { normalizeSummary } from '../stats/normalize';
 import { toGames, type GameInfo } from '../stats/scoreboard';
@@ -39,9 +39,10 @@ export function useScoreboard(paused = false) {
   });
 }
 
-export function useGameSummary(game: GameInfo | null, paused = false) {
+/** One cache entry per game, shared by every card and by the matchup totals, so nothing is fetched twice. */
+export function summaryQuery(game: GameInfo | null, paused = false) {
   const polling = summaryPolling(game?.state, paused);
-  return useQuery({
+  return queryOptions({
     queryKey: ['summary', game?.eventId],
     queryFn: async () => normalizeSummary(await getSummary(game!.eventId)),
     enabled: polling.enabled && game !== null,
@@ -50,6 +51,10 @@ export function useGameSummary(game: GameInfo | null, paused = false) {
     refetchOnReconnect: !paused,
     staleTime: polling.staleTime,
   });
+}
+
+export function useGameSummary(game: GameInfo | null, paused = false) {
+  return useQuery(summaryQuery(game, paused));
 }
 
 export function useAthlete(id: string | undefined) {

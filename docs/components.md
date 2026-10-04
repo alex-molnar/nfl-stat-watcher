@@ -26,6 +26,11 @@ The `role="img"` label is "KC has the ball, 25 yards from the end zone" (the dow
 ## Bump
 Props: `value: string`. Highlights the value for 900ms when it changes. No animation under reduced motion.
 
+## ScoreBar
+Props: `mine: number`, `opponent: number` (totals from `useMatchup`). One element with the text "You 84.20 You lead by 12.40 Opponent 71.80": both labels spelled out, totals with two decimals, and the status "You lead by X.XX", "Opponent leads by X.XX" or "Tied". The lead is compared in whole cents, so float noise never shows "You lead by 0.00". The bar has no live region of its own; the page announces `LEADER_TEXT` ("You lead", "Opponent leads", "Tied"), which changes only when the lead changes hands.
+
+`useMatchup(profileId, paused)` (src/hooks/useMatchup.ts) returns the selected league's profile, the rows per side (ordered live, final, later, bye), each row's points and the totals. It reads one `['summary', eventId]` query per game through `summaryQuery()`, the same cache entries the cards use, so the totals add no requests.
+
 ## AddDialog
 Props: `open: boolean`, `onClose: () => void`, `side?: 'mine' | 'opponent'` (default mine), `profileId?: string` (a fixed league). On the Players page neither is passed: the title is "Add a player or defense" and a League select chooses the league. With `profileId` (vs mode) the League select is hidden and the title names side and league: "Add to your side, My league" or "Add to opponent side, My league". "Added" checks the same side and league, so a player already on the other side can still be added. Opponent entries are stored with `side: 'opponent'`; my entries never carry the key.
 States: hint (fewer than 2 letters), loading team for a result, results (team defenses first, then players), added, free agent (lookup succeeded with no team, cannot be added), details unavailable (the athlete lookup failed, cannot be added), no matches, search unavailable (player search failed; team defenses still show, with a note), team defenses unavailable (only the team list failed; player results still show, with a note). Result counts and messages share one `role="status"` line. The Add buttons for Added and free-agent results use `aria-disabled`, not `disabled`, so focus stays on the button.
