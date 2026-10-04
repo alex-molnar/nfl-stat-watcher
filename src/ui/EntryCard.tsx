@@ -3,7 +3,7 @@ import { freshness, useAthlete, useGameSummary } from '../hooks/queries';
 import { scoreEntry } from '../scoring/score';
 import type { Profile } from '../scoring/types';
 import type { GameInfo } from '../stats/scoreboard';
-import { entryKey, updateEntryTeam } from '../storage/followed';
+import { entryKey, sideOf, updateEntryTeam } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
 import { Bump } from './Bump';
 import { MiniField } from './MiniField';
@@ -51,6 +51,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const note = paused ? null : freshness(summary.isError, summary.dataUpdatedAt); // nothing retries while paused
   const situation = live ? stats?.situation : null;
   const role = entry.kind === 'defense' ? 'Team defense' : entry.position;
+  const opposing = sideOf(entry) === 'opponent'; // opponent cards never move between leagues
 
   let status: string;
   if (!game) status = hasSchedule ? 'Bye week' : 'Game status unavailable';
@@ -129,13 +130,20 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       {note && <p className="note">{note}</p>}
 
       <div className="ft">
-        <label>
-          League
-          <select value={profile.id} onChange={(e) => onMove(entry, e.target.value)}>
-            {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
-        <button type="button" className="rm" onClick={(e) => onRemove(entry, e.currentTarget)} aria-label={`Remove ${entry.name} from ${profile.name}`}>
+        {!opposing && (
+          <label>
+            League
+            <select value={profile.id} onChange={(e) => onMove(entry, e.target.value)}>
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+        )}
+        <button
+          type="button"
+          className="rm"
+          onClick={(e) => onRemove(entry, e.currentTarget)}
+          aria-label={`Remove ${entry.name} from ${opposing ? 'opponent side, ' : ''}${profile.name}`}
+        >
           Remove
         </button>
       </div>

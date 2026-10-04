@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 import teams from '../test/fixtures/standings.json';
 import { profilesFixture, scoreboardFixture } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
-import { renderAt, seed } from '../test/render';
+import { renderAt, renderWithClient, seed } from '../test/render';
+import type { FollowedEntry } from '../storage/types';
+import { AddDialog } from './AddDialog';
 
 const search = {
   items: [
@@ -125,5 +127,50 @@ describe('add dialog', () => {
     await userEvent.type(screen.getByLabelText('Search'), 'josh allen');
     expect(await screen.findByRole('button', { name: 'Add Josh Allen, BUF QB' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Add Josh Allen, WYO QB' })).toBeInTheDocument();
+  });
+});
+
+describe('add dialog with a fixed side and league', () => {
+  const bills = (profileId: string): FollowedEntry => ({ kind: 'defense', espnId: '2', name: 'Buffalo Bills', teamId: '2', teamAbbr: 'BUF', position: 'D/ST', profileId });
+  const routes = { 'search?query=bills': { items: [] }, standings: teams };
+  const openFixed = (side: 'mine' | 'opponent', profileId: string) =>
+    renderWithClient(<AddDialog open side={side} profileId={profileId} onClose={() => {}} />);
+
+  beforeEach(() => seed([], profilesFixture));
+
+  it('adds to the opponent side of the fixed league, without a league select', async () => {
+    mockFetch(routes);
+    openFixed('opponent', 'p2');
+    expect(screen.getByRole('dialog', { name: 'Add to opponent side, Friends league' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('League')).not.toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add Buffalo Bills, team defense' }));
+    expect(stored()).toEqual([{ ...bills('p2'), side: 'opponent' }]);
+  });
+
+  it('adds to my side without a side field', async () => {
+    mockFetch(routes);
+    openFixed('mine', 'p1');
+    expect(screen.getByRole('dialog', { name: 'Add to your side, Office league' })).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add Buffalo Bills, team defense' }));
+    expect(stored()).toEqual([bills('p1')]);
+    expect(stored()[0]).not.toHaveProperty('side');
+  });
+
+  it('still offers a player already on the other side of the same league', async () => {
+    seed([bills('p2')], profilesFixture);
+    mockFetch(routes);
+    openFixed('opponent', 'p2');
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    expect(await screen.findByRole('button', { name: 'Add Buffalo Bills, team defense' })).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('marks a player already on the same side of that league as added', async () => {
+    seed([{ ...bills('p2'), side: 'opponent' }], profilesFixture);
+    mockFetch(routes);
+    openFixed('opponent', 'p2');
+    await userEvent.type(screen.getByLabelText('Search'), 'bills');
+    expect(await screen.findByRole('button', { name: 'Buffalo Bills added' })).toHaveAttribute('aria-disabled', 'true');
   });
 });

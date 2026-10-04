@@ -8,7 +8,7 @@ Shows the app name, Players and Settings links (current page marked with `aria-c
 No props. Shows "Dark mode" in the light theme and "Light mode" in the dark theme. The label names the action and follows the effective theme (stored choice, else the OS preference, including OS changes while open), so it never goes stale. Stores the choice in `nflsw:v1:theme`.
 
 ## MainPage
-No props. States: empty (nothing followed), grouped (Live now, Final, Later, Bye week), schedule unavailable (one "Followed" group, cards say "Game status unavailable"), scoreboard error with older data (note under the header), loading games ("Loading games"). Page-level notes (loading, paused, retry) share one `role="status"` element that stays mounted and only changes its text.
+No props. Shows only your own entries; opponent entries (vs mode) never appear here, in cards or in the empty state. States: empty (nothing of yours followed), grouped (Live now, Final, Later, Bye week), schedule unavailable (one "Followed" group, cards say "Game status unavailable"), scoreboard error with older data (note under the header), loading games ("Loading games"). Page-level notes (loading, paused, retry) share one `role="status"` element that stays mounted and only changes its text.
 
 Pause live updates: a header button with `aria-pressed`, labelled "Pause live updates" or "Resume live updates". While paused, scoreboard and live summary polling and window-focus refetching stop, loaded data stays visible and the status line says "Live updates are paused. The numbers shown may be out of date." Resuming refetches the scoreboard and loaded summaries immediately. The choice lives in an in-memory store (`src/storage/pause.ts`): it survives navigation within the session but is never stored. Card retry notes are hidden while paused, and window-focus and reconnect refetching stop too. `EntryCard` takes an optional `paused` prop and `onMove` and `onRemove` callbacks (the page owns focus handling).
 
@@ -16,6 +16,8 @@ Pause live updates: a header button with `aria-pressed`, labelled "Pause live up
 The card name is an `h3`.
 Props: `entry: FollowedEntry`, `game: GameInfo | null`, `profiles: Profile[]`, `hasSchedule: boolean`, `paused?: boolean` (stops live polling), `onMove(entry, toProfileId)`, `onRemove(entry, button)`.
 States: live (wide, mini field, situation and last play), live in the red zone (orange outline and "Red zone" label, only for offensive players of the team with the ball), final (result line), scheduled (kickoff time, "No stats until kickoff"), bye, no stats, breakdown open, retry note.
+
+Opponent variant: an entry with `side: 'opponent'` renders the same content without the league select (opponent cards never move between leagues), and its Remove button is named "Remove {name} from opponent side, {league}". Cards are keyed by `entryKey` from `src/storage/followed.ts` (`kind:espnId:profileId`, plus `:opponent` for opponent entries).
 
 ## MiniField
 Props: `game: GameInfo`, `situation: Situation`.
@@ -25,7 +27,7 @@ The `role="img"` label is "KC has the ball, 25 yards from the end zone" (the dow
 Props: `value: string`. Highlights the value for 900ms when it changes. No animation under reduced motion.
 
 ## AddDialog
-Props: `open: boolean`, `onClose: () => void`.
+Props: `open: boolean`, `onClose: () => void`, `side?: 'mine' | 'opponent'` (default mine), `profileId?: string` (a fixed league). On the Players page neither is passed: the title is "Add a player or defense" and a League select chooses the league. With `profileId` (vs mode) the League select is hidden and the title names side and league: "Add to your side, My league" or "Add to opponent side, My league". "Added" checks the same side and league, so a player already on the other side can still be added. Opponent entries are stored with `side: 'opponent'`; my entries never carry the key.
 States: hint (fewer than 2 letters), loading team for a result, results (team defenses first, then players), added, free agent (lookup succeeded with no team, cannot be added), details unavailable (the athlete lookup failed, cannot be added), no matches, search unavailable (player search failed; team defenses still show, with a note), team defenses unavailable (only the team list failed; player results still show, with a note). Result counts and messages share one `role="status"` line. The Add buttons for Added and free-agent results use `aria-disabled`, not `disabled`, so focus stays on the button.
 
 ## SettingsPage

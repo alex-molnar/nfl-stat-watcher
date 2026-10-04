@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import teams from '../test/fixtures/standings.json';
 import summary from '../test/fixtures/summary-pit-cle.json';
-import { mahomes, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
+import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 
@@ -262,5 +262,23 @@ describe('orphaned entries', () => {
     await screen.findByText('15.60');
     await userEvent.selectOptions(within(card('Jaylen Warren')).getByLabelText('League'), 'Friends league');
     expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)[0].profileId).toBe('p2');
+  });
+});
+
+describe('opponent entries on the Players page', () => {
+  it('never show as cards', async () => {
+    seed([warren, opponent(pitDefense)], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    expect(await screen.findByText('15.60')).toBeInTheDocument();
+    expect(screen.queryByText('Pittsburgh Steelers')).not.toBeInTheDocument();
+  });
+
+  it('do not count as followed for the empty state', () => {
+    seed([opponent(warren)], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+    expect(screen.queryByText('Loading games')).not.toBeInTheDocument();
   });
 });

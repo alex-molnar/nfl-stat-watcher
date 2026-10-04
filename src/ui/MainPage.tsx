@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { freshness, useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
-import { entryKey, followedStore, moveEntry, removeEntry, withValidProfiles } from '../storage/followed';
+import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfiles } from '../storage/followed';
 import { isPaused, setPaused, subscribePause } from '../storage/pause';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
@@ -22,7 +22,8 @@ const GROUPS = [
 export function MainPage() {
   usePageTitle('Players');
   const profiles = useStore(profilesStore);
-  const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id));
+  // Only my entries: opponent entries (vs mode) never show here, in cards or in the empty state.
+  const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id)).filter((e) => sideOf(e) === 'mine');
   const paused = useSyncExternalStore(subscribePause, isPaused, isPaused); // session only, never persisted
   const scoreboard = useScoreboard(paused);
   const client = useQueryClient();
