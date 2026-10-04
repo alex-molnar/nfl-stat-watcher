@@ -236,6 +236,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .burst-xp, .burst-twopoint, .play-xp, .play-twopoint { --tag-bg: #FFC83D; --tag-ink: #1A1300; }
 .burst-block, .burst-sack, .play-block, .play-sack { --tag-bg: var(--accent); --tag-ink: var(--accent-ink); }
 .burst-pass, .burst-run, .burst-catch, .play-pass, .play-run, .play-catch { --tag-bg: #5AA9FF; --tag-ink: #04152B; }
+/* Bad plays: one calm red for everything that goes against the player or defense. Declared after the kind colours so it wins. */
+.tone-bad { --tag-bg: #C8281F; --tag-ink: #FFFFFF; }
 /* A small play: one ring from the card edge and a tag on the corner. */
 .burst { position: absolute; inset: -2px; border-radius: inherit; border: 3px solid var(--tag-bg); pointer-events: none; z-index: 2; animation: burst 1000ms cubic-bezier(.16, 1, .3, 1) both; }
 @keyframes burst { from { opacity: .95; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }

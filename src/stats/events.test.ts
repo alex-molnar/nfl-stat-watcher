@@ -18,10 +18,10 @@ describe('scoringEvent', () => {
     expect(scoringEvent(player({ position: 'RB' }), stats(), stats({ returns: { touchdowns: 1 } }))?.kind).toBe('td');
   });
 
-  it('flags a made field goal, but not a miss', () => {
+  it('flags a made field goal as good and a miss as bad', () => {
     const k = (made: number, attempts: number) => stats({ kicking: { fgMade: made, fgAttempts: attempts, longest: 40, xpMade: 0, xpAttempts: 0, madeDistances: [] } });
-    expect(scoringEvent(player({ position: 'K' }), k(1, 1), k(2, 2))?.label).toBe('Field goal');
-    expect(scoringEvent(player({ position: 'K' }), k(1, 1), k(1, 2))).toBeNull();
+    expect(scoringEvent(player({ position: 'K' }), k(1, 1), k(2, 2))).toMatchObject({ label: 'Field goal', tone: 'good' });
+    expect(scoringEvent(player({ position: 'K' }), k(1, 1), k(1, 2))).toMatchObject({ label: 'Missed field goal', tone: 'bad', tier: 'big' });
   });
 
   it('flags defensive plays for a defense and for IDP players, biggest first', () => {
@@ -83,6 +83,40 @@ describe('scoringEvent', () => {
       const after = stats({ receiving: { receptions: 2, targets: 2, yards: 40, touchdowns: 1 } });
       expect(scoringEvent(player({}), before, after)).toMatchObject({ kind: 'td', tier: 'big' });
       expect(scoringEvent(dst, stats(), stats({}, { sacks: 1, interceptions: 1 }))?.kind).toBe('int');
+    });
+  });
+
+  describe('bad plays', () => {
+    const qbStats = (over: Partial<NonNullable<PlayerStats['passing']>>, fumbles?: PlayerStats['fumbles']) =>
+      stats({ passing: { completions: 5, attempts: 8, yards: 50, touchdowns: 0, interceptions: 0, ...over }, ...(fumbles ? { fumbles } : {}) });
+    const qb = player({ position: 'QB' });
+    const kick = (xpMade: number, xpAttempts: number) => stats({ kicking: { fgMade: 0, fgAttempts: 0, longest: 0, xpMade, xpAttempts, madeDistances: [] } });
+
+    it('puts an interception thrown, a lost fumble, a missed field goal and a touchdown allowed in the big tier, as bad', () => {
+      expect(scoringEvent(qb, qbStats({}), qbStats({ interceptions: 1 }))).toMatchObject({ kind: 'intthrown', tier: 'big', tone: 'bad', label: 'Interception thrown' });
+      expect(scoringEvent(player({ position: 'RB' }), stats({ fumbles: { fumbles: 1, lost: 0, recovered: 0 } }), stats({ fumbles: { fumbles: 1, lost: 1, recovered: 0 } })))
+        .toMatchObject({ kind: 'fumblelost', tier: 'big', tone: 'bad' });
+      expect(scoringEvent(dst, stats({}, { pointsAllowed: 10 }), stats({}, { pointsAllowed: 16 }))).toMatchObject({ kind: 'tdallowed', tier: 'big', tone: 'bad' });
+    });
+
+    it('puts being sacked, a missed extra point and a field goal allowed in the small tier, as bad', () => {
+      expect(scoringEvent(qb, qbStats({ sacked: 1 }), qbStats({ sacked: 2 }))).toMatchObject({ kind: 'sacked', tier: 'small', tone: 'bad' });
+      expect(scoringEvent(player({ position: 'K' }), kick(1, 1), kick(1, 2))).toMatchObject({ kind: 'missxp', tier: 'small', tone: 'bad' });
+      expect(scoringEvent(dst, stats({}, { pointsAllowed: 10 }), stats({}, { pointsAllowed: 13 }))).toMatchObject({ kind: 'fgallowed', tier: 'small', tone: 'bad' });
+    });
+
+    it('ignores a point after a touchdown and a safety, which are neither a touchdown nor a field goal allowed', () => {
+      expect(scoringEvent(dst, stats({}, { pointsAllowed: 16 }), stats({}, { pointsAllowed: 17 }))).toBeNull();
+      expect(scoringEvent(dst, stats({}, { pointsAllowed: 16 }), stats({}, { pointsAllowed: 18 }))).toBeNull();
+    });
+
+    it('does not blame a defender for an offensive stat, and keeps good plays marked good', () => {
+      expect(scoringEvent(player({ position: 'LB' }), qbStats({}), qbStats({ interceptions: 1 }))).toBeNull();
+      expect(scoringEvent(dst, stats(), stats({}, { sacks: 1 }))).toMatchObject({ tone: 'good' });
+    });
+
+    it('shows a big good play ahead of a bad one in the same refresh', () => {
+      expect(scoringEvent(qb, qbStats({}), qbStats({ touchdowns: 1, interceptions: 1 }))).toMatchObject({ kind: 'td', tone: 'good' });
     });
   });
 });

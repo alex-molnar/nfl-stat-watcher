@@ -25,7 +25,7 @@ interface Props {
 }
 
 /** The long takeover is for scores; the other big plays get a shorter one. */
-const LONG = new Set(['td', 'fg']);
+const LONG = new Set(['td', 'fg', 'tdallowed', 'missfg', 'intthrown', 'fumblelost']);
 /** Eighteen sparks fanned out from the card centre, spread evenly with a few different distances. */
 const SPARKS: CSSProperties[] = Array.from({ length: 18 }, (_, i) => ({ '--a': `${i * 20}deg`, '--d': `${95 + (i % 3) * 38}px` }) as CSSProperties);
 
@@ -81,16 +81,16 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
     >
       {celebration && (celebration.event.tier === 'big' ? (
         <>
-          <span key={`fx-${celebration.id}`} className={`celebrate celebrate-${celebration.event.kind}${LONG.has(celebration.event.kind) ? ' celebrate-long' : ''}`} aria-hidden="true">
+          <span key={`fx-${celebration.id}`} className={`celebrate celebrate-${celebration.event.kind}${LONG.has(celebration.event.kind) ? ' celebrate-long' : ''}${celebration.event.tone === 'bad' ? ' tone-bad' : ''}`} aria-hidden="true">
             {celebration.event.kind === 'td' && SPARKS.map((spark, i) => <i key={i} style={spark} />)}
             <span className="celebrate-word" style={{ '--chars': celebration.event.label.length } as CSSProperties}>{celebration.event.label}</span>
           </span>
-          <span key={`tag-${celebration.id}`} className={`play-tag play-late play-${celebration.event.kind}`} aria-hidden="true">{celebration.event.label}</span>
+          <span key={`tag-${celebration.id}`} className={`play-tag play-late play-${celebration.event.kind}${celebration.event.tone === 'bad' ? ' tone-bad' : ''}`} aria-hidden="true">{celebration.event.label}</span>
         </>
       ) : (
         <>
-          <span key={`ring-${celebration.id}`} className={`burst burst-${celebration.event.kind}`} aria-hidden="true" />
-          <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}`} aria-hidden="true">{celebration.event.label}</span>
+          <span key={`ring-${celebration.id}`} className={`burst burst-${celebration.event.kind}${celebration.event.tone === 'bad' ? ' tone-bad' : ''}`} aria-hidden="true" />
+          <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}${celebration.event.tone === 'bad' ? ' tone-bad' : ''}`} aria-hidden="true">{celebration.event.label}</span>
         </>
       ))}
       <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${entry.name}: ${celebration.event.label.toLowerCase()}` : ''}</span>

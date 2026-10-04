@@ -17,7 +17,7 @@ type Row = { entry: FollowedEntry; game: GameInfo | null };
  * A comparator that orders live cards by liveRank, from the latest data: when the ball changes hands the
  * order follows on the next refresh. A card whose own play is being celebrated keeps the rank it had before
  * that play until the celebration is over, then rises to the top of its group for BOOST_MS (never past the group
- * above it); cards not involved in the play move at once.
+ * above it), except after a big bad play, which only holds; cards not involved in the play move at once.
  * Shares the summary cache entries the cards already subscribe to, so it adds no requests.
  */
 export function useLiveOrder(rows: Row[], paused: boolean) {
@@ -37,11 +37,15 @@ export function useLiveOrder(rows: Row[], paused: boolean) {
     seen.current.set(game.eventId, after);
     if (!before || before === after) continue;
     for (const row of rows) {
-      if (row.game?.eventId !== game.eventId || !scoringEvent(row.entry, before, after)) continue;
+      if (row.game?.eventId !== game.eventId) continue;
+      const event = scoringEvent(row.entry, before, after);
+      if (!event) continue;
       const key = entryKey(row.entry);
       // The rank to hold is where the card sits right now, including any boost from an earlier play.
       holds.current.hold(key, holds.current.rank(key, liveRank(row.entry, game, before) ?? UNKNOWN, now), now + SHOW_MS, now);
-      holds.current.boost(key, now + BOOST_MS);
+      // A big bad play (an interception thrown, a fumble lost, a touchdown allowed) is held for its celebration and then
+      // moves down by the normal rules; every other celebrated play, good or small, lifts the card for a while.
+      if (event.tier === 'small' || event.tone === 'good') holds.current.boost(key, now + BOOST_MS);
     }
   }
 

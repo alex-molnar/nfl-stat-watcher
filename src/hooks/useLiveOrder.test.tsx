@@ -101,3 +101,46 @@ describe('useLiveOrder after a long play', () => {
     expect(names(result.current)).toEqual(['kc', 'rb', 'wr', 'qb']);
   });
 });
+
+describe('useLiveOrder after a bad play', () => {
+  const game = { eventId: 'g1', state: 'in' } as GameInfo;
+  const qb = person('qb', 'QB', '25');
+  const rb = person('rb', 'RB', '25');
+  const wr = person('wr', 'WR', '7');
+  const all = [qb, rb, wr].map((entry) => ({ entry, game }));
+  const sit = (driveOver: boolean) => ({ possessionTeamId: '25', yardsToEndzone: 55, downDistanceText: '', lastPlayText: '', ...(driveOver ? { driveOver: true as const } : {}) });
+  const passer = (extra: Partial<NonNullable<PlayerStats['passing']>>): PlayerStats => ({ twoPointConversions: 0, safeties: 0, passing: { completions: 5, attempts: 8, yards: 50, touchdowns: 0, interceptions: 0, ...extra } });
+  const idle: PlayerStats = { twoPointConversions: 0, safeties: 0 };
+  const state = (extra: Partial<NonNullable<PlayerStats['passing']>>, driveOver: boolean): GameStats => ({ players: { qb: passer(extra), rb: idle, wr: idle }, defenses: {}, situation: sit(driveOver) });
+  const names = (compare: (a: (typeof all)[number], b: (typeof all)[number]) => number) => [...all].sort(compare).map((r) => r.entry.espnId);
+
+  let client: QueryClient;
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.stubGlobal('fetch', () => new Promise(() => {}));
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['summary', 'g1'], state({}, false));
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+
+  it('holds a quarterback who throws an interception while it plays, then lets him move down with no lift', () => {
+    const { result } = renderHook(() => useLiveOrder(all, false), { wrapper });
+    expect(names(result.current)).toEqual(['rb', 'qb', 'wr']);
+
+    act(() => { client.setQueryData(['summary', 'g1'], state({ interceptions: 1 }, true)); vi.advanceTimersByTime(1); }); // possession changes
+    expect(names(result.current)).toEqual(['qb', 'rb', 'wr']); // the others dropped at once, the quarterback stays under his animation
+
+    act(() => { vi.advanceTimersByTime(4_300); });
+    expect(names(result.current)).toEqual(['rb', 'wr', 'qb']); // moved down by the normal rules, not lifted
+  });
+
+  it('lifts a quarterback who is sacked, like any small play', () => {
+    const { result } = renderHook(() => useLiveOrder(all, false), { wrapper });
+    act(() => { client.setQueryData(['summary', 'g1'], state({ sacked: 1 }, false)); vi.advanceTimersByTime(1); });
+    expect(names(result.current)).toEqual(['qb', 'rb', 'wr']);
+    act(() => { vi.advanceTimersByTime(BOOST_MS + 100); });
+    expect(names(result.current)).toEqual(['rb', 'qb', 'wr']);
+  });
+});
+

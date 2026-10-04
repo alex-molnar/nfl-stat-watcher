@@ -101,7 +101,13 @@ A live card celebrates a play in one of three tiers, decided by the single `TIER
 - **Small** (extra point, 2-point conversion, sack, blocked kick, a single 10+ yard run or catch, a single 20+ yard pass): one ring from the card edge and a tag on the corner, with the label ("Sack", "14-yard catch"). Gold for kicks, the accent for defense, blue for long gains.
 - **None**: shorter gains, tackles and anything else.
 
-A long gain counts only when exactly one carry, catch or completion arrived in the refresh, so several plays bundled into one refresh are never reported as one big play. A big play wins over a small one in the same refresh. The tag goes after about four seconds. Nothing loops, and a screen reader hears "<name>: <play>" through a polite live region on the card.
+Every play also has a tone, `good` or `bad`, and bad plays use the same two tiers in one red palette (the `tone-bad` class; no sparks):
+
+- **Big, bad**: an interception thrown, a fumble lost, a missed field goal, a touchdown allowed (a defense's points allowed jumping by six or more).
+- **Small, bad**: being sacked, a missed extra point, a field goal allowed (points allowed rising by exactly three).
+- **None**: a point after a touchdown, a safety against, and the rest.
+
+Fumbles lost and interceptions thrown are read for offensive players only. A long gain counts only when exactly one carry, catch or completion arrived in the refresh, so several plays bundled into one refresh are never reported as one big play. A big play wins over a small one in the same refresh. The tag goes after about four seconds. Nothing loops, and a screen reader hears "<name>: <play>" through a polite live region on the card.
 
 `scoringEvent` (`src/stats/events.ts`) compares two refreshes of the same game and reports the highest tier play whose count grew or whose single-play gain met the threshold. `useCelebration` calls it when new data arrives for a live game. The first data a card sees is only a baseline, so a reload never replays old plays, and games that are not live never animate. With reduced motion there is no sweep, pop, sparks or ring: the colour and the word simply appear and fade out, and small plays show just the tag. In forced colors the overlay uses system colors and a highlight border.
 
@@ -118,6 +124,6 @@ ESPN's game summary carries an injury report per team (status such as Out, Quest
 When a refresh shows a celebrated play by a card's own player or defense (`scoringEvent`, any tier), `useLiveOrder` does two things to that card only (`RankHolds` in `src/stats/liveOrder.ts`; every other card moves at once):
 
 - **Hold:** for as long as the celebration lasts (`SHOW_MS`, about four seconds) the card never sits lower than the rank it had before the play. After a touchdown the rest of the offense and the opposing defense slide back immediately while the scorer's card stays put under its animation. A hold only stops a card sliding down; it never delays one moving up.
-- **Boost:** for `BOOST_MS` (30 seconds) the card sits at the top of its own group (red zone, on the field, or the rest), keeping position order among boosted cards, but never past the group above it. A quarterback with a 25-yard pass outside the red zone rises above the skill players, and stays below everyone in the red zone. Another play extends the boost. Unranked and ruled-out cards are not boosted.
+- **Boost:** for `BOOST_MS` (30 seconds) the card sits at the top of its own group (red zone, on the field, or the rest), keeping position order among boosted cards, but never past the group above it. A quarterback with a 25-yard pass outside the red zone rises above the skill players, and stays below everyone in the red zone. Another play extends the boost. Unranked and ruled-out cards are not boosted. A big bad play (an interception thrown, a fumble lost, a touchdown allowed, a missed field goal) only holds: the card stays put under its red animation, since the possession change moves it down, and then moves down by the normal rules with no lift. Small bad plays (sacked, a missed extra point, a field goal allowed) lift the card like any small play.
 
 A second play during a hold keeps the original held rank and extends it. The hook sets a timer for the next hold or boost end so the page re-sorts then.
