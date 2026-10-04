@@ -39,8 +39,8 @@ export function scorePlayer(s: PlayerStats, v: ScoringValues): ScoreResult {
     if (s.returns) add('Return TDs', s.returns.touchdowns * v.returnTd);
     if (s.kicking) {
       const k = s.kicking;
-      for (const d of k.madeDistances) add(`${d}-yard field goal`, d >= 50 ? v.fg50plus : d >= 40 ? v.fg40to49 : v.fg0to39);
-      add('Field goals, distance unknown', Math.max(0, k.fgMade - k.madeDistances.length) * v.fg0to39);
+      for (const d of k.madeDistances.slice(0, k.fgMade)) add(`${d}-yard field goal`, d >= 50 ? v.fg50plus : d >= 40 ? v.fg40to49 : v.fg0to39);
+      add('Field goals, distance unknown', Math.max(0, k.fgMade - Math.min(k.madeDistances.length, k.fgMade)) * v.fg0to39);
       add('Missed field goals', (k.fgAttempts - k.fgMade) * v.fgMissed);
       add('Extra points', k.xpMade * v.xpMade);
       add('Missed extra points', (k.xpAttempts - k.xpMade) * v.xpMissed);
@@ -54,8 +54,8 @@ export function scorePlayer(s: PlayerStats, v: ScoringValues): ScoreResult {
       add('QB hits', d.qbHits * v.qbHit);
       add('Passes defended', d.passesDefended * v.passDefended);
       add('Defensive TDs', d.touchdowns * v.defensiveTd);
-      // Only defenders score recoveries; an offensive player recovering his own fumble does not.
-      if (s.fumbles) add('Fumble recoveries', s.fumbles.recovered * v.fumbleRecovery);
+      // Only pure defenders score recoveries; ESPN gives offensive players a defense line after turnovers.
+      if (s.fumbles && !s.passing && !s.rushing && !s.receiving) add('Fumble recoveries', s.fumbles.recovered * v.fumbleRecovery);
     }
     if (s.interceptions) add('Interceptions', s.interceptions.interceptions * v.idpInterception);
     add('Safeties', s.safeties * v.safety);
@@ -73,14 +73,14 @@ export function scoreDefense(d: DefenseStats, v: ScoringValues): ScoreResult {
   });
 }
 
-const EMPTY: ScoreResult = { total: 0, breakdown: [] };
+const empty = (): ScoreResult => ({ total: 0, breakdown: [] });
 
 export function scoreEntry(entry: FollowedEntry, game: GameStats | undefined, v: ScoringValues): ScoreResult {
-  if (!game) return EMPTY;
+  if (!game) return empty();
   if (entry.kind === 'defense') {
     const d = game.defenses[entry.teamId];
-    return d ? scoreDefense(d, v) : EMPTY;
+    return d ? scoreDefense(d, v) : empty();
   }
   const s = game.players[entry.espnId];
-  return s ? scorePlayer(s, v) : EMPTY;
+  return s ? scorePlayer(s, v) : empty();
 }

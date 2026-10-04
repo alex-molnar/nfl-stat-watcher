@@ -42,6 +42,31 @@ describe('scorePlayer on PIT at CLE', () => {
   });
 });
 
+describe('scorePlayer edge cases', () => {
+  const dline = { totalTackles: 1, soloTackles: 1, sacks: 0, tacklesForLoss: 0, passesDefended: 0, qbHits: 0, touchdowns: 0 };
+  const fumbles = { fumbles: 0, lost: 0, recovered: 1 };
+  const recoveries = (r: { breakdown: { label: string }[] }) => r.breakdown.filter((l) => l.label === 'Fumble recoveries');
+  it('gives no fumble recovery points to offensive players with a defense line', () => {
+    const qb = { twoPointConversions: 0, safeties: 0, passing: { completions: 0, attempts: 0, yards: 0, touchdowns: 0, interceptions: 0 }, defense: dline, fumbles };
+    expect(recoveries(scorePlayer(qb, ppr))).toEqual([]);
+  });
+  it('still scores fumble recoveries for pure defenders', () => {
+    const d = { twoPointConversions: 0, safeties: 0, defense: dline, fumbles };
+    expect(recoveries(scorePlayer(d, ppr))).toEqual([{ label: 'Fumble recoveries', points: 2 }]);
+  });
+  it('scores at most fgMade parsed distances', () => {
+    const k = { twoPointConversions: 0, safeties: 0, kicking: { fgMade: 1, fgAttempts: 1, longest: 50, xpMade: 0, xpAttempts: 0, madeDistances: [31, 50] } };
+    expect(scorePlayer(k, ppr).total).toBeCloseTo(3);
+  });
+});
+
+describe('scoreEntry results', () => {
+  it('returns a fresh empty result each time', () => {
+    const e: FollowedEntry = { kind: 'player', espnId: '1', name: 'x', teamId: '23', teamAbbr: 'PIT', position: 'RB', profileId: 'p' };
+    expect(scoreEntry(e, undefined, ppr).breakdown).not.toBe(scoreEntry(e, undefined, ppr).breakdown);
+  });
+});
+
 describe('scoreDefense', () => {
   it('scores both team defenses', () => {
     expect(scoreDefense(game.defenses['23']!, ppr).total).toBeCloseTo(6);
@@ -57,7 +82,7 @@ describe('scoreEntry', () => {
   const base: FollowedEntry = { kind: 'player', espnId: '4569987', name: 'Jaylen Warren', teamId: '23', teamAbbr: 'PIT', position: 'RB', profileId: 'p1' };
   it('scores a player entry', () => expect(scoreEntry(base, game, ppr).total).toBeCloseTo(15.6));
   it('scores a defense entry by team id', () => {
-    expect(scoreEntry({ ...base, kind: 'defense', espnId: '23', position: 'D/ST' }, game, ppr).total).toBeCloseTo(6);
+    expect(scoreEntry({ ...base, kind: 'defense', espnId: '999', teamId: '23', position: 'D/ST' }, game, ppr).total).toBeCloseTo(6);
   });
   it('returns zero without game stats or without a box score line', () => {
     expect(scoreEntry(base, undefined, ppr)).toEqual({ total: 0, breakdown: [] });
