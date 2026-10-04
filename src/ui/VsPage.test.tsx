@@ -40,6 +40,30 @@ describe('vs page grouping', () => {
   });
 });
 
+describe('vs page live ordering', () => {
+  const player = (espnId: string, name: string, position: string, teamId: string, teamAbbr: string) => ({ ...warren, espnId, name, position, teamId, teamAbbr });
+  const board = {
+    events: scoreboardFixture.events.map((event) => event.id === '401872975' ? { ...event, status: { ...event.status, type: { ...event.status.type, state: 'in' as const } } } : event),
+  };
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+  };
+  const names = (col: HTMLElement) => [...col.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('orders each column on its own: red zone, then the side with the ball, then the rest', async () => {
+    seed([
+      player('1', 'DEN receiver', 'WR', '7', 'DEN'), player('2', 'SF runner', 'RB', '25', 'SF'),
+      opponent(player('3', 'SF defense', 'LB', '25', 'SF')), opponent(player('4', 'SF quarterback', 'QB', '25', 'SF')), opponent(player('5', 'DEN linebacker', 'LB', '7', 'DEN')),
+    ], profilesFixture);
+    mockFetch({ ...routes, scoreboard: board, 'summary?event=401872975': liveSummary });
+    renderAt('/vs');
+    await waitFor(() => expect(names(mineCol())).toEqual(['SF runner', 'DEN receiver']));
+    await waitFor(() => expect(names(oppCol())).toEqual(['SF quarterback', 'DEN linebacker', 'SF defense']));
+  });
+});
+
 describe('vs page', () => {
   it('shows both sides of the first league with totals and who leads', async () => {
     seed([warren, opponent(pitDefense), mahomes], profilesFixture);

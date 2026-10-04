@@ -74,3 +74,10 @@ Props: `open`, `onClose`, `side` (`mine` or `opponent`, default `mine`), `profil
 ## Vs page grouping
 
 Each column (your players, opponent players) groups its cards like the Players screen: **Live now** first with the larger live card (field strip, big points), then **Final**, **Later** and **Bye week** with the compact card, each under an `h3.group-title` and its own list. Empty groups are not rendered. On wide screens the two columns share one grid row per group (CSS subgrid), so a group starts at the same height on both sides and the shorter side leaves empty space. Compact groups fit two cards per row where there is room; cards narrower than 340px use tighter type via a container query. The order and titles live in `src/ui/gameGroups.ts`, shared with the Players screen.
+
+
+## Live card order
+
+Inside the **Live now** group, on both the Players and Vs screens, cards are ordered by `liveRank` (`src/stats/liveOrder.ts`): red zone first, then players whose side has the ball (offense with possession, defense and team defenses without it), then everyone else. Within a bucket: RB, WR, TE and FLEX, then QB, then kickers, then team defenses and IDP; equal cards keep the order they were added in. Other groups keep their order.
+
+The rank is read once per card, when its game's situation (possession and field position) is first known, and then kept for as long as the page is open (`useLiveOrder`), so cards never shuffle under the user's eyes. A reload ranks again. A card whose game has no situation yet sits after the ranked ones until it arrives. Each Vs column is ordered on its own.

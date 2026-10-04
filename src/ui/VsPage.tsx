@@ -13,6 +13,7 @@ import { PauseButton, pageNote, usePaused } from './PauseButton';
 import { LEADER_TEXT, ScoreBar, leaderOf } from './ScoreBar';
 import { usePageTitle } from './usePageTitle';
 import { GROUPS } from './gameGroups';
+import { useLiveOrder } from '../hooks/useLiveOrder';
 
 /** Programmatic focus that also scrolls clear of the sticky bar: scrollIntoView honours scroll-padding (WCAG 2.4.11). */
 function focusVisible(el: HTMLElement | null | undefined) {
@@ -33,6 +34,7 @@ export function VsPage() {
   const paused = usePaused();
   const { profile, mine, opponent, totals, scoreboard, settled } = useMatchup(pickedId, paused);
   const rows = { mine, opponent };
+  const liveOrder = useLiveOrder([...mine, ...opponent], paused);
   const [adding, setAdding] = useState(false);
   const [dialogSide, setDialogSide] = useState<Side>('mine');
   const [importSide, setImportSide] = useState<Side | null>(null);
@@ -108,6 +110,7 @@ export function VsPage() {
       ) : loading ? null : ( // Wait for the schedule so cards do not reorder after mounting.
         GROUPS.map(({ key, title }, slot) => {
           const group = rows[side].filter((r) => (r.game?.state ?? 'none') === key);
+          if (key === 'in') group.sort(liveOrder);
           if (group.length === 0) return null;
           return (
             // One fixed row per group, shared by both columns, so each group starts at the same height on either side.

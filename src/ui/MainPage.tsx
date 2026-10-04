@@ -12,6 +12,7 @@ import { PauseButton, pageNote, usePaused } from './PauseButton';
 import type { FollowedEntry } from '../storage/types';
 import { usePageTitle } from './usePageTitle';
 import { GROUPS } from './gameGroups';
+import { useLiveOrder } from '../hooks/useLiveOrder';
 
 export function MainPage() {
   usePageTitle('Players');
@@ -26,6 +27,7 @@ export function MainPage() {
   const hasSchedule = scoreboard.data !== undefined;
   const games = scoreboard.data ?? [];
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
+  const liveOrder = useLiveOrder(rows, paused);
   const loading = followed.length > 0 && scoreboard.isPending;
   // One status container stays mounted so screen readers announce text changes.
   const note = pageNote(loading, paused, scoreboard);
@@ -87,6 +89,7 @@ export function MainPage() {
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);
+            if (key === 'in') group.sort(liveOrder); // stable: ties keep the order they were added in
             if (group.length === 0) return null;
             return (
               <section key={key} aria-labelledby={`group-${key}`}>

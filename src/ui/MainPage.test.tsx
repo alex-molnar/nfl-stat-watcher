@@ -282,3 +282,33 @@ describe('opponent entries on the Players page', () => {
     expect(screen.queryByText('Loading games')).not.toBeInTheDocument();
   });
 });
+
+describe('live ordering', () => {
+  const sf = (espnId: string, name: string, position: string, teamId = '25', teamAbbr = 'SF') =>
+    ({ ...warren, espnId, name, position, teamId, teamAbbr, profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  // SF has the ball at DEN 12, so SF offense is in the red zone.
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+  };
+  const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('orders live cards red zone first, then the side with the ball, then the rest, by position within each', async () => {
+    seed([
+      sf('1', 'DEN receiver', 'WR', '7', 'DEN'),
+      sf('2', 'SF kicker', 'K'),
+      sf('3', 'SF quarterback', 'QB'),
+      { ...pitDefense, espnId: '7', name: 'Denver D/ST', teamId: '7', teamAbbr: 'DEN' },
+      sf('4', 'SF runner', 'RB'),
+      { ...pitDefense, espnId: '25', name: 'SF D/ST', teamId: '25', teamAbbr: 'SF' },
+    ], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await screen.findByText('SF runner');
+    await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
+  });
+});
