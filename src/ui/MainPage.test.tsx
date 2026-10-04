@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { onlineManager } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -135,6 +135,16 @@ describe('main page', () => {
     expect(await screen.findByText('Live data unavailable, retrying')).toBe(region);
   });
 
+  it('keeps the same status element mounted while loading finishes', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    const region = screen.getByText('Loading games');
+    expect(region).toHaveAttribute('role', 'status');
+    await screen.findByText('15.60');
+    expect(region.isConnected).toBe(true);
+    expect(region).toBeEmptyDOMElement();
+  });
+
   it('focuses the header Add player button when the dialog closes and the opener is gone', async () => {
     seed([], profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture, 'search?query=bills': { items: [] }, standings: teams });
@@ -144,6 +154,49 @@ describe('main page', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^Add Buffalo Bills/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.getByRole('button', { name: 'Add player' })).toHaveFocus();
+  });
+});
+
+describe('pause live updates', () => {
+  beforeEach(() => seed([warren, pitDefense, mahomes], profilesFixture));
+  const [final, upcoming] = scoreboardFixture.events;
+  const liveBoard = {
+    events: [
+      { ...final!, status: { period: 2, displayClock: '6:41', type: { state: 'in', completed: false, shortDetail: '2nd' } } },
+      upcoming!,
+    ],
+  };
+  const calls = (f: ReturnType<typeof mockFetch>, part: string) => f.mock.calls.filter(([u]) => String(u).includes(part)).length;
+
+  it('toggles with aria-pressed, shows a note, stops polling, and resumes with an immediate refetch', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const routes = { scoreboard: liveBoard, 'summary?event=401872964': summary };
+      const f = mockFetch(routes);
+      renderAt('/');
+      expect(await screen.findByText('15.60')).toBeInTheDocument();
+      const pause = screen.getByRole('button', { name: 'Pause live updates' });
+      expect(pause).toHaveAttribute('aria-pressed', 'false');
+
+      await userEvent.click(pause);
+      const resume = screen.getByRole('button', { name: 'Resume live updates' });
+      expect(resume).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText(/Live updates are paused/)).toBeInTheDocument();
+
+      const summaries = calls(f, 'summary');
+      const boards = calls(f, 'scoreboard');
+      await act(() => vi.advanceTimersByTimeAsync(120_000));
+      expect(calls(f, 'summary')).toBe(summaries);
+      expect(calls(f, 'scoreboard')).toBe(boards);
+      expect(within(card('Jaylen Warren')).getByText('15.60')).toBeInTheDocument();
+
+      await userEvent.click(resume);
+      expect(screen.queryByText(/Live updates are paused/)).not.toBeInTheDocument();
+      await waitFor(() => expect(calls(f, 'summary')).toBeGreaterThan(summaries));
+      await waitFor(() => expect(calls(f, 'scoreboard')).toBeGreaterThan(boards));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -14,12 +14,13 @@ interface Props {
   game: GameInfo | null;
   profiles: Profile[];
   hasSchedule: boolean;
+  paused?: boolean;
 }
 
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
-export function EntryCard({ entry, game, profiles, hasSchedule }: Props) {
-  const summary = useGameSummary(game);
+export function EntryCard({ entry, game, profiles, hasSchedule, paused = false }: Props) {
+  const summary = useGameSummary(game, paused);
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
   const [open, setOpen] = useState(false);
 

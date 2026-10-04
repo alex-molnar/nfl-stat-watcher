@@ -24,6 +24,15 @@ describe('polling rules', () => {
   });
 });
 
+describe('paused polling', () => {
+  it('stops scoreboard and summary intervals while paused', () => {
+    expect(scoreboardRefetch('success', [game('in')], true)).toBe(false);
+    expect(scoreboardRefetch('error', undefined, true)).toBe(false);
+    expect(summaryPolling('in', true)).toEqual({ enabled: true, refetchInterval: false, staleTime: 0 });
+    expect(summaryPolling('post', true)).toEqual(summaryPolling('post'));
+  });
+});
+
 describe('freshness', () => {
   it('says nothing while requests succeed', () => expect(freshness(false, Date.now())).toBeNull());
   it('says when data was never loaded', () => expect(freshness(true, 0)).toBe('Live data unavailable, retrying'));

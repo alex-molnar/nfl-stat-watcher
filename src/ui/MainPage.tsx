@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { freshness, useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
 import { followedStore, withValidProfiles } from '../storage/followed';
@@ -20,12 +21,25 @@ export function MainPage() {
   usePageTitle('Players');
   const profiles = useStore(profilesStore);
   const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id));
-  const scoreboard = useScoreboard();
+  const [paused, setPaused] = useState(false); // session only, never persisted
+  const scoreboard = useScoreboard(paused);
+  const client = useQueryClient();
   const [adding, setAdding] = useState(false);
   const hasSchedule = scoreboard.data !== undefined;
   const games = scoreboard.data ?? [];
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
-  const note = freshness(scoreboard.isError, scoreboard.dataUpdatedAt);
+  const loading = followed.length > 0 && scoreboard.isPending;
+  // One status container stays mounted so screen readers announce text changes.
+  const note = loading
+    ? 'Loading games'
+    : paused
+      ? 'Live updates are paused. The numbers shown may be out of date.'
+      : freshness(scoreboard.isError, scoreboard.dataUpdatedAt);
+
+  function togglePause() {
+    setPaused(!paused);
+    if (paused) void client.refetchQueries({ predicate: (q) => q.queryKey[0] === 'scoreboard' || q.queryKey[0] === 'summary' });
+  }
 
   const opener = useRef<HTMLElement | null>(null);
   const headerAdd = useRef<HTMLButtonElement>(null);
@@ -43,7 +57,16 @@ export function MainPage() {
 
   return (
     <>
-      <Header actions={addButton(headerAdd)} />
+      <Header
+        actions={
+          <>
+            <button type="button" className="btn press" aria-pressed={paused} onClick={togglePause}>
+              {paused ? 'Resume live updates' : 'Pause live updates'}
+            </button>
+            {addButton(headerAdd)}
+          </>
+        }
+      />
       <main className="wrap">
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
@@ -51,10 +74,7 @@ export function MainPage() {
             <p>You're not following anyone yet. Add players or team defenses from any of your leagues.</p>
             {addButton()}
           </div>
-        ) : scoreboard.isPending ? (
-          // Wait for the schedule so cards do not jump between groups after mounting.
-          <p className="page-note" role="status">Loading games</p>
-        ) : (
+        ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);
             if (group.length === 0) return null;
@@ -71,6 +91,7 @@ export function MainPage() {
                       game={game}
                       profiles={profiles}
                       hasSchedule={hasSchedule}
+                      paused={paused}
                     />
                   ))}
                 </ul>

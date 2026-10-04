@@ -8,15 +8,15 @@ export const scoreboardInterval = (games: GameInfo[] | undefined) =>
   games?.some((g) => g.state === 'in') ? 60_000 : 600_000;
 
 /** A failed scoreboard load retries in a minute, not in ten, so live games are picked up soon. */
-export const scoreboardRefetch = (status: string, games: GameInfo[] | undefined) =>
-  status === 'error' ? 60_000 : scoreboardInterval(games);
+export const scoreboardRefetch = (status: string, games: GameInfo[] | undefined, paused = false) =>
+  paused ? false : status === 'error' ? 60_000 : scoreboardInterval(games);
 
-export function summaryPolling(state: GameInfo['state'] | undefined): {
+export function summaryPolling(state: GameInfo['state'] | undefined, paused = false): {
   enabled: boolean;
   refetchInterval: number | false;
   staleTime: number;
 } {
-  if (state === 'in') return { enabled: true, refetchInterval: 10_000, staleTime: 0 };
+  if (state === 'in') return { enabled: true, refetchInterval: paused ? false : 10_000, staleTime: 0 };
   if (state === 'post') return { enabled: true, refetchInterval: false, staleTime: Infinity };
   return { enabled: false, refetchInterval: false, staleTime: 0 };
 }
@@ -28,21 +28,24 @@ export function freshness(isError: boolean, dataUpdatedAt: number): string | nul
   return `Updated ${time}, retrying`;
 }
 
-export function useScoreboard() {
+// Paused (WCAG 2.2.2): no interval and no focus refetch, loaded data stays on screen.
+export function useScoreboard(paused = false) {
   return useQuery({
     queryKey: ['scoreboard'],
     queryFn: async () => toGames(await getScoreboard()),
-    refetchInterval: (query) => scoreboardRefetch(query.state.status, query.state.data),
+    refetchInterval: (query) => scoreboardRefetch(query.state.status, query.state.data, paused),
+    refetchOnWindowFocus: !paused,
   });
 }
 
-export function useGameSummary(game: GameInfo | null) {
-  const polling = summaryPolling(game?.state);
+export function useGameSummary(game: GameInfo | null, paused = false) {
+  const polling = summaryPolling(game?.state, paused);
   return useQuery({
     queryKey: ['summary', game?.eventId],
     queryFn: async () => normalizeSummary(await getSummary(game!.eventId)),
     enabled: polling.enabled && game !== null,
     refetchInterval: polling.refetchInterval,
+    refetchOnWindowFocus: !paused,
     staleTime: polling.staleTime,
   });
 }
