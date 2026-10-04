@@ -141,7 +141,8 @@ describe('settings page', () => {
     expect(profiles()[0].values.reception).toBe(1);
     await userEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
     expect(profiles()[0].values.reception).toBe(1);
-    expect(screen.getByLabelText('Preset')).toHaveValue('standard');
+    expect(screen.getByLabelText('Preset')).toHaveValue('ppr');
+    await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
     await userEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
     expect(profiles()[0].values.reception).toBe(0);
     expect(profiles()[0].preset).toBe('standard');
@@ -156,6 +157,27 @@ describe('settings page', () => {
     expect(screen.getByRole('button', { name: 'Apply preset' })).toBeDisabled();
   });
 
+  it('disables Apply preset when the pick equals the current preset', async () => {
+    renderAt('/settings');
+    expect(screen.getByRole('button', { name: 'Apply preset' })).toBeDisabled();
+    await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
+    expect(screen.getByRole('button', { name: 'Apply preset' })).toBeEnabled();
+    await userEvent.selectOptions(screen.getByLabelText('Preset'), 'ppr');
+    expect(screen.getByRole('button', { name: 'Apply preset' })).toBeDisabled();
+  });
+
+  it('clears a number field message when a preset changes the value', async () => {
+    renderAt('/settings');
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const recv = within(fieldset('Offense')).getByLabelText('Reception');
+    await userEvent.clear(recv);
+    await userEvent.tab();
+    expect(screen.getByText('Enter a number. Restored 1.')).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Preset'), 'standard');
+    await userEvent.click(screen.getByRole('button', { name: 'Apply preset' }));
+    expect(screen.queryByText('Enter a number. Restored 1.')).not.toBeInTheDocument();
+  });
+
   it('says what was restored when a number field is left invalid, and clears it on the next edit', async () => {
     renderAt('/settings');
     const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
@@ -164,6 +186,7 @@ describe('settings page', () => {
     const msg = screen.getByText('Enter a number. Restored 4.');
     expect(msg).toHaveAttribute('role', 'status');
     expect(passTd).toHaveAccessibleDescription('Enter a number. Restored 4.');
+    expect(screen.getByRole('spinbutton', { name: 'Passing TD' })).toBe(passTd);
     await userEvent.type(passTd, '5');
     expect(screen.queryByText('Enter a number. Restored 4.')).not.toBeInTheDocument();
     expect(passTd).not.toHaveAttribute('aria-describedby');
@@ -176,6 +199,7 @@ describe('settings page', () => {
     await userEvent.clear(name);
     await userEvent.tab();
     expect(name).toHaveAccessibleDescription('Name was empty. Using Untitled league.');
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBe(name);
     await userEvent.type(name, 'x');
     expect(name).not.toHaveAccessibleDescription();
     await userEvent.clear(name);

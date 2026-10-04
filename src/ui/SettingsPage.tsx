@@ -14,32 +14,37 @@ function NumberField({ label, value, step, onChange }: { label: string; value: n
   const msgId = useId();
   // Follow outside changes (presets) without fighting partial input such as "0." or "".
   useEffect(() => {
-    if (Number.parseFloat(text) !== value) setText(String(value));
+    if (Number.parseFloat(text) !== value) {
+      setText(String(value));
+      setMsg(''); // a message about the old value would be stale
+    }
   }, [value]);
   return (
-    <label className="num-field">
-      {label}
-      <input
-        type="number"
-        aria-describedby={msg ? msgId : undefined}
-        inputMode="decimal"
-        step={step}
-        value={text}
-        onBlur={() => {
-          if (!Number.isFinite(Number.parseFloat(text))) {
-            setText(String(value));
-            setMsg(`Enter a number. Restored ${value}.`);
-          }
-        }}
-        onChange={(e) => {
-          setMsg('');
-          setText(e.target.value);
-          const n = Number.parseFloat(e.target.value);
-          if (Number.isFinite(n)) onChange(n);
-        }}
-      />
+    <div className="num-field">
+      <label>
+        {label}
+        <input
+          type="number"
+          aria-describedby={msg ? msgId : undefined}
+          inputMode="decimal"
+          step={step}
+          value={text}
+          onBlur={() => {
+            if (!Number.isFinite(Number.parseFloat(text))) {
+              setText(String(value));
+              setMsg(`Enter a number. Restored ${value}.`);
+            }
+          }}
+          onChange={(e) => {
+            setMsg('');
+            setText(e.target.value);
+            const n = Number.parseFloat(e.target.value);
+            if (Number.isFinite(n)) onChange(n);
+          }}
+        />
+      </label>
       <span id={msgId} className="field-msg" role="status">{msg}</span>
-    </label>
+    </div>
   );
 }
 
@@ -56,27 +61,29 @@ function NameField({ profile, others }: { profile: Profile; others: Profile[] })
   const [msg, setMsg] = useState('');
   const msgId = useId();
   return (
-    <label className="field-label">
-      Name
-      <input
-        value={text}
-        aria-describedby={msg ? msgId : undefined}
-        onChange={(e) => {
-          setMsg('');
-          setText(e.target.value);
-          // An empty name is never stored, so the profile always has an accessible name.
-          if (e.target.value.trim()) renameProfile(profile.id, e.target.value);
-        }}
-        onBlur={() => {
-          const name = uniqueName(text, others);
-          if (!text.trim()) setMsg(`Name was empty. Using ${name}.`);
-          else if (name !== text.trim()) setMsg(`That name is taken. Using ${name}.`);
-          setText(name);
-          renameProfile(profile.id, name);
-        }}
-      />
+    <div className="field-wrap">
+      <label className="field-label">
+        Name
+        <input
+          value={text}
+          aria-describedby={msg ? msgId : undefined}
+          onChange={(e) => {
+            setMsg('');
+            setText(e.target.value);
+            // An empty name is never stored, so the profile always has an accessible name.
+            if (e.target.value.trim()) renameProfile(profile.id, e.target.value);
+          }}
+          onBlur={() => {
+            const name = uniqueName(text, others);
+            if (!text.trim()) setMsg(`Name was empty. Using ${name}.`);
+            else if (name !== text.trim()) setMsg(`That name is taken. Using ${name}.`);
+            setText(name);
+            renameProfile(profile.id, name);
+          }}
+        />
+      </label>
       <span id={msgId} className="field-msg" role="status">{msg}</span>
-    </label>
+    </div>
   );
 }
 
@@ -103,8 +110,8 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
     if (preset === 'custom') return;
     if (window.confirm(`Replace all values in ${profile.name} with the ${PRESET_LABELS[preset]} preset?`)) {
       applyPreset(profile.id, preset);
-      setPicked(null);
     }
+    setPicked(null); // cancel or apply: the select shows what the profile really uses
   }
 
   return (
@@ -118,7 +125,7 @@ function ProfileForm({ profile, profiles, usedBy, onDeleted }: { profile: Profil
             <option value="custom" disabled>Custom</option>
           </select>
         </label>
-        <button type="button" className="btn press" disabled={preset === 'custom'} onClick={applyPicked}>Apply preset</button>
+        <button type="button" className="btn press" disabled={preset === 'custom' || preset === profile.preset} onClick={applyPicked}>Apply preset</button>
       </div>
 
       {FIELD_GROUPS.map((group) => (
