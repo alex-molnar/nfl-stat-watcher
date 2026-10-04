@@ -47,7 +47,7 @@ main.wrap { padding-bottom: 48px; }
 .id { flex: 1; min-width: 0; }
 .nm { font: 800 19px/1.15 Anybody, sans-serif; font-stretch: 108%; margin: 0; overflow-wrap: anywhere; }
 .sub { color: var(--muted); font-size: 13px; display: flex; gap: 10px; flex-wrap: wrap; }
-.chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--ink); }
+.chip { overflow-wrap: anywhere; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--ink); }
 .pts { border: 0; background: none; cursor: pointer; text-align: right; padding: 2px 4px; border-radius: 8px; }
 .pts b { display: block; font: 900 28px/1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 6px; }
 .live .pts b { font-size: 38px; font-stretch: 135%; }
@@ -99,6 +99,12 @@ html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 112px) + 8px)
   .vs { grid-template-columns: 1fr 1fr; align-items: start; }
   html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 72px) + 8px); }
 }
+/* Very short viewports (400% zoom, landscape phones): a sticky bar would cover most of the screen (WCAG 1.4.10). */
+@media (max-height: 30em) {
+  .score-bar { position: static; }
+  html:has(.score-bar) { scroll-padding-top: 0; }
+}
+select { max-width: 100%; }
 
 /* Changed numbers */
 .bump { animation: bump 900ms ease-out; }

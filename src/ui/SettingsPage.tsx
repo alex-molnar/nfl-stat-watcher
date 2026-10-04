@@ -162,13 +162,14 @@ function ProfileForm({ profile, profiles, usedBy, opponents, onDeleted }: { prof
               </select>
             </label>
           ) : (
-            <p id="confirm-question">Delete {profile.name}? No followed cards use it.</p>
+            <p id="confirm-question">Delete {profile.name}? None of your cards use it.</p>
           )}
           {/* Opponent cards belong to this league, so they are removed with it, never moved. */}
           {opponents > 0 && <p id="confirm-opponents">{`Also removes ${opponents} opponent ${opponents === 1 ? 'card' : 'cards'}.`}</p>}
           <button
             type="button"
             className="btn btn-danger"
+            aria-describedby={[usedBy > 0 ? '' : 'confirm-question', opponents > 0 ? 'confirm-opponents' : ''].filter(Boolean).join(' ') || undefined}
             onClick={() => {
               if (deleteProfile(profile.id, moveTo)) onDeleted(moveTo);
             }}

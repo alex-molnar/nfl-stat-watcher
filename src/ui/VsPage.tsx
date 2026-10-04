@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useMatchup } from '../hooks/useMatchup';
-import { entryKey, moveEntry, removeEntry, type Side } from '../storage/followed';
+import { entryKey, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
@@ -10,6 +11,13 @@ import { Header } from './Header';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
 import { LEADER_TEXT, ScoreBar, leaderOf } from './ScoreBar';
 import { usePageTitle } from './usePageTitle';
+
+/** Programmatic focus that also scrolls clear of the sticky bar: scrollIntoView honours scroll-padding (WCAG 2.4.11). */
+function focusVisible(el: HTMLElement | null | undefined) {
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: 'nearest' });
+}
 
 const COLUMNS = {
   mine: { title: 'Your players', add: 'Add player to your side', empty: 'No players on your side yet' },
@@ -30,11 +38,19 @@ export function VsPage() {
   const loading = mine.length + opponent.length > 0 && scoreboard.isPending;
   const note = pageNote(loading, paused, scoreboard);
   const { leader } = leaderOf(totals.mine, totals.opponent);
+  // Latched per league: once a league's matchup has settled it stays settled, so adding a card with an
+  // uncached summary never blanks the phrase and re-announces it. Switching league starts over.
+  const latch = useRef({ id: '', done: false });
+  if (latch.current.id !== profile.id) latch.current = { id: profile.id, done: false };
+  if (settled) latch.current.done = true;
+  const announced = latch.current.done;
+  const phrase = announced && mine.length + opponent.length > 0 ? LEADER_TEXT[leader] : '';
+  const noteText = note?.replace(/\.$/, '') ?? '';
 
   // Scroll padding follows the bar's real height (it wraps with long names, text zoom and text spacing),
   // so a focused card never sits under the sticky bar (WCAG 2.4.11). CSS has a fallback until this runs.
   const barRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const bar = barRef.current;
     if (!bar || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
@@ -48,15 +64,16 @@ export function VsPage() {
     };
   }, []);
 
-  // Remove, or moving one of my cards to another league (which takes it out of this matchup):
-  // next card's points button in the same column, else the previous one, else that column's Add button.
-  function focusAfterLeaving(entry: FollowedEntry) {
+  // Remove: the next card's points button in the same column, else the previous one, else that column's Add button.
+  // The target is picked first and focused after the removal has rendered, so the scroll uses the new layout.
+  function removeAndFocus(entry: FollowedEntry) {
     const card = document.querySelector<HTMLElement>(`[data-entry="${CSS.escape(entryKey(entry))}"]`);
     const column = card?.closest('.vs-col');
-    if (!card || !column) return;
-    const all = [...column.querySelectorAll<HTMLElement>('.card .pts')];
-    const i = all.indexOf(card.querySelector<HTMLElement>('.pts')!);
-    (all[i + 1] ?? all[i - 1] ?? column.querySelector<HTMLElement>('.vs-add'))?.focus();
+    const all = column ? [...column.querySelectorAll<HTMLElement>('.card .pts')] : [];
+    const i = all.indexOf(card?.querySelector<HTMLElement>('.pts') as HTMLElement);
+    const target = all[i + 1] ?? all[i - 1] ?? column?.querySelector<HTMLElement>('.vs-add');
+    flushSync(() => removeEntry(entry));
+    focusVisible(target);
   }
 
   function openDialog(side: Side, button: HTMLElement) {
@@ -68,7 +85,7 @@ export function VsPage() {
   // The column Add buttons are always mounted, so focus always goes back to the one that opened the dialog.
   function closeDialog() {
     setAdding(false);
-    opener.current?.focus();
+    focusVisible(opener.current);
   }
 
   const column = (side: Side) => (
@@ -91,14 +108,8 @@ export function VsPage() {
               profiles={profiles}
               hasSchedule={hasSchedule}
               paused={paused}
-              onMove={(e, toProfileId) => {
-                focusAfterLeaving(e);
-                moveEntry(e, toProfileId);
-              }}
-              onRemove={(e) => {
-                focusAfterLeaving(e);
-                removeEntry(e);
-              }}
+              movable={false}
+              onRemove={removeAndFocus}
             />
           ))}
         </ul>
@@ -112,17 +123,17 @@ export function VsPage() {
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
         <label className="field-label vs-league">
-          League
+          Matchup league
           <select value={profile.id} onChange={(e) => setPickedId(e.target.value)}>
             {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
         {/* The one status line: the page note, plus the leader, which changes only when the lead changes hands. */}
         <p className="page-note" role="status">
-          {note ? `${note} ` : null}
-          <span className="sr">{settled ? LEADER_TEXT[leader] : ''}</span>
+          {phrase ? noteText : note}
+          <span className="sr">{phrase ? `${noteText ? '. ' : ''}${phrase}` : ''}</span>
         </p>
-        <ScoreBar ref={barRef} mine={totals.mine} opponent={totals.opponent} />
+        <ScoreBar ref={barRef} settled={announced} mine={totals.mine} opponent={totals.opponent} />
         <div className="vs">
           {column('mine')}
           {column('opponent')}

@@ -18,6 +18,20 @@ describe('entry card sides', () => {
     expect(screen.getByRole('button', { name: 'Remove Jaylen Warren from Office league' })).toBeInTheDocument();
   });
 
+  it('names the league select for its card', () => {
+    renderCard(warren);
+    expect(screen.getByRole('combobox', { name: 'League for Jaylen Warren' })).toBeInTheDocument();
+  });
+
+  it('renders no league select when not movable', () => {
+    renderWithClient(
+      <ul>
+        <EntryCard entry={warren} game={null} profiles={profilesFixture} hasSchedule movable={false} onRemove={() => {}} />
+      </ul>,
+    );
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
   it('has no league select on opponent cards and names the side on Remove', () => {
     renderCard(opponent(warren));
     expect(screen.queryByLabelText('League')).not.toBeInTheDocument();

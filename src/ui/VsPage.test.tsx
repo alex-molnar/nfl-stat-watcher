@@ -28,16 +28,16 @@ describe('vs page', () => {
     expect(screen.queryByText('Patrick Mahomes')).not.toBeInTheDocument();
     expect(bar()).toHaveTextContent('You 15.60 You lead by 9.60 Opponent 6.00');
     expect(picker()).toHaveValue('p1');
-    expect(screen.getAllByLabelText('League')).toContain(picker());
+    expect(screen.getByLabelText('Matchup league')).toBe(picker());
   });
 
-  it('shows the league select on my cards only', async () => {
+  it('has no league select on any card, so a keypress can never move a card out of the matchup', async () => {
     seed([warren, opponent(pitDefense)], profilesFixture);
     mockFetch(routes);
     renderAt('/vs');
     await within(mineCol()).findByText('15.60');
-    expect(within(mineCol()).getByLabelText('League')).toBeInTheDocument();
-    expect(within(oppCol()).queryByLabelText('League')).not.toBeInTheDocument();
+    expect(within(mineCol()).queryByRole('combobox')).not.toBeInTheDocument();
+    expect(within(oppCol()).queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('says when the opponent leads', async () => {
@@ -56,16 +56,17 @@ describe('vs page', () => {
     await userEvent.selectOptions(picker(), 'Friends league');
     expect(within(mineCol()).getByText('Patrick Mahomes')).toBeInTheDocument();
     expect(within(oppCol()).getByText('No opponent players yet')).toBeInTheDocument();
-    expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00');
+    await waitFor(() => expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00'));
     const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
     expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme'].includes(k!))).toBe(true);
   });
 
-  it('renders an empty matchup as a tie with both Add buttons', () => {
+  it('renders an empty matchup as a tie with both Add buttons, silent in the status line', async () => {
     seed([], profilesFixture);
     mockFetch(routes);
     renderAt('/vs');
-    expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00');
+    await waitFor(() => expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00'));
+    expect(statusLine()).toHaveTextContent(/^$/);
     expect(within(mineCol()).getByText('No players on your side yet')).toBeInTheDocument();
     expect(within(oppCol()).getByText('No opponent players yet')).toBeInTheDocument();
     expect(within(mineCol()).getByRole('button', { name: 'Add player to your side' })).toBeInTheDocument();
@@ -105,17 +106,61 @@ describe('vs page', () => {
     expect(pts(mineCol(), 'Jaylen Warren')).toHaveFocus();
   });
 
-  it('takes a card of mine out of the matchup when its League select moves it, and focuses the next card', async () => {
+  it('focuses the next card after Remove once the removal has rendered, and scrolls it clear of the bar', async () => {
     seed([warren, pitDefense], profilesFixture);
     mockFetch(routes);
     renderAt('/vs');
     await within(mineCol()).findByText('15.60');
-    const card = within(mineCol()).getByText('Jaylen Warren').closest('li')!;
-    await userEvent.selectOptions(within(card).getByLabelText('League'), 'Friends league');
-    expect(within(mineCol()).queryByText('Jaylen Warren')).not.toBeInTheDocument();
-    expect(pts(mineCol(), 'Pittsburgh Steelers')).toHaveFocus();
-    expect(bar()).toHaveTextContent('You 6.00 You lead by 6.00 Opponent 0.00');
-    expect(stored().find((e: { name: string }) => e.name === 'Jaylen Warren').profileId).toBe('p2');
+    const scroll = vi.mocked(Element.prototype.scrollIntoView);
+    scroll.mockClear();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Jaylen Warren from Office league' }));
+    const target = pts(mineCol(), 'Pittsburgh Steelers');
+    expect(target).toHaveFocus();
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(scroll.mock.contexts.at(-1)).toBe(target);
+  });
+
+  it('scrolls the opening Add button into view when the dialog closes', async () => {
+    seed([], profilesFixture);
+    mockFetch(routes);
+    renderAt('/vs');
+    const add = screen.getByRole('button', { name: 'Add player to your side' });
+    await userEvent.click(add);
+    vi.mocked(Element.prototype.scrollIntoView).mockClear();
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
+    expect(add).toHaveFocus();
+    expect(vi.mocked(Element.prototype.scrollIntoView).mock.contexts.at(-1)).toBe(add);
+  });
+
+  it('joins the page note and the leader phrase into one status string', async () => {
+    seed([warren], profilesFixture);
+    mockFetch({ scoreboard: status(500) });
+    renderAt('/vs');
+    await waitFor(() => expect(statusLine()).toHaveTextContent(/^Live data unavailable, retrying\. You lead$|^Live data unavailable, retrying\. Tied$/));
+  });
+
+  it('shows Loading instead of a lead until the matchup has settled', async () => {
+    seed([warren], profilesFixture);
+    mockFetch(routes);
+    renderAt('/vs');
+    expect(bar()).toHaveTextContent('You 0.00 Loading Opponent 0.00');
+    await waitFor(() => expect(bar()).toHaveTextContent('You lead by 15.60'));
+  });
+
+  it('does not blank and re-announce when a card with an uncached summary is added', async () => {
+    seed([warren], profilesFixture);
+    mockFetch({ ...routes, 'search?query=bills': { items: [] }, standings: teams });
+    renderAt('/vs');
+    await waitFor(() => expect(statusLine()).toHaveTextContent(/^You lead$/));
+    const seen: string[] = [];
+    new MutationObserver(() => seen.push(statusLine().textContent ?? '')).observe(statusLine(), { childList: true, subtree: true, characterData: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Add player to opponent side' }));
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Search'), 'bills');
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Add Buffalo Bills, team defense' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(within(oppCol()).getByText('Buffalo Bills')).toBeInTheDocument();
+    expect(seen.filter((t) => t === '')).toEqual([]);
   });
 
   it('stays silent about the leader until the matchup data has settled, then announces it once', async () => {

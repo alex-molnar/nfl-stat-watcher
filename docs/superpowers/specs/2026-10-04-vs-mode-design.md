@@ -49,6 +49,8 @@ side?: 'opponent'; // absent means "mine"
 
 ### Layout
 
+Cards on /vs have no league select (a deliberate accessibility deviation from the first draft): moving a card between leagues stays on the Players page, since a select that fires change on an arrow key would remove the card mid-keypress.
+
 ```
  League: [My league v]                         [Pause live updates] [Add player]
  +---------------------- score bar (sticky) ------------------------+

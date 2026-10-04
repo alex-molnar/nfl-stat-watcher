@@ -18,11 +18,11 @@ export function leadText(mine: number, opponent: number): string {
 export const LEADER_TEXT: Record<Leader, string> = { mine: 'You lead', opponent: 'Opponent leads', tied: 'Tied' };
 
 /** One element whose visible text is its accessible text. The page owns the status announcement. */
-export function ScoreBar({ mine, opponent, ref }: { mine: number; opponent: number; ref?: Ref<HTMLDivElement> }) {
+export function ScoreBar({ mine, opponent, ref, settled = true }: { mine: number; opponent: number; ref?: Ref<HTMLDivElement>; settled?: boolean }) {
   return (
     <div className="score-bar" ref={ref}>
       <span className="sb-mine">You <b>{mine.toFixed(2)}</b></span>{' '}
-      <span className="sb-lead">{leadText(mine, opponent)}</span>{' '}
+      <span className="sb-lead">{settled ? leadText(mine, opponent) : 'Loading'}</span>{' '}
       <span className="sb-opp">Opponent <b>{opponent.toFixed(2)}</b></span>
     </div>
   );

@@ -15,13 +15,15 @@ interface Props {
   profiles: Profile[];
   hasSchedule: boolean;
   paused?: boolean;
-  onMove: (entry: FollowedEntry, toProfileId: string) => void;
+  /** Off on the Vs page: a League select that moves a card on change would pull it out of the matchup mid-keypress. */
+  movable?: boolean;
+  onMove?: (entry: FollowedEntry, toProfileId: string) => void;
   onRemove: (entry: FollowedEntry, button: HTMLElement) => void;
 }
 
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
-export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, onMove, onRemove }: Props) {
+export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, movable = true, onMove, onRemove }: Props) {
   const summary = useGameSummary(game, paused);
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
   const [open, setOpen] = useState(false);
@@ -130,10 +132,10 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       {note && <p className="note">{note}</p>}
 
       <div className="ft">
-        {!opposing && (
+        {movable && !opposing && (
           <label>
             League
-            <select value={profile.id} onChange={(e) => onMove(entry, e.target.value)}>
+            <select aria-label={`League for ${entry.name}`} value={profile.id} onChange={(e) => onMove?.(entry, e.target.value)}>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>

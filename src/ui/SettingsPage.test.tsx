@@ -222,7 +222,16 @@ describe('settings page', () => {
     seed([], profilesFixture);
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription('Delete Office league? No followed cards use it.');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription('Delete Office league? None of your cards use it.');
+  });
+
+  it('describes the destructive Delete button with the question and the opponent count', async () => {
+    seed([opponent(warren)], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByRole('button', { name: 'Delete Office league' })).toHaveAccessibleDescription(
+      'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
+    );
   });
 
   it('lists profiles in a plain list under a heading, not a nav', () => {
@@ -278,7 +287,7 @@ describe('settings page', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription(
-      'Delete Office league? No followed cards use it. Also removes 1 opponent card.',
+      'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
     );
   });
 });
