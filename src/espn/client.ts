@@ -43,6 +43,14 @@ export async function getTeams(): Promise<EspnTeamRef[]> {
   return res.children.flatMap((c) => c.standings.entries.map((e) => e.team));
 }
 
+/** The athletes a highlight clip is tagged with. The summary lists clips without tags; this per-clip call has them. */
+export async function getClipAthletes(clipId: string): Promise<string[]> {
+  const res = await getJson<{ videos?: { categories?: { type?: string; athleteId?: number }[] }[] }>(
+    `https://content.core.api.espn.com/v1/video/clips/${encodeURIComponent(clipId)}`,
+  );
+  return (res.videos?.[0]?.categories ?? []).flatMap((c) => (c.type === 'athlete' && c.athleteId ? [String(c.athleteId)] : []));
+}
+
 export const getScoreboard = () => getJson<EspnScoreboard>(`${SITE}/scoreboard`);
 
 export const getSummary = (eventId: string) =>

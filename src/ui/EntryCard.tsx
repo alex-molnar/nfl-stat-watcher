@@ -1,6 +1,9 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { freshness, useAthlete, useGameSummary } from '../hooks/queries';
 import { useCelebration } from '../hooks/useCelebration';
+import { useHighlights } from '../hooks/useHighlights';
+import { HighlightsDialog } from './HighlightsDialog';
+import { isSeen, markSeen, subscribeSeen } from './seenHighlights';
 import { scoreEntry } from '../scoring/score';
 import type { Profile } from '../scoring/types';
 import type { GameInfo } from '../stats/scoreboard';
@@ -56,6 +59,9 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const out = isOut(injury); // a player ruled out never counts as on the field or in the red zone
   const redZone = isRedZone(entry, game, stats) && !out;
   const celebration = useCelebration(entry, stats, live);
+  const clips = useHighlights(entry, stats);
+  const [watching, setWatching] = useState(false);
+  const unseen = useSyncExternalStore(subscribeSeen, () => clips.filter((clip) => !isSeen(clip.id)).length);
   const home = game?.home.id === entry.teamId;
   const us = game ? (home ? game.home : game.away) : null;
   const them = game ? (home ? game.away : game.home) : null;
@@ -105,6 +111,12 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
             {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
           </div>
         </div>
+        <div className="hd-side">
+          {clips.length > 0 && (
+            <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${entry.name}, ${clips.length}`}>
+              <span aria-hidden="true">▶</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
+            </button>
+          )}
         <button
           type="button"
           className="pts press"
@@ -115,6 +127,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <Bump value={total} />
           <span>fantasy pts</span>
         </button>
+        </div>
       </div>
 
       {game && situation ? (
@@ -185,6 +198,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           Remove
         </button>
       </div>
+      {clips.length > 0 && <HighlightsDialog open={watching} onClose={() => setWatching(false)} playerName={entry.name} clips={clips} onWatched={markSeen} />}
     </li>
   );
 }

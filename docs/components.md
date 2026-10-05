@@ -127,3 +127,14 @@ When a refresh shows a celebrated play by a card's own player or defense (`scori
 - **Boost:** for `BOOST_MS` (30 seconds) the card sits at the top of its own group (red zone, on the field, or the rest), keeping position order among boosted cards, but never past the group above it. A quarterback with a 25-yard pass outside the red zone rises above the skill players, and stays below everyone in the red zone. Another play extends the boost. Unranked and ruled-out cards are not boosted. A big bad play (an interception thrown, a fumble lost, a touchdown allowed, a missed field goal) only holds: the card stays put under its red animation, since the possession change moves it down, and then moves down by the normal rules with no lift. Small bad plays (sacked, a missed extra point, a field goal allowed) lift the card like any small play.
 
 A second play during a hold keeps the original held rank and extends it. The hook sets a timer for the next hold or boost end so the page re-sorts then.
+
+
+## Highlights
+
+A card for a player shows a small play button with a count when a highlight clip of the game is tagged with that player. A dot marks clips not opened yet during this page visit (kept in memory only, so a reload shows them as new again). Team defenses have no player tag and show no button.
+
+Clips come from the `videos` list in the game summary the card already polls (every ten seconds while live), so a new clip appears within about ten seconds of ESPN publishing it, with no extra request. The summary lists clips without player tags, so each clip's tags are fetched once from ESPN's per-clip API (`getClipAthletes`) and cached for the session, shared by every card. Clips are shown newest first.
+
+`HighlightsDialog` is a native `<dialog>`. A clip with a direct `.mp4` file plays inside it (a `video` element with controls); a single clip starts straight away. A clip with only a page opens that page in a new window (`noopener,noreferrer`). Only https links are accepted, and only `.mp4` files are played in the dialog.
+
+The source is ESPN, not `api.nfl.com/content/v1/videos`: that endpoint answers 401 (`x-nfl-jwtstatus: FAILED`) to any request without an NFL-issued token, and a token sent from the browser would be visible to every user.

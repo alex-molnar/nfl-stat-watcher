@@ -210,3 +210,31 @@ describe('injury report', () => {
     expect(summary([{ injuries: [{ status: '', athlete: { id: '1' } }, { status: 'Out' }] }]).injuries).toEqual({});
   });
 });
+
+describe('highlight clips', () => {
+  const summary = (videos: unknown) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] }, boxscore: { players: [] }, videos,
+  } as unknown as EspnSummary);
+  const clip = (id: number, published: string, links: unknown) => ({ id, headline: `Clip ${id}`, originalPublishDate: published, duration: 24, thumbnail: 'https://img.example/t.jpg', links });
+
+  it('keeps clips newest first, with the video file when there is one and the page otherwise', () => {
+    const g = summary([
+      clip(1, '2026-10-04T21:00:00Z', { source: { href: 'https://cdn.example/a.mp4' }, web: { href: 'https://www.espn.com/video/clip/_/id/1' } }),
+      clip(2, '2026-10-04T22:00:00Z', { web: { href: 'https://www.espn.com/video/clip/_/id/2' } }),
+    ]);
+    expect(g.highlights?.map((h) => h.id)).toEqual(['2', '1']);
+    expect(g.highlights![1]).toMatchObject({ mp4: 'https://cdn.example/a.mp4', page: 'https://www.espn.com/video/clip/_/id/1', duration: 24 });
+    expect(g.highlights![0]).not.toHaveProperty('mp4');
+  });
+
+  it('drops clips with no usable link, and never trusts a non-https or non-mp4 file', () => {
+    const g = summary([
+      clip(1, '2026-10-04T21:00:00Z', {}),
+      clip(2, '2026-10-04T21:00:00Z', { source: { href: 'http://cdn.example/a.mp4' } }),
+      clip(3, '2026-10-04T21:00:00Z', { source: { href: 'https://cdn.example/stream.m3u8' }, web: { href: 'javascript:alert(1)' } }),
+    ]);
+    expect(g.highlights).toEqual([]);
+  });
+
+  it('is empty when the game has no clips', () => expect(summary(undefined).highlights).toEqual([]));
+});

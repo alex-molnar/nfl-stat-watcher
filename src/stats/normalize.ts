@@ -1,5 +1,5 @@
 import type { EspnAthleteRef, EspnPlay, EspnStatCategory, EspnSummary } from '../espn/types';
-import type { DefenseStats, GameStats, Injury, PlayerStats, Situation } from './types';
+import type { DefenseStats, GameStats, Highlight, Injury, PlayerStats, Situation } from './types';
 
 const num = (s: string | undefined) => {
   const n = Number.parseFloat(s ?? '');
@@ -179,6 +179,28 @@ function yardsAllowedOf(s: EspnSummary, opponentId: string | undefined): { yards
   return Number.isFinite(yards) ? { yardsAllowed: yards } : {};
 }
 
+const httpsUrl = (value: string | undefined): string | undefined => {
+  try { return value && new URL(value).protocol === 'https:' ? value : undefined; } catch { return undefined; }
+};
+
+function highlightsOf(s: EspnSummary): Highlight[] {
+  return (s.videos ?? []).flatMap((video): Highlight[] => {
+    const file = httpsUrl(video.links?.source?.href);
+    const mp4 = file && /\.mp4($|\?)/i.test(file) ? file : undefined;
+    const page = httpsUrl(video.links?.web?.href);
+    if (!video.id || !video.headline || (!mp4 && !page)) return [];
+    return [{
+      id: String(video.id),
+      headline: video.headline.slice(0, 200),
+      publishedAt: video.originalPublishDate ?? '',
+      ...(video.duration ? { duration: video.duration } : {}),
+      ...(httpsUrl(video.thumbnail) ? { thumbnail: video.thumbnail } : {}),
+      ...(mp4 ? { mp4 } : {}),
+      ...(page ? { page } : {}),
+    }];
+  }).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
 function injuriesOf(s: EspnSummary): Record<string, Injury> {
   const injuries: Record<string, Injury> = {};
   for (const team of s.injuries ?? []) {
@@ -284,5 +306,5 @@ export function normalizeSummary(s: EspnSummary): GameStats {
   const last = plays.at(-1);
   const drives = [...(s.drives?.previous ?? []), ...(s.drives?.current ? [s.drives.current] : [])];
   const lastDrive = last ? [...drives].reverse().find((d) => d.plays.some((p) => p.id === last.id)) : undefined;
-  return { players, defenses, situation: situationFrom(plays, endsDrive(lastDrive?.plays ?? plays, lastDrive?.result)), injuries: injuriesOf(s) };
+  return { players, defenses, situation: situationFrom(plays, endsDrive(lastDrive?.plays ?? plays, lastDrive?.result)), injuries: injuriesOf(s), highlights: highlightsOf(s) };
 }

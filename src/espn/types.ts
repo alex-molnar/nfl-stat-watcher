@@ -70,6 +70,16 @@ export interface EspnDrive {
   isScore?: boolean;
 }
 
+/** A highlight clip in a game summary. `links.source.href` is a direct mp4 when ESPN offers one. */
+export interface EspnVideo {
+  id: number;
+  headline?: string;
+  originalPublishDate?: string;
+  duration?: number;
+  thumbnail?: string;
+  links?: { source?: { href?: string }; web?: { href?: string } };
+}
+
 export interface EspnInjury {
   status: string;
   athlete: { id: string };
@@ -84,6 +94,7 @@ export interface EspnSummary {
   };
   drives?: { previous?: EspnDrive[]; current?: EspnDrive };
   injuries?: { team?: { id: string }; injuries?: EspnInjury[] }[];
+  videos?: EspnVideo[];
 }
 
 export interface EspnSearchItem {

@@ -62,10 +62,25 @@ export interface Injury {
   returnDate?: string;
 }
 
+/** A highlight clip of a game. Players are tagged separately, see getClipAthletes. */
+export interface Highlight {
+  id: string;
+  headline: string;
+  publishedAt: string;
+  duration?: number;
+  thumbnail?: string;
+  /** A direct video file, which can play inside the site. */
+  mp4?: string;
+  /** The clip's page, opened in a new window when there is no video file. */
+  page?: string;
+}
+
 export interface GameStats {
   players: Record<string, PlayerStats>; // keyed by ESPN athlete id
   defenses: Record<string, DefenseStats>; // keyed by ESPN team id
   situation: Situation | null;
   /** Keyed by ESPN athlete id. */
   injuries?: Record<string, Injury>;
+  /** Newest first. */
+  highlights?: Highlight[];
 }
