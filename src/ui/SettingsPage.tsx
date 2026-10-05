@@ -8,6 +8,7 @@ import { SaveActions } from './LeaguesPage';
 import { usePageTitle } from './usePageTitle';
 
 const MODE_LABELS: Record<NameDisplayMode, string> = { full: 'Full', initial: 'Initial', formal: 'Formal' };
+const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
 
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
@@ -54,12 +55,17 @@ export function SettingsPage() {
         <section className="profile-form" aria-label="Settings">
           <fieldset>
             <legend>Name display mode</legend>
+            <p className="muted">How player names are shown on cards and in lists.</p>
             <div className="choice-list">
               {NAME_DISPLAY_MODES.map((m) => (
-                <label key={m} className="choice">
-                  <input type="radio" name="name-display" value={m} checked={mode === m} onChange={() => setDraft(m)} />
-                  {MODE_LABELS[m]}
-                </label>
+                <div key={m} className="choice-row">
+                  {/* The example sits outside the label, so the radio's name stays "Full", "Initial" or "Formal". */}
+                  <label className="choice">
+                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => setDraft(m)} />
+                    {MODE_LABELS[m]}
+                  </label>
+                  <span id={`name-display-${m}`} className="muted">e.g. {MODE_EXAMPLES[m]}</span>
+                </div>
               ))}
             </div>
           </fieldset>

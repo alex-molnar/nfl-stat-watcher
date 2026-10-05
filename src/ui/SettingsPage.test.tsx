@@ -16,6 +16,14 @@ describe('settings page', () => {
     expect(saveBtn()).not.toBeInTheDocument();
   });
 
+  it('explains the setting and shows an example for each mode', () => {
+    renderAt('/settings');
+    expect(screen.getByText('How player names are shown on cards and in lists.')).toBeInTheDocument();
+    expect(radio('Full')).toHaveAccessibleDescription('e.g. David Montgomery');
+    expect(radio('Initial')).toHaveAccessibleDescription('e.g. D. Montgomery');
+    expect(radio('Formal')).toHaveAccessibleDescription('e.g. Montgomery, David');
+  });
+
   it('keeps a change in a working copy until Save, then stores it', async () => {
     renderAt('/settings');
     await userEvent.click(radio('Formal'));
