@@ -14,7 +14,7 @@ import { MiniField } from './MiniField';
 import { injuryLabel, injuryOf, injuryTone, isOut } from '../stats/injury';
 import { onRightSide } from '../stats/liveOrder';
 import { watchOnDazn } from '../dazn/watch';
-import { daznEnabledStore, daznLinksStore, daznPathFor } from '../storage/dazn';
+import { daznEnabledStore, daznLinksStore, daznModeStore, daznPathFor } from '../storage/dazn';
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
 import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
@@ -45,6 +45,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const [open, setOpen] = useState(false);
   const daznOn = useStore(daznEnabledStore);
   const daznPath = daznPathFor(useStore(daznLinksStore), game?.eventId ?? '');
+  const power = useStore(daznModeStore) === 'power';
   const [watchNote, setWatchNote] = useState('');
 
   // Keep the stored team current, for example after a trade.
@@ -188,7 +189,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           </button>
         )}
         {redZone && daznOn && daznPath && (
-          <button type="button" className="hl-btn press" aria-label={`Watch ${name} on DAZN`} onClick={() => setWatchNote(watchOnDazn(daznPath) === 'blocked' ? 'Your browser blocked the DAZN window. Allow pop-ups for this site.' : '')}>
+          <button type="button" className="hl-btn press" aria-label={`Watch ${name} on DAZN`} onClick={() => setWatchNote(watchOnDazn(daznPath, power ? game?.eventId : undefined) === 'blocked' ? 'Your browser blocked the DAZN window. Allow pop-ups for this site.' : '')}>
             Watch on DAZN
           </button>
         )}

@@ -412,3 +412,8 @@ dialog.sync-all { width: min(1000px, calc(100vw - 32px)); }
 .dazn-game-edit { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
 .dazn-game-edit .field-label { flex: 1 1 260px; }
 .dazn-game.ended { opacity: .55; }
+
+/* Power mode: asks before opening a window per live game. */
+.power-prompt { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; width: min(640px, calc(100vw - 32px)); display: grid; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--accent); background: var(--panel); color: var(--ink); box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
+.power-prompt p { margin: 0; }
+.power-actions { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -16,7 +16,7 @@ const saveBtn = () => screen.queryByRole('button', { name: 'Save' });
 describe('settings page', () => {
   it('offers Full, Initial and Formal, with Full selected by default', () => {
     renderAt('/settings');
-    expect(screen.getAllByRole('radio').map((r) => (r as HTMLInputElement).labels?.[0]?.textContent)).toEqual(['Full', 'Initial', 'Formal']);
+    expect([...document.querySelectorAll<HTMLInputElement>('input[name="name-display"]')].map((r) => r.labels?.[0]?.textContent)).toEqual(['Full', 'Initial', 'Formal']);
     expect(radio('Full')).toBeChecked();
     expect(saveBtn()).not.toBeInTheDocument();
   });
@@ -187,6 +187,17 @@ describe('settings page', () => {
         expect(within(row).getByRole('alert')).toHaveTextContent('not a DAZN game link');
         expect(daznLinksStore.get().manual).toEqual({});
       });
+    });
+
+    it('offers Default and Power mode, saved with Save', async () => {
+      routes();
+      renderAt('/settings');
+      expect(screen.getByRole('radio', { name: 'Default' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Power mode' })).toHaveAccessibleDescription(/One window per live game/);
+      await userEvent.click(screen.getByRole('radio', { name: 'Power mode' }));
+      expect(localStorage.getItem('nflsw:v1:daznMode')).toBe('"default"'); // still a working copy
+      await userEvent.click(saveBtn()!);
+      expect(localStorage.getItem('nflsw:v1:daznMode')).toBe('"power"');
     });
 
     it('the button syncs through our own origin and says how many games were linked', async () => {
