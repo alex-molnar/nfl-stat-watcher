@@ -83,11 +83,9 @@ metadata:
   labels:
     app: stat-watch
   annotations:
-    # cert-manager sees this, requests a certificate for the host below and stores it in the secret named under tls.
-    cert-manager.io/cluster-issuer: ${CLUSTER_ISSUER}
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
-  # The pipeline substitutes the class, host and issuer from the GitHub secrets INGRESS_CLASS, HOST and CLUSTER_ISSUER.
-  ingressClassName: ${INGRESS_CLASS}
+  ingressClassName: traefik
   tls:
     - hosts:
         - ${HOST}
