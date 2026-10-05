@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { parseEspnLeagueSettings } from '../leagues/espn/parse';
@@ -67,5 +67,52 @@ describe('import starters', () => {
     await userEvent.paste(JSON.stringify(lineups));
     await userEvent.click(screen.getByRole('button', { name: /Use pasted rosters/ }));
     expect(await screen.findByLabelText('Your team in this league')).toBeInTheDocument();
+  });
+
+  describe('removing non starters', () => {
+    const extra = (espnId: string, name: string, over: object = {}) => ({ kind: 'player' as const, espnId, name, teamId: '25', teamAbbr: 'SF', position: 'WR', profileId: 'p1', ...over });
+    const open = async () => {
+      mockFetch(routes);
+      seed([extra('3117251', 'Christian McCaffrey', { position: 'RB' }), extra('999', 'Bench Guy'), extra('998', 'Other league guy', { profileId: 'p2' })], [{ ...league, source: { ...league.source, teamId: '1' } }, { ...league, id: 'p2', name: 'Second' }]);
+      renderAt('/');
+      await userEvent.click(screen.getByRole('button', { name: 'Import starters' }));
+      return screen.findByRole('region', { name: /Starters for/ });
+    };
+    const list = (region: HTMLElement, title: RegExp) => within(region).getByRole('heading', { name: title }).parentElement!;
+
+    it('shows added, removed and unchanged lists, and keeps non starters by default', async () => {
+      const region = await open();
+      const checkbox = screen.getByRole('checkbox', { name: 'Remove every non starter player' });
+      expect(checkbox).not.toBeChecked();
+      expect(list(region, /^Added \(10\)/)).toHaveClass('plan-added');
+      expect(list(region, /^Removed \(0\)/)).toHaveClass('plan-removed');
+      expect(within(list(region, /^Unchanged \(2\)/)).getByText(/Bench Guy/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /^Add 11 your starters/ }));
+      expect(await screen.findByText('Added 10 starters, 2 already followed.')).toBeInTheDocument();
+      expect(followed().some((entry) => entry.espnId === '999')).toBe(true);
+    });
+
+    it('moves followed non starters to the red list when ticked, and removes them on import, in this league only', async () => {
+      const region = await open();
+      await userEvent.click(screen.getByRole('checkbox', { name: 'Remove every non starter player' }));
+      const removed = list(region, /^Removed \(1\)/);
+      expect(removed).toHaveClass('plan-removed');
+      expect(within(removed).getByText(/Bench Guy/)).toBeInTheDocument();
+      expect(within(list(region, /^Unchanged \(1\)/)).getByText(/Christian McCaffrey/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Add 10 and remove 1' }));
+      expect(await screen.findByText('Added 10 starters, removed 1.')).toBeInTheDocument();
+      const left = JSON.parse(localStorage.getItem('nflsw:v1:followed') ?? '[]') as { espnId: string; profileId: string }[];
+      expect(left.some((entry) => entry.espnId === '999')).toBe(false);
+      expect(left).toHaveLength(12); // 11 starters in this league plus the other league's card
+      expect(left.some((entry) => entry.espnId === '998' && entry.profileId === 'p2')).toBe(true);
+    });
+
+    it('starts unticked every time the dialog is opened', async () => {
+      await open();
+      await userEvent.click(screen.getByRole('checkbox', { name: 'Remove every non starter player' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Import starters' }));
+      expect(await screen.findByRole('checkbox', { name: 'Remove every non starter player' })).not.toBeChecked();
+    });
   });
 });

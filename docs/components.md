@@ -68,7 +68,7 @@ Field messages (WCAG 3.3.1): an invalid or empty number field reverts on blur an
 
 ## ImportStartersDialog
 
-Props: `open`, `onClose`, `side` (`mine` or `opponent`, default `mine`), `profileId` (optional, fixes the league; vs mode passes it). Lists imported leagues when no `profileId` is given. Loads the league's rosters, shows a "Your team in this league" select (saved on the profile as `source.teamId`), previews the target team's starters and adds them with `addEntry`, skipping ones already followed. Access denied shows the paste guide for the roster data. Status and errors are announced through `role="status"` and `role="alert"` regions.
+Props: `open`, `onClose`, `side` (`mine` or `opponent`, default `mine`), `profileId` (optional, fixes the league; vs mode passes it). Lists imported leagues when no `profileId` is given. Loads the league's rosters, shows a "Your team in this league" select (saved on the profile as `source.teamId`), previews what the import would do as three lists (green Added, red Removed, neutral Unchanged, each with a sign and word as well as colour) and applies it. A checkbox, "Remove every non starter player" (unticked each time the dialog opens), also removes cards already followed in that league and on that side who are not in the lineup; without it nothing is removed. `planStarterImport` (`src/leagues/starterPlan.ts`) decides the three lists for both the preview and the button: only cards of the same league and side are ever candidates for removal, and a lineup with no starters removes nothing. Access denied shows the paste guide for the roster data. Status and errors are announced through `role="status"` and `role="alert"` regions.
 
 
 ## Vs page grouping

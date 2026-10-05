@@ -330,3 +330,21 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .theme-toggle.is-dark .tt-thumb { transform: translateX(30px); }
 @media (prefers-reduced-motion: reduce) { .tt-thumb, .theme-toggle svg { transition: none; } }
 @media (forced-colors: active) { .theme-toggle { border-color: CanvasText; } .tt-thumb { background: Highlight; box-shadow: none; } .theme-toggle svg { color: CanvasText; } }
+
+/* Import starters: the checkbox and the three preview lists. */
+.check-row { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.check-row input { width: 18px; height: 18px; }
+.plan { display: grid; gap: 10px; }
+.plan h3, .plan h4 { margin: 0; }
+.plan-list { display: grid; gap: 4px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--rule); border-left-width: 4px; }
+.plan-list h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.plan-added { --plan: #1F9D55; border-left-color: var(--plan); background: color-mix(in srgb, var(--plan) 10%, var(--panel)); }
+.plan-removed { --plan: #D92D20; border-left-color: var(--plan); background: color-mix(in srgb, var(--plan) 10%, var(--panel)); }
+.plan-added h4, .plan-added b { color: #1F9D55; }
+.plan-removed h4, .plan-removed b { color: #D92D20; }
+[data-theme="dark"] .plan-added h4, [data-theme="dark"] .plan-added b { color: #5BD58A; }
+[data-theme="dark"] .plan-removed h4, [data-theme="dark"] .plan-removed b { color: #FF8A80; }
+[data-theme="dark"] .plan-added { --plan: #5BD58A; }
+[data-theme="dark"] .plan-removed { --plan: #FF8A80; }
+.plan-removed li { text-decoration: line-through; text-decoration-thickness: 1px; }
+@media (forced-colors: active) { .plan-list { border-color: CanvasText; } }

@@ -4,7 +4,8 @@ import { useTeams } from '../hooks/queries';
 import { setLeagueTeam } from '../leagues/import';
 import { EspnLoadError } from '../leagues/espn/client';
 import { LineupError, fetchLeagueLineups, lineupsUrl, readLineups, type LeagueLineups, type Starter } from '../leagues/espn/lineup';
-import { addEntry, followedStore, sameEntry, type Side } from '../storage/followed';
+import { planStarterImport } from '../leagues/starterPlan';
+import { addEntry, followedStore, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
@@ -21,6 +22,21 @@ interface Props {
 
 type Load = { state: 'idle' | 'loading' } | { state: 'ready'; lineups: LeagueLineups } | { state: 'error'; message: string; needsAccess: boolean };
 
+/** One of the three preview lists. The sign and the word carry the meaning; the colour (green, red, none) reinforces it. */
+function PlanList({ tone, title, entries }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[] }) {
+  const sign = tone === 'added' ? '+' : tone === 'removed' ? '−' : '';
+  return (
+    <div className={`plan-list plan-${tone}`}>
+      <h4>{title} ({entries.length})</h4>
+      {entries.length === 0 ? <p className="muted">None</p> : (
+        <ul className="starter-list">
+          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{entry.name}{entry.position ? ` · ${entry.position}` : ''}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: fixedId }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const profiles = useStore(profilesStore);
@@ -32,11 +48,15 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const source = profile?.source;
   const [load, setLoad] = useState<Load>({ state: 'idle' });
   const [status, setStatus] = useState('');
+  const [removeOthers, setRemoveOthers] = useState(false);
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      setRemoveOthers(false); // each opening starts with the default: only add
+      dialog.showModal();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -90,12 +110,18 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
     };
   }
 
+  // Null until the NFL teams are known: without them no starter can become a card, and everything would look removed.
+  const incoming = teams.data ? starters.map(toEntry).filter((entry): entry is FollowedEntry => entry !== null) : null;
+  const plan = incoming && profile ? planStarterImport(incoming, followed, profile.id, side, removeOthers) : null;
+
   function add() {
-    const entries = starters.map(toEntry).filter((entry): entry is FollowedEntry => entry !== null);
-    const fresh = entries.filter((entry) => !followed.some((existing) => sameEntry(existing, entry)));
-    fresh.forEach(addEntry);
-    const skipped = entries.length - fresh.length;
-    setStatus(`Added ${fresh.length} ${fresh.length === 1 ? 'starter' : 'starters'}${skipped ? `, ${skipped} already followed` : ''}.`);
+    if (!plan) return;
+    plan.removed.forEach(removeEntry);
+    plan.added.forEach(addEntry);
+    const parts = [`Added ${plan.added.length} ${plan.added.length === 1 ? 'starter' : 'starters'}`];
+    if (plan.unchanged.length && !removeOthers) parts.push(`${plan.unchanged.length} already followed`);
+    if (removeOthers) parts.push(`removed ${plan.removed.length}`);
+    setStatus(`${parts.join(', ')}.`);
   }
 
   const label = profile ? `${profile.name}${source ? `, league ${source.leagueId}` : ''}` : '';
@@ -117,7 +143,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
             </select>
           </label>
         )}
-        {profile && <p className="muted">Starters in the current matchup of {label}, season {season}. Players already followed are skipped and nothing is removed.</p>}
+        {profile && <p className="muted">Starters in the current matchup of {label}, season {season}. Players already followed are skipped. Nothing is removed unless you tick the box below.</p>}
         {load.state === 'loading' && <p role="status">Loading rosters…</p>}
         {load.state === 'error' && (
           <>
@@ -136,12 +162,21 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         )}
         {lineups && myTeam && side === 'opponent' && !targetTeam && <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>}
         {lineups && targetTeam && (
-          <section aria-label={`Starters for ${targetName}`}>
-            <h3>{targetName} ({starters.length})</h3>
-            {starters.length === 0 ? <p className="muted">No starters are set for this team.</p> : (
-              <ul className="starter-list">
-                {starters.map((starter) => <li key={`${starter.kind}:${starter.espnId}`}>{starter.name}{starter.position ? ` · ${starter.position}` : ''}</li>)}
-              </ul>
+          <label className="check-row">
+            <input type="checkbox" checked={removeOthers} onChange={(event) => { setRemoveOthers(event.target.checked); setStatus(''); }} />
+            Remove every non starter player
+          </label>
+        )}
+        {lineups && targetTeam && (
+          <section aria-label={`Starters for ${targetName}`} className="plan">
+            <h3>{targetName} ({starters.length} {starters.length === 1 ? 'starter' : 'starters'})</h3>
+            {starters.length === 0 && <p className="muted">No starters are set for this team.</p>}
+            {plan && (
+              <>
+                <PlanList tone="added" title="Added" entries={plan.added} />
+                <PlanList tone="removed" title="Removed" entries={plan.removed} />
+                <PlanList tone="unchanged" title="Unchanged" entries={plan.unchanged} />
+              </>
             )}
           </section>
         )}
@@ -150,7 +185,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         <div className="dlg-actions">
           <button type="button" className="btn" onClick={onClose}>Close</button>
           <button type="button" className="btn btn-primary" disabled={starters.length === 0 || !teams.data} onClick={add}>
-            Add {starters.length} {sideLabel} {starters.length === 1 ? 'starter' : 'starters'}
+            {plan && removeOthers && plan.removed.length > 0 ? `Add ${plan.added.length} and remove ${plan.removed.length}` : `Add ${starters.length} ${sideLabel} ${starters.length === 1 ? 'starter' : 'starters'}`}
           </button>
         </div>
       </div>
