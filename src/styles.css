@@ -299,7 +299,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 @media (forced-colors: active) { .inj { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }
 
 /* Highlights: a small play button beside the points, and a dialog with the clip. */
-.hd-side { display: grid; justify-items: end; gap: 6px; }
+.stats .hl-btn { margin-left: auto; align-self: flex-end; }
+@container (max-width: 400px) { .hl-word { display: none; } }
 .hl-btn { position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font-size: 12px; font-weight: 800; cursor: pointer; }
 .hl-btn.fresh { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
 .hl-dot { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--pylon); }

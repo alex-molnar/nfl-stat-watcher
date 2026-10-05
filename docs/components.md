@@ -131,7 +131,7 @@ A second play during a hold keeps the original held rank and extends it. The hoo
 
 ## Highlights
 
-A card for a player shows a small play button with a count when a highlight clip of the game is tagged with that player. A dot marks clips not opened yet during this page visit (kept in memory only, so a reload shows them as new again). Team defenses have no player tag and show no button.
+A card for a player shows a small play button with a count at the end of its statistics row (the points button stays where it was) when a highlight clip of the game is tagged with that player. On cards at least 400px wide it reads "Highlights 2"; on narrower ones just "▶ 2", so it stays on the stats row. A dot marks clips not opened yet during this page visit (kept in memory only, so a reload shows them as new again). Team defenses have no player tag and show no button.
 
 Clips come from the `videos` list in the game summary the card already polls (every ten seconds while live), so a new clip appears within about ten seconds of ESPN publishing it, with no extra request. The summary lists clips without player tags, so each clip's tags are fetched once from ESPN's per-clip API (`getClipAthletes`) and cached for the session, shared by every card. Clips are shown newest first.
 

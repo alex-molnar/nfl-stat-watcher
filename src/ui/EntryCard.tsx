@@ -111,12 +111,6 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
             {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
           </div>
         </div>
-        <div className="hd-side">
-          {clips.length > 0 && (
-            <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${entry.name}, ${clips.length}`}>
-              <span aria-hidden="true">▶</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
-            </button>
-          )}
         <button
           type="button"
           className="pts press"
@@ -127,7 +121,6 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <Bump value={total} />
           <span>fantasy pts</span>
         </button>
-        </div>
       </div>
 
       {game && situation ? (
@@ -156,6 +149,11 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           ))
         ) : (
           <div className="stat"><span>{game?.state === 'pre' ? 'No stats until kickoff' : 'No stats'}</span></div>
+        )}
+        {clips.length > 0 && (
+          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${entry.name}, ${clips.length}`}>
+            <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> Highlights</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
+          </button>
         )}
       </div>
 
