@@ -37,24 +37,21 @@ secrets, so nothing environment-specific lives in the repository. Taking the val
 | Secret | Where | Value |
 | --- | --- | --- |
 | `KUBE_SERVER` | repository | `kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'` (must be reachable from GitHub's runners) |
-| `INGRESS_CLASS` | repository | your ingress class, for example `nginx` |
-| `CLUSTER_ISSUER` | repository | the cert-manager ClusterIssuer that issues the certificates, for example `letsencrypt-prod` |
 | `HOST` | each environment | the hostname for that environment, for example `stat-watch.example.com` |
 | `KUBE_CA` | each environment | `kubectl -n NS get secret github-deployer-token -o jsonpath='{.data.ca\.crt}'` (keep it base64 as printed) |
 | `KUBE_TOKEN` | each environment | `kubectl -n NS get secret github-deployer-token -o jsonpath='{.data.token}' \| base64 -d` |
 
 ```sh
-gh secret set CLUSTER_ISSUER --body letsencrypt-prod          # repository level
 gh secret set HOST --env test --body test.stat-watch.example.com
 gh secret set HOST --env live --body stat-watch.example.com
 ```
 
-The workflow stops early with a message naming any secret that is missing. For **live**, consider requiring a reviewer and
+The ingress class (`traefik`) and the cert-manager issuer (`letsencrypt-prod`) are written in `k8s/app.yaml`, not in secrets. Both trigger files pass the secrets to the shared workflow with `secrets: inherit`; without it the shared workflow sees none of them. The workflow stops early with a message naming any secret that is missing. For **live**, consider requiring a reviewer and
 limiting it to the `main` branch (Settings, Environments, live).
 
 ## TLS
 
-The Ingress asks cert-manager for a certificate (`cert-manager.io/cluster-issuer: <CLUSTER_ISSUER>`) for the environment's
+The Ingress asks cert-manager for a certificate (`cert-manager.io/cluster-issuer: letsencrypt-prod`) for the environment's
 `HOST` and stores it in a secret named `stat-watch-tls` in the same namespace, which the Ingress serves. cert-manager does
 the work, so the pipeline's account needs no access to Secrets or certificates. The first deployment can take a minute
 or two to get a certificate; check with `kubectl -n NS get certificate`. The ClusterIssuer must be able to validate the

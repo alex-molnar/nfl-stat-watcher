@@ -21,3 +21,6 @@ jobs:
     with:
       environment: live
       namespace: nfl-stat-watcher
+    # Required: a called workflow only sees the secrets its caller passes, and the repository and environment secrets it
+    # reads (KUBE_SERVER, KUBE_CA, KUBE_TOKEN, HOST) reach it only this way.
+    secrets: inherit
