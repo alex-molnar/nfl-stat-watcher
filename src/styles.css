@@ -85,7 +85,8 @@ main.wrap { padding-bottom: 48px; }
 .brk div { display: flex; justify-content: space-between; }
 .brk dd { margin: 0; font-weight: 700; }
 .note { font-size: 12px; color: var(--muted); margin: 0; }
-.ft { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+/* margin-top: auto pins the bottom row to the card's bottom edge when a taller card in the same row stretches this one. */
+.ft { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .ft label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .ft .rm { margin-left: auto; }
 .ft select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); }
