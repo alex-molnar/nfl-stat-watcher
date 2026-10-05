@@ -12,6 +12,7 @@ import { addEntry, followedStore, removeEntry, type Side } from '../storage/foll
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
+import { textOn } from './format';
 import { PrivateLeagueHelp } from './PrivateLeagueHelp';
 
 interface Props {
@@ -23,15 +24,21 @@ interface Props {
   profileId?: string;
 }
 
+/** The league an entry belongs to, in the league's colour: the colour guides the eye, the name carries the meaning. */
+function LeagueChip({ profile }: { profile?: Profile }) {
+  if (!profile) return null;
+  return <> <span className="chip" style={profile.color ? { background: profile.color, color: textOn(profile.color) } : undefined}>{profile.name}</span></>;
+}
+
 /** One of the three preview lists. The sign and the word carry the meaning; the colour (green, red, none) reinforces it. */
-function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[]; leagueOf?: (entry: FollowedEntry) => string }) {
+function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[]; leagueOf?: (entry: FollowedEntry) => Profile | undefined }) {
   const sign = tone === 'added' ? '+' : tone === 'removed' ? '−' : '';
   return (
     <div className={`plan-list plan-${tone}`}>
       <h4>{title} ({entries.length})</h4>
       {entries.length === 0 ? <p className="muted">None</p> : (
         <ul className="starter-list">
-          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{entry.name}{entry.position ? ` · ${entry.position}` : ''}{leagueOf ? ` · ${leagueOf(entry)}` : ''}</li>)}
+          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{entry.name}{entry.position ? ` · ${entry.position}` : ''}{leagueOf && <LeagueChip profile={leagueOf(entry)} />}</li>)}
         </ul>
       )}
     </div>
@@ -103,7 +110,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const sides: Side[] = both ? ['mine', 'opponent'] : [side];
   const loaded = targets.flatMap((target) => (lineupsBy[target.id] ? [{ profile: target, lineups: lineupsBy[target.id]! }] : []));
   const removeOthers = targets.length > 0 && targets.every((target) => target.source?.removeNonStarters);
-  const leagueName = (entry: FollowedEntry) => profiles.find((candidate) => candidate.id === entry.profileId)?.name ?? '';
+  const leagueOf = (entry: FollowedEntry) => profiles.find((candidate) => candidate.id === entry.profileId);
   const myTeamIn = (target: Profile, lineups: LeagueLineups) => (target.source?.teamId && lineups.teams.some((team) => team.id === target.source?.teamId) ? target.source.teamId : '');
 
   function toEntry(starter: Starter, forSide: Side, target: Profile): FollowedEntry | null {
@@ -224,9 +231,9 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
               {panel.starterCount === 0 && <p className="muted">No starters are set for this team.</p>}
               {panel.plan && (
                 <>
-                  <PlanList tone="added" title="To be added" entries={panel.plan.added} leagueOf={everyLeague ? leagueName : undefined} />
-                  <PlanList tone="removed" title="To be removed" entries={panel.plan.removed} leagueOf={everyLeague ? leagueName : undefined} />
-                  <PlanList tone="unchanged" title="Unchanged" entries={panel.plan.unchanged} leagueOf={everyLeague ? leagueName : undefined} />
+                  <PlanList tone="added" title="To be added" entries={panel.plan.added} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="removed" title="To be removed" entries={panel.plan.removed} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="unchanged" title="Unchanged" entries={panel.plan.unchanged} leagueOf={everyLeague ? leagueOf : undefined} />
                 </>
               )}
             </section>

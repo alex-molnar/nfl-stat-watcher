@@ -194,8 +194,8 @@ describe('sync starters', () => {
       await userEvent.click(screen.getByLabelText(/Rosters JSON for/));
       await userEvent.paste(JSON.stringify({ ...lineups, id: 777 }));
       const region = await screen.findByRole('region', { name: 'Starters for your side' });
-      expect(within(region).getAllByText(/ · Tapai$/)).toHaveLength(11);
-      expect(within(region).getAllByText(/ · Second$/)).toHaveLength(11);
+      expect(within(region).getAllByText('Tapai')).toHaveLength(11);
+      expect(within(region).getAllByText('Second')).toHaveLength(11);
       await sync();
       expect(await screen.findByText('Added 22 starters.')).toBeInTheDocument();
       expect(new Set(followed().map((entry) => (entry as { profileId?: string }).profileId))).toEqual(new Set(['p1', 'p2']));
