@@ -138,3 +138,8 @@ Clips come from the `videos` list in the game summary the card already polls (ev
 `HighlightsDialog` is a native `<dialog>`. A clip with a direct `.mp4` file plays inside it (a `video` element with controls); a single clip starts straight away. A clip with only a page opens that page in a new window (`noopener,noreferrer`). Only https links are accepted, and only `.mp4` files are played in the dialog.
 
 The source is ESPN, not `api.nfl.com/content/v1/videos`: that endpoint answers 401 (`x-nfl-jwtstatus: FAILED`) to any request without an NFL-issued token, and a token sent from the browser would be visible to every user.
+
+
+## Closing dialogs from the backdrop
+
+Every dialog (add player, import leagues, import starters, highlights) also closes when the dimmed area around it is clicked, through the shared `backdropClose` props in `src/ui/backdropClose.ts`. The dialog fills its own box, so a click whose target is the `<dialog>` element itself landed on the backdrop. The press must also have started there, so selecting text inside a dialog and releasing the mouse outside it does not close it. The native `close` event still runs each dialog's own cleanup (aborting a running import, stopping the video, restoring focus).

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { backdropClose } from './backdropClose';
 import { useTeams } from '../hooks/queries';
 import { setLeagueTeam } from '../leagues/import';
 import { EspnLoadError } from '../leagues/espn/client';
@@ -101,7 +102,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const heading = side === 'opponent' ? 'Import opponent starters' : 'Import your starters';
 
   return (
-    <dialog ref={ref} aria-labelledby="starters-title" onClose={onClose}>
+    <dialog ref={ref} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="starters-title">{heading}</h2>

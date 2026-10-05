@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { backdropClose } from './backdropClose';
 import { useQueries } from '@tanstack/react-query';
 import { getAthlete } from '../espn/client';
 import type { EspnTeamRef } from '../espn/types';
@@ -99,7 +100,7 @@ export function AddDialog({ open, onClose, side = 'mine', profileId: fixedProfil
   const summary = message ?? (searching ? 'Searching' : `${count} ${count === 1 ? 'result' : 'results'}`);
 
   return (
-    <dialog ref={ref} aria-labelledby="add-title" onClose={onClose}>
+    <dialog ref={ref} aria-labelledby="add-title" onClose={onClose} {...backdropClose}>
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="add-title">{title}</h2>

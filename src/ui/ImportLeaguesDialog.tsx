@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { backdropClose } from './backdropClose';
 import { useQueryClient } from '@tanstack/react-query';
 import { espnSettingsQueryKey, loadEspnLeagueSettings, EspnLoadError } from '../leagues/espn/client';
 import { PrivateLeagueHelp } from './PrivateLeagueHelp';
@@ -241,7 +242,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
   }
 
   return (
-    <dialog ref={ref} aria-labelledby="import-title" onClose={handleDialogClose}>
+    <dialog ref={ref} aria-labelledby="import-title" onClose={handleDialogClose} {...backdropClose}>
       <div className="dlg import-dlg">
         <div className="dlg-head">
           <h2 id="import-title">Import ESPN leagues</h2>
