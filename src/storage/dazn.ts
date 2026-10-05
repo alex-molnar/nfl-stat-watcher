@@ -7,6 +7,16 @@ export const daznEnabledStore = createStore<boolean>({
   isValid: (v): v is boolean => typeof v === 'boolean',
 });
 
+export const DAZN_MODES = ['default', 'power'] as const;
+export type DaznMode = (typeof DAZN_MODES)[number];
+
+/** How "Watch on DAZN" works: default uses one window; power keeps one window per live game (see dazn/power.ts). */
+export const daznModeStore = createStore<DaznMode>({
+  key: 'nflsw:v1:daznMode',
+  fallback: () => 'default',
+  isValid: (v): v is DaznMode => (DAZN_MODES as readonly unknown[]).includes(v),
+});
+
 /**
  * ESPN event id to DAZN path (without the region, e.g. "/home/abc/def"). `links` is what the last sync found;
  * `manual` is what the user typed in for a game, which a sync never touches and which wins over `links`.

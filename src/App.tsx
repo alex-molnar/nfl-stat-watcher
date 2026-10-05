@@ -15,6 +15,7 @@ import { SiteFooter } from './ui/SiteFooter';
 import { SettingsPage } from './ui/SettingsPage';
 import { VsPage } from './ui/VsPage';
 import { DaznAutoSync } from './ui/DaznAutoSync';
+import { DaznPowerPrompt } from './ui/DaznPowerPrompt';
 
 // networkMode 'always': while the browser is offline, react-query would otherwise pause fetches
 // silently and the retry note would never show.
@@ -52,6 +53,7 @@ export function AppRoutes() {
       <CampTour />
       <CampFinish />
       <DaznAutoSync />
+      <DaznPowerPrompt />
     </>
   );
 }

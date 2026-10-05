@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { LANGUAGES, LANGUAGE_NAMES, languageStore, type LanguageChoice } from '../i18n';
 import { DAZN_REGION, syncDaznLinks } from '../dazn/links';
 import { DaznGameLinks } from './DaznGameLinks';
-import { daznEnabledStore, daznLinksStore } from '../storage/dazn';
+import { DAZN_MODES, daznEnabledStore, daznLinksStore, daznModeStore, type DaznMode } from '../storage/dazn';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
 import { CAMP_KEY } from '../storage/camp';
 import { DEFAULT_MASCOT_NAME, MAX_MASCOT_NAME, mascotEnabledStore, mascotNameStore } from '../storage/mascot';
@@ -22,11 +22,17 @@ import { bookmarkHelpStore } from '../storage/bookmarkHelp';
 import { autoSyncStore } from '../storage/autoSync';
 
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
-type SettingsDraft = { language: LanguageChoice; mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean; autoSync: boolean; dazn: boolean };
+type SettingsDraft = { language: LanguageChoice; mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean; autoSync: boolean; dazn: boolean; daznMode: DaznMode };
 const CATEGORIES = ['general', 'positionOrder', 'siteSettings'] as const;
 type Category = (typeof CATEGORIES)[number];
 const LANGUAGE_CHOICES: LanguageChoice[] = ['auto', ...LANGUAGES];
 type Notice = '' | 'saved' | 'cleared' | 'clearFailed' | 'campStarted';
+
+const DAZN_MODE_LABELS: Record<DaznMode, string> = { default: 'Default', power: 'Power mode' };
+const DAZN_MODE_HELP: Record<DaznMode, string> = {
+  default: 'One DAZN window. Watch on DAZN moves it to the game and brings it forward.',
+  power: 'One window per live game: you are asked first, then every live game opens in the background and closes when it ends. Watch on DAZN brings that game\'s window forward. Needs pop-ups allowed for this site and a computer that can play several streams at once; DAZN may also limit how many streams play at once.',
+};
 
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
@@ -41,6 +47,7 @@ export function SettingsPage() {
   const storedBookmarkHelp = useStore(bookmarkHelpStore);
   const storedAutoSync = useStore(autoSyncStore);
   const storedDazn = useStore(daznEnabledStore);
+  const storedDaznMode = useStore(daznModeStore);
   const daznLinks = useStore(daznLinksStore);
   const [category, setCategory] = useState<Category>('general');
   const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
@@ -57,8 +64,9 @@ export function SettingsPage() {
   const bookmarkHelp = draft?.bookmarkHelp ?? storedBookmarkHelp;
   const autoSync = draft?.autoSync ?? storedAutoSync;
   const dazn = draft?.dazn ?? storedDazn;
-  const change = (patch: Partial<SettingsDraft>) => setDraft({ language, mode, mascot, name, positions, bookmarkHelp, autoSync, dazn, ...patch });
-  const dirty = language !== storedLanguage || mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp || autoSync !== storedAutoSync || dazn !== storedDazn;
+  const daznMode = draft?.daznMode ?? storedDaznMode;
+  const change = (patch: Partial<SettingsDraft>) => setDraft({ language, mode, mascot, name, positions, bookmarkHelp, autoSync, dazn, daznMode, ...patch });
+  const dirty = language !== storedLanguage || mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp || autoSync !== storedAutoSync || dazn !== storedDazn || daznMode !== storedDaznMode;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -77,6 +85,7 @@ export function SettingsPage() {
     bookmarkHelpStore.set(bookmarkHelp);
     autoSyncStore.set(autoSync);
     daznEnabledStore.set(dazn);
+    daznModeStore.set(daznMode);
     setDraft(null);
     setNotice('saved');
     setDaznNotice('');
@@ -169,6 +178,17 @@ export function SettingsPage() {
                   <summary>This week's games and their links</summary>
                   {gamesOpen && <DaznGameLinks />}
                 </details>
+                <div role="radiogroup" aria-label="DAZN window mode" className="choice-list dazn-modes">
+                  {DAZN_MODES.map((m) => (
+                    <div key={m} className="choice-row">
+                      <label className="choice">
+                        <input type="radio" name="dazn-mode" value={m} checked={daznMode === m} aria-describedby={`dazn-mode-${m}`} onChange={() => change({ daznMode: m })} />
+                        {DAZN_MODE_LABELS[m]}
+                      </label>
+                      <span id={`dazn-mode-${m}`} className="muted">{DAZN_MODE_HELP[m]}</span>
+                    </div>
+                  ))}
+                </div>
               </fieldset>
             </>}
             {category === 'positionOrder' && <fieldset>
