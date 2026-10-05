@@ -1,8 +1,8 @@
 import { isOffense, isRedZone } from '../ui/format';
 import type { FollowedEntry } from '../storage/types';
 import type { GameInfo } from './scoreboard';
-import { isOut } from './injury';
-import type { GameStats } from './types';
+import { injuryOf, isOut } from './injury';
+import type { GameStats, Injury } from './types';
 
 /** Within a bucket: skill players, then quarterbacks, then kickers, then defenses and IDP. */
 function tier(entry: FollowedEntry): number {
@@ -26,9 +26,9 @@ export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId:
  * with possession, defense without), then everyone else. Null until the game's situation is known.
  * Lower sorts first; the tens digit is the bucket and the ones digit is the position tier.
  */
-export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats | undefined): number | null {
+export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats | undefined, league?: Record<string, Injury>): number | null {
   // A player ruled out goes to the back whatever the ball is doing, even before the situation is known.
-  if (entry.kind === 'player' && isOut(stats?.injuries?.[entry.espnId])) return OUT_RANK;
+  if (entry.kind === 'player' && isOut(injuryOf(entry.espnId, stats, league))) return OUT_RANK;
   const situation = stats?.situation;
   if (!situation) return null;
   const bucket = isRedZone(entry, game, stats) ? 0 : onRightSide(entry, situation) ? 1 : 2;

@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
-import { freshness, useAthlete, useGameSummary } from '../hooks/queries';
+import { freshness, useAthlete, useGameSummary, useLeagueInjuries } from '../hooks/queries';
 import { useCelebration } from '../hooks/useCelebration';
 import { useHighlights } from '../hooks/useHighlights';
 import { HighlightsDialog } from './HighlightsDialog';
@@ -11,7 +11,7 @@ import { entryKey, sideOf, updateEntryTeam } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
 import { Bump } from './Bump';
 import { MiniField } from './MiniField';
-import { injuryLabel, injuryTone, isOut } from '../stats/injury';
+import { injuryLabel, injuryOf, injuryTone, isOut } from '../stats/injury';
 import { onRightSide } from '../stats/liveOrder';
 import { isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
 
@@ -55,7 +55,8 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const total = result.total.toFixed(2);
   const items = statLine(entry, stats);
   const live = game?.state === 'in';
-  const injury = entry.kind === 'player' ? stats?.injuries?.[entry.espnId] : undefined;
+  const leagueInjuries = useLeagueInjuries(paused).data;
+  const injury = entry.kind === 'player' ? injuryOf(entry.espnId, stats, leagueInjuries) : undefined;
   const out = isOut(injury); // a player ruled out never counts as on the field or in the red zone
   const redZone = isRedZone(entry, game, stats) && !out;
   const celebration = useCelebration(entry, stats, live);

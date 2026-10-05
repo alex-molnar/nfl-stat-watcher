@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { getAthlete, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
+import { getAthlete, getLeagueInjuries, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
+import { parseLeagueInjuries } from '../stats/injury';
 import { normalizeSummary } from '../stats/normalize';
 import { toGames, type GameInfo } from '../stats/scoreboard';
 
@@ -65,6 +66,18 @@ export function useAthlete(id: string | undefined) {
     queryFn: () => getAthlete(id!),
     enabled: id !== undefined,
     staleTime: Infinity,
+    retry: 1,
+  });
+}
+
+/** Every player's injury designation, refreshed every five minutes while the page is open (not while paused). */
+export function useLeagueInjuries(paused = false) {
+  return useQuery({
+    queryKey: ['injuries'],
+    queryFn: async () => parseLeagueInjuries(await getLeagueInjuries()),
+    staleTime: 5 * 60_000,
+    refetchInterval: paused ? false : 5 * 60_000,
+    refetchOnWindowFocus: !paused,
     retry: 1,
   });
 }

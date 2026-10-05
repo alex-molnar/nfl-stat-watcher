@@ -51,6 +51,9 @@ export async function getClipAthletes(clipId: string): Promise<string[]> {
   return (res.videos?.[0]?.categories ?? []).flatMap((c) => (c.type === 'athlete' && c.athleteId ? [String(c.athleteId)] : []));
 }
 
+/** The whole league's injury report: about 350 KB over the wire, complete for every team. */
+export const getLeagueInjuries = () => getJson<unknown>(`${SITE}/injuries`);
+
 export const getScoreboard = () => getJson<EspnScoreboard>(`${SITE}/scoreboard`);
 
 export const getSummary = (eventId: string) =>

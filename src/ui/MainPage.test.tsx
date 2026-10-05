@@ -369,3 +369,39 @@ describe('injury designations', () => {
     expect(await screen.findByText('Doubtful')).toHaveClass('inj-doubtful');
   });
 });
+
+describe('injury designations from the league report', () => {
+  const sf = (espnId: string, name: string, position: string) => ({ ...warren, espnId, name, position, teamId: '25', teamAbbr: 'SF', profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  // The game's own report lists nobody (ESPN truncates it to five players per team); SF has the ball in the red zone.
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+    injuries: [{ team: { id: '25' }, injuries: [] }],
+  };
+  const league = { injuries: [{ displayName: 'SF', injuries: [
+    { status: 'Out', athlete: { links: [{ rel: ['playercard'], href: 'https://www.espn.com/nfl/player/_/id/1/hurt' }] }, details: { type: 'Toe' } },
+    { status: 'Questionable', athlete: { links: [{ rel: ['playercard'], href: 'https://www.espn.com/nfl/player/_/id/2/iffy' }] }, details: { type: 'Hamstring' } },
+  ] }] };
+  const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('marks a player the game report does not list, and ranks one who is out last', async () => {
+    seed([sf('1', 'Hurt runner', 'RB'), sf('2', 'Iffy receiver', 'WR'), sf('3', 'Healthy quarterback', 'QB')], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, 'nfl/injuries': league, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(screen.getByText('Out · Toe')).toBeInTheDocument());
+    expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
+    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    expect(screen.getByText('Hurt runner').closest('.card')).not.toHaveClass('is-rz');
+  });
+
+  it('marks a player on a bye or in a finished game too', async () => {
+    seed([{ ...warren, espnId: '1' }], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary, 'nfl/injuries': league, standings: teams });
+    renderAt('/');
+    expect(await screen.findByText('Out · Toe')).toHaveClass('inj-out');
+  });
+});
