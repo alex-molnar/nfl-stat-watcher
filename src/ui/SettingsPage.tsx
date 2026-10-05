@@ -132,6 +132,26 @@ function SaveActions({ label, onSave, onCancel }: { label: string; onSave: () =>
   );
 }
 
+/**
+ * A settings box (a fieldset) that folds away. Its own title is the toggle, so there is no second selector above it, and
+ * the folded box keeps its border and title. The fields stay in the working copy while folded.
+ */
+function Box({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  return (
+    <fieldset className={open ? undefined : 'is-collapsed'}>
+      <legend>
+        <button type="button" className="box-toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((value) => !value)}>
+          <span className="box-chevron" aria-hidden="true" />
+          {title}
+        </button>
+      </legend>
+      <div id={bodyId} className="box-body" hidden={!open}>{children}</div>
+    </fieldset>
+  );
+}
+
 type Edit = (change: (p: Profile) => Profile) => void;
 
 /** Edits the working copy of one profile. Nothing here touches storage: Save and Cancel are the page's. */
@@ -163,9 +183,10 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
       </div>
 
       {FIELD_GROUPS.map((group) => {
-        const rows = (
-          <fieldset key={group.title}>
-            <legend>{group.title}</legend>
+        // Core boxes start open; the others start open only when the league scores something in them.
+        const anyOn = group.fields.some((f) => profile.values[f.key] !== 0 && isRuleOn(profile.values, f.key));
+        return (
+          <Box key={group.title} title={group.title} defaultOpen={CORE_GROUPS.includes(group.title) || anyOn}>
             {group.fields.map((f: FieldDef) => (
               <NumberField
                 key={f.key}
@@ -182,31 +203,21 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
               POINTS_ALLOWED_TIERS.map((tier, i) => (
                 <NumberField key={tier} label={`${tier} points allowed`} step={1} value={profile.values.pointsAllowed[i] ?? 0} onChange={(n) => onEdit((p) => withTier(p, i, n))} />
               ))}
-          </fieldset>
-        );
-        if (CORE_GROUPS.includes(group.title)) return rows;
-        const anyOn = group.fields.some((f) => profile.values[f.key] !== 0 && isRuleOn(profile.values, f.key));
-        return (
-          <details key={group.title} className="rule-group" open={anyOn}>
-            <summary>{group.title}</summary>
-            {rows}
-          </details>
+          </Box>
         );
       })}
 
       {profile.values.steps && profile.values.steps.length > 0 && (
-        <fieldset>
-          <legend>Stepped rules</legend>
+        <Box title="Stepped rules">
           {profile.values.steps.map((rule, index) => (
             <NumberField key={`${rule.stat}-${rule.every}`} label={`Every ${rule.every} ${STEP_LABELS[rule.stat]}`} step={0.5} value={rule.points} onChange={(n) => onEdit((p) => withStepPoints(p, index, n))} />
           ))}
           <p className="field-note">ESPN awards these in whole steps, so 40 passing yards earns one 25-yard step, not 1.6.</p>
-        </fieldset>
+        </Box>
       )}
 
       {profile.values.pointsAllowedBands && (
-        <fieldset>
-          <legend>Team defense points allowed</legend>
+        <Box title="Team defense points allowed">
           {profile.values.pointsAllowedBands.map((band, index) => (
             <NumberField
               key={`${band.min}-${band.max ?? 'plus'}`}
@@ -217,7 +228,7 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
             />
           ))}
           <button type="button" className="btn" onClick={() => onEdit(withoutBands)}>Use standard points-allowed tiers</button>
-        </fieldset>
+        </Box>
       )}
 
       {stored.source && (

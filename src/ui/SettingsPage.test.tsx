@@ -44,6 +44,56 @@ describe('settings page', () => {
     expect(within(within(banner).getByRole('navigation', { name: 'Main' })).getAllByRole('link').map((l) => l.textContent)).toEqual(['Players', 'Vs Mode', 'Settings']);
   });
 
+  describe('collapsible boxes', () => {
+    const toggle = (name: string) => within(fieldset(name)).getByRole('button', { name });
+
+    it('turns every box title into its own toggle, with no second selector above it', async () => {
+      await open();
+      expect(document.querySelector('.profile-form details.rule-group')).toBeNull();
+      for (const name of ['Offense', 'Offense bonuses', 'Offense volume', 'Kicker', 'IDP', 'Team defense', 'Team defense yards allowed']) {
+        expect(toggle(name)).toHaveAttribute('aria-expanded');
+        expect(screen.getAllByText(name)).toHaveLength(1); // the title is shown once, not once as a selector and again as a heading
+      }
+    });
+
+    it('starts the main boxes open and the optional ones closed, then folds and unfolds each by its title', async () => {
+      await open();
+      expect(toggle('Offense')).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle('Offense bonuses')).toHaveAttribute('aria-expanded', 'false');
+      expect(within(fieldset('Offense')).getByLabelText('Passing TD')).toBeVisible();
+      await userEvent.click(toggle('Offense'));
+      expect(toggle('Offense')).toHaveAttribute('aria-expanded', 'false');
+      expect(within(fieldset('Offense')).getByLabelText('Passing TD', { selector: 'input' })).not.toBeVisible();
+      await userEvent.click(toggle('Offense bonuses'));
+      expect(within(fieldset('Offense bonuses')).getByLabelText('40+ yard passing TD')).toBeVisible();
+      await userEvent.click(toggle('Offense'));
+      expect(within(fieldset('Offense')).getByLabelText('Passing TD')).toBeVisible();
+    });
+
+    it('can fold the stepped rules and the points-allowed ranges of an imported league too', async () => {
+      const { PRESETS } = await import('../scoring/presets');
+      const values = { ...PRESETS.ppr, steps: [{ stat: 'passYards' as const, every: 25, points: 1 }], pointsAllowedBands: [{ min: 0, max: 6, points: 7 }, { min: 7, max: null, points: 0 }] };
+      seed([], [{ ...profilesFixture[0]!, values }]);
+      await open('Office league');
+      for (const name of ['Stepped rules', 'Team defense points allowed']) {
+        await userEvent.click(toggle(name));
+        expect(toggle(name)).toHaveAttribute('aria-expanded', 'false');
+      }
+      expect(within(fieldset('Stepped rules')).getByLabelText('Every 25 passing yards', { selector: 'input' })).not.toBeVisible();
+    });
+
+    it('keeps edits made in a box that is then folded, and still saves them', async () => {
+      await open();
+      const passTd = within(fieldset('Offense')).getByLabelText('Passing TD');
+      await userEvent.clear(passTd);
+      await userEvent.type(passTd, '7');
+      await userEvent.click(toggle('Offense'));
+      expect(saveButtons()).toHaveLength(2); // the change is still pending
+      await save();
+      expect(profiles()[0].values.passTd).toBe(7);
+    });
+  });
+
   it('shows the form and a Delete profile button in the left menu once a league is selected', async () => {
     seed([], profilesFixture);
     await open('Office league');
@@ -435,9 +485,9 @@ describe('settings page', () => {
 
   it('offers the bonus rules and says which ones the live feed cannot score', async () => {
     await open();
-    await userEvent.click(screen.getByText('Offense bonuses', { selector: 'summary' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Offense bonuses' }));
     expect(within(fieldset('Offense bonuses')).getByLabelText('40+ yard passing TD')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Offense volume', { selector: 'summary' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Offense volume' }));
     const recoveryTd = within(fieldset('Offense volume')).getByLabelText('Fumble recovered for TD');
     expect(within(fieldset('Offense volume')).queryByText(/never scores/)).not.toBeInTheDocument();
     await userEvent.clear(recoveryTd);

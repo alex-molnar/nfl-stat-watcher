@@ -165,7 +165,10 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-form .save-note { margin: 0 auto 0 0; }
 .profile-empty { min-height: 140px; align-content: center; justify-items: center; color: var(--muted); text-align: center; }
 .profile-form { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 18px; }
-.profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+.profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; min-width: 0; }
+.profile-form fieldset.is-collapsed { padding-bottom: 6px; }
+.box-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+.box-body[hidden] { display: none; }
 .profile-form legend { font: 800 15px/1 Anybody, sans-serif; font-stretch: 115%; padding: 0 6px; }
 .num-field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .num-field label { display: grid; gap: 4px; }
@@ -229,8 +232,11 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .rule-toggle input { width: 18px; height: 18px; }
 .num-field:has(.rule-toggle input:not(:checked)) > label:not(.rule-toggle) { opacity: 0.55; }
 .field-note { font-size: 12px; color: var(--muted); }
-.rule-group { border: 0; padding: 0; }
-.rule-group > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+/* The legend is the toggle: the title of the box folds and unfolds it, with a chevron. */
+.box-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 2px 4px; margin: 0; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; }
+.box-chevron { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid currentColor; transition: transform 160ms ease; }
+.box-toggle[aria-expanded="false"] .box-chevron { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .box-chevron { transition: none; } }
 .starter-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .vs-col-head { flex-wrap: wrap; gap: 8px; }
 .group-title { margin: 14px 0 8px; font: 700 13px/1.2 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
