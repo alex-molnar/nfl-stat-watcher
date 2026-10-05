@@ -49,7 +49,7 @@ No props, route `/leagues`. Profile list plus the selected profile's form: name,
 
 ## SettingsPage
 No props, route `/settings`. App-wide preferences, edited like a league: changes wait in a working copy and only **Save** writes them, with Save and Cancel (the shared `SaveActions`, exported from `LeaguesPage`) at the bottom of the page while there is an unsaved change (there is no side menu). Closing or reloading the tab with unsaved changes triggers the browser's own warning.
-- **Name display mode**: a radio group, Full (default), Initial or Formal. Stored as `"full" | "initial" | "formal"` under `nflsw:v1:nameDisplay` (`nameDisplayStore`, `src/storage/nameDisplay.ts`). Nothing reads it yet. An unknown stored value falls back to Full.
+- **Name display mode**: a radio group, Full (default), Initial or Formal. For David Montgomery: Full is "David Montgomery", Initial "D. Montgomery", Formal "Montgomery, David". Stored as `"full" | "initial" | "formal"` under `nflsw:v1:nameDisplay` (`nameDisplayStore`, `src/storage/nameDisplay.ts`). Nothing reads it yet. An unknown stored value falls back to Full.
 - **Clear my data** (danger button): opens a modal `dialog` warning that followed players, leagues, scoring and settings are deleted from this browser and it cannot be undone. **Keep my data** is the first, filled (primary) button and takes the initial focus; **Clear my data** is the red outlined one. Confirming runs `localStorage.clear()` and `reloadAllStores()`, so every store returns to its defaults (one fresh "My league", no followed players) without a page reload, and drops any unsaved change. Escape or a click on the backdrop keeps the data. If storage is blocked the page says so instead.
 
 ## ImportLeaguesDialog
