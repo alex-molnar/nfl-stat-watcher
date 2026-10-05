@@ -353,6 +353,8 @@ describe('injury designations', () => {
     renderAt('/');
     await waitFor(() => expect(screen.getByText('Out · Ankle')).toBeInTheDocument());
     expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
+    expect(screen.getByText('Questionable · Hamstring').parentElement).toHaveClass('inj-row'); // its own row, not squeezed beside the name
+    expect(within(screen.getByText('Healthy quarterback').closest('.card') as HTMLElement).queryByText(/Questionable|Out/)).not.toBeInTheDocument(); // no row when healthy
     await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
     const hurt = screen.getByText('Hurt runner').closest('.card')!;
     expect(hurt).not.toHaveClass('is-rz');

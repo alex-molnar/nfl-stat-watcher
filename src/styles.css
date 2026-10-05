@@ -53,11 +53,13 @@ main.wrap { padding-bottom: 48px; }
 .card.is-rz::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; z-index: -1; pointer-events: none; box-shadow: 0 0 16px 3px var(--pylon); opacity: .35; animation: rz-glow 2.4s ease-in-out infinite; }
 @keyframes rz-glow { 50% { opacity: .95; } }
 .card.is-rz.still::before { animation: none; opacity: .6; } /* paused by the page's Pause button (WCAG 2.2.2) */
-.hd { display: flex; align-items: center; gap: 12px; }
-.badge { width: 42px; height: 42px; border-radius: 50%; background: var(--team); color: var(--team-ink); display: grid; place-items: center; font: 800 13px/1 Anybody, sans-serif; font-stretch: 110%; flex: none; }
-.id { flex: 1; min-width: 0; }
-.nm { font: 800 19px/1.15 Anybody, sans-serif; font-stretch: 108%; margin: 0; overflow-wrap: anywhere; }
-.sub { color: var(--muted); font-size: 13px; display: flex; gap: 10px; flex-wrap: wrap; }
+.hd { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 10px; row-gap: 4px; }
+/* The name takes all the room beside the points; the team colour, role and league sit under it; injury is a row of its own. */
+.nm { grid-column: 1; font: 800 19px/1.15 Anybody, sans-serif; font-stretch: 108%; margin: 0; overflow-wrap: break-word; min-width: 0; align-self: center; }
+.pts { grid-column: 2; grid-row: 1 / span 2; }
+.sub { grid-column: 1; color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; min-width: 0; }
+.team-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--team); box-shadow: 0 0 0 2px color-mix(in srgb, var(--team-ink) 35%, transparent); flex: none; }
+.inj-row { grid-column: 1 / -1; display: flex; }
 .chip { overflow-wrap: anywhere; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--ink); }
 .pts { border: 0; background: none; cursor: pointer; text-align: right; padding: 2px 4px; border-radius: 8px; }
 .pts b { display: block; font: 900 28px/1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 6px; }
@@ -76,7 +78,7 @@ main.wrap { padding-bottom: 48px; }
 .rzt { color: var(--pylon); font-weight: 700; }
 .score { font-size: 14px; color: var(--muted); }
 .stats { display: flex; flex-wrap: wrap; gap: 8px 18px; }
-.stat b { display: block; font: 800 20px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 4px; }
+.stat b { display: block; font: 800 18px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 4px; }
 .stat span { font-size: 12px; color: var(--muted); }
 .brk { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 2px 20px; font-size: 13px; margin: 0; }
 .brk div { display: flex; justify-content: space-between; }
@@ -222,14 +224,15 @@ dialog[open] { animation: dlg 180ms ease-out; }
 
 /* Narrow cards (two to a row on the Vs screen, small phones) tighten up so names read as words, not letter stacks. */
 @container (max-width: 340px) {
-  .hd { gap: 8px; }
-  .badge { width: 34px; height: 34px; font-size: 11px; }
-  .nm { font-size: 15px; font-stretch: 100%; overflow-wrap: break-word; }
+  .hd { column-gap: 8px; row-gap: 3px; }
+  .nm { font-size: 16px; font-stretch: 100%; }
   .chip { white-space: nowrap; }
   .pts b { font-size: 22px; font-stretch: 105%; }
-  .stat b { font-size: 17px; }
-  .stats { gap: 6px 14px; }
+  .stat b { font-size: 15px; }
+  .stat span { font-size: 11px; }
+  .stats { gap: 6px 11px; }
 }
+.card:not(.live) { padding: 12px 14px; gap: 10px; }
 
 /* Scoring play highlight: the whole card floods from the centre in the play's colour, the play name pops in across it,
    touchdowns throw sparks, then it clears to leave a small tag. Offense scores are gold, defensive plays use the accent. */

@@ -101,16 +101,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       ))}
       <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${entry.name}: ${celebration.event.label.toLowerCase()}` : ''}</span>
       <div className="hd">
-        <div className="badge" aria-hidden="true">{entry.teamAbbr}</div>
-        <div className="id">
-          <h3 className="nm">{entry.name}</h3>
-          <div className="sub">
-            <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
-            {injury && <span className={`inj inj-${injuryTone(injury)}`}>{injuryLabel(injury)}</span>}
-            <span className="chip">{profile.name}</span>
-            {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
-          </div>
-        </div>
+        <h3 className="nm">{entry.name}</h3>
         <button
           type="button"
           className="pts press"
@@ -121,6 +112,13 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <Bump value={total} />
           <span>fantasy pts</span>
         </button>
+        <div className="sub">
+          <i className="team-dot" aria-hidden="true" />
+          <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
+          <span className="chip">{profile.name}</span>
+          {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
+        </div>
+        {injury && <div className="inj-row"><span className={`inj inj-${injuryTone(injury)}`}>{injuryLabel(injury)}</span></div>}
       </div>
 
       {game && situation ? (

@@ -143,3 +143,8 @@ The source is ESPN, not `api.nfl.com/content/v1/videos`: that endpoint answers 4
 ## Closing dialogs from the backdrop
 
 Every dialog (add player, import leagues, import starters, highlights) also closes when the dimmed area around it is clicked, through the shared `backdropClose` props in `src/ui/backdropClose.ts`. The dialog fills its own box, so a click whose target is the `<dialog>` element itself landed on the backdrop. The press must also have started there, so selecting text inside a dialog and releasing the mouse outside it does not close it. The native `close` event still runs each dialog's own cleanup (aborting a running import, stopping the video, restoring focus).
+
+
+## Card header layout
+
+The header is a two-column grid: the name takes every bit of room beside the points (wrapping only when it must), the points button spans the name row and the line below it, and under the name sit a small team-coloured dot, the team, position and opponent text, and the league chip. An injury designation is its own optional row beneath (absent for healthy players). Compact (non-live) cards use less padding (12px 14px), and cards narrower than 340px a smaller name and statistic type, so names and stat lines fit on one row more often.
