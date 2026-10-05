@@ -201,6 +201,18 @@ describe('sync starters', () => {
       expect(new Set(followed().map((entry) => (entry as { profileId?: string }).profileId))).toEqual(new Set(['p1', 'p2']));
     });
 
+    it('is also offered by the league select of the Players screen', async () => {
+      mockFetch(privateRoutes);
+      seed([], [first, second]);
+      renderAt('/');
+      await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+      await userEvent.selectOptions(await within(await screen.findByRole('dialog')).findByLabelText('League'), 'All');
+      await userEvent.click(await screen.findByRole('button', { name: 'Skip Second' }));
+      await screen.findByRole('region', { name: 'Starters for your side' });
+      await sync();
+      expect(await screen.findByText('Added 11 starters.')).toBeInTheDocument();
+    });
+
     it('can skip a private league and syncs the rest', async () => {
       await openAll('Sync your starters');
       await userEvent.click(await screen.findByRole('button', { name: 'Skip Second' }));

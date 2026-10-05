@@ -54,7 +54,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const teams = useTeams();
   const imported = profiles.filter((profile) => profile.source);
   const [chosenId, setChosenId] = useState('');
-  const everyLeague = fixedId === ALL_LEAGUES;
+  const everyLeague = (fixedId ?? chosenId) === ALL_LEAGUES;
   const profile = imported.find((candidate) => candidate.id === (fixedId ?? chosenId)) ?? imported[0];
   // The leagues being synced: one, or all of them in turn. Each is loaded (or pasted) before the preview shows.
   const targets = everyLeague ? imported : profile ? [profile] : [];
@@ -191,7 +191,8 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         {profile && fixedId === undefined && imported.length > 1 && (
           <label className="field-label">
             League
-            <select value={profile.id} onChange={(event) => setChosenId(event.target.value)}>
+            <select value={everyLeague ? ALL_LEAGUES : profile.id} onChange={(event) => setChosenId(event.target.value)}>
+              <option value={ALL_LEAGUES}>All</option>
               {imported.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
             </select>
           </label>
