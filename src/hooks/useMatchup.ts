@@ -20,8 +20,8 @@ export interface Matchup {
   settled: boolean;
 }
 
-// Live first, then final, later and bye: the order of the Players page groups.
-const ORDER = ['in', 'post', 'pre', 'none'] as const;
+// Live first, then later, final and bye: the order of the Players page groups.
+const ORDER = ['in', 'pre', 'post', 'none'] as const;
 const rank = (game: GameInfo | null) => ORDER.indexOf(game?.state ?? 'none');
 const sum = (rows: MatchupRow[]) => Math.round(rows.reduce((t, r) => t + r.points, 0) * 100) / 100;
 

@@ -68,12 +68,12 @@ describe('useMatchup', () => {
     expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('Duplicate Queries'));
   });
 
-  it('orders final games before later games before byes', async () => {
+  it('orders later games before final games before byes', async () => {
     const sf = { ...warren, espnId: '9', name: 'SF player', teamId: '25', teamAbbr: 'SF' };
     seed([{ ...mahomes, profileId: 'p1' }, sf, warren], profilesFixture);
     mockFetch(routes);
     const { result } = run('p1');
     await waitFor(() => expect(result.current.scoreboard.data).toBeDefined());
-    expect(names(result.current.mine)).toEqual(['Jaylen Warren', 'SF player', 'Patrick Mahomes']);
+    expect(names(result.current.mine)).toEqual(['SF player', 'Jaylen Warren', 'Patrick Mahomes']);
   });
 });
