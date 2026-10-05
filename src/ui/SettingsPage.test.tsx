@@ -127,6 +127,17 @@ describe('settings page', () => {
       expect(localStorage.getItem('nflsw:v1:daznEnabled')).toBe('true');
     });
 
+    it('marks the section as experimental, and warns about the DAZN login only while the box is ticked', async () => {
+      routes();
+      renderAt('/settings');
+      expect(screen.getByText('Experimental, untested')).toBeInTheDocument();
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+      await userEvent.click(dazn());
+      expect(screen.getByRole('note')).toHaveTextContent('games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN');
+      await userEvent.click(dazn());
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    });
+
     it('the button syncs through our own origin and says how many games were linked', async () => {
       const f = routes();
       renderAt('/settings');

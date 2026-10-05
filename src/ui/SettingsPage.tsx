@@ -90,12 +90,13 @@ export function SettingsPage() {
             </div>
           </fieldset>
           <fieldset>
-            <legend>DAZN game links</legend>
+            <legend>DAZN game links <span className="chip note">Experimental, untested</span></legend>
             <label className="choice">
               <input type="checkbox" checked={dazn} aria-describedby="dazn-help" onChange={(event) => setDraft({ mode, dazn: event.target.checked })} />
               Expose DAZN games
             </label>
             <p id="dazn-help" className="muted">Looks up this week's games on DAZN's NFL Game Pass schedule (region {DAZN_REGION}), through this site's own server, and matches them to the NFL games. Off by default: nothing is requested from DAZN while it is off. When on, it syncs once every time the site loads. The matches are not used anywhere yet.</p>
+            {dazn && <p className="compat-warning" role="note"><strong>Warning:</strong> games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN.</p>}
             <button type="button" className="btn press" disabled={syncing} onClick={syncNow}>Sync game links with DAZN</button>
             <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
           </fieldset>

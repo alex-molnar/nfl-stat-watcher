@@ -2,12 +2,14 @@
   --bg: #E8F0E4; --panel: #FFFFFF; --ink: #132016; --muted: #4F6555; --rule: #D2DFCD;
   --turf: #3B8A46; --turf2: #357F40; --pylon: #B93D0A; --accent: #14532D; --accent-ink: #FFFFFF;
   --danger: #B42318; --bump: rgba(255, 106, 19, .28); --focus: #14532D; --field-border: #4F6555;
+  --note: #1D4ED8; --note-ink: #FFFFFF;
   color-scheme: light;
 }
 [data-theme="dark"] {
   --bg: #0B1810; --panel: #122319; --ink: #E5EFE6; --muted: #9CB3A1; --rule: #21382A;
   --turf: #1F5A2A; --turf2: #1B5126; --pylon: #FF7A2E; --accent: #86EFAC; --accent-ink: #0B1810;
   --danger: #F97066; --bump: rgba(255, 106, 19, .32); --focus: #86EFAC; --field-border: #9CB3A1;
+  --note: #93C5FD; --note-ink: #0B1426;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -396,3 +398,6 @@ dialog[open] { animation: dlg 180ms ease-out; }
 dialog.sync-all { width: min(1000px, calc(100vw - 32px)); }
 .plan-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 760px) { .plan-sides { grid-template-columns: 1fr; } }
+
+/* A blue (never a warning colour) tag for features that are experimental. */
+.chip.note { margin-left: 8px; background: var(--note); color: var(--note-ink); font-family: 'Hanken Grotesk', sans-serif; }
