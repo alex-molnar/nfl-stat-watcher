@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -20,17 +20,34 @@ function Football() {
  * they stay put however many page buttons there are.
  */
 export function Header({ actions }: { actions?: ReactNode }) {
+  const bar = useRef<HTMLElement>(null);
+  // The header is pinned to the top, so it publishes its height: other sticky parts and focus scrolling sit below it (WCAG 2.4.11).
+  useLayoutEffect(() => {
+    const el = bar.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty('--header-h', `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--header-h');
+    };
+  }, []);
   return (
-    <header className="wrap top">
-      <h1 className="brand"><Football />Stat Watch</h1>
-      {actions}
-      <div className="top-end">
-        <nav className="nav" aria-label="Main">
-          <NavLink to="/" end>Players</NavLink>
-          <NavLink to="/vs">Vs Mode</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
-        </nav>
-        <ThemeToggle />
+    <header ref={bar} className="top-bar">
+      <div className="wrap top">
+        <h1 className="brand"><Football />Stat Watch</h1>
+        {actions}
+        <div className="top-end">
+          <nav className="nav" aria-label="Main">
+            <NavLink to="/" end>Players</NavLink>
+            <NavLink to="/vs">Vs Mode</NavLink>
+            <NavLink to="/settings">Settings</NavLink>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

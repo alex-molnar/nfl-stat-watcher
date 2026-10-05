@@ -3,6 +3,7 @@ import { VALUE_KEYS, isValidSteps, type PresetId, type Profile, type ScoringValu
 import { followedStore, reassignProfile, withValidProfiles } from './followed';
 import { createStore } from './store';
 import { isHexColor, nextLeagueColor } from '../scoring/leagueColor';
+import { withBand, withColor, withName, withPreset, withRuleEnabled, withStepPoints, withTier, withValue, withoutBands } from '../scoring/edit';
 import { isLeagueSource } from '../leagues/types';
 import { isValidPointsAllowedBands } from '../scoring/types';
 
@@ -72,11 +73,11 @@ export function addProfile(name: string): string {
 }
 
 export function setProfileColor(id: string, color: string) {
-  if (isHexColor(color)) update(id, (p) => ({ ...p, color: color.toLowerCase() }));
+  update(id, (p) => withColor(p, color));
 }
 
 export function renameProfile(id: string, name: string) {
-  update(id, (p) => ({ ...p, name }));
+  update(id, (p) => withName(p, name));
 }
 
 export function deleteProfile(id: string, moveTo: string): boolean {
@@ -88,56 +89,29 @@ export function deleteProfile(id: string, moveTo: string): boolean {
 }
 
 export function setValue(id: string, key: ValueKey, value: number) {
-  if (!Number.isFinite(value)) return;
-  update(id, (p) => ({ ...p, preset: 'custom', values: { ...p.values, [key]: value } }));
+  update(id, (p) => withValue(p, key, value));
 }
 
 export function setRuleEnabled(id: string, key: ValueKey, enabled: boolean) {
-  update(id, (p) => {
-    const off = new Set(p.values.off ?? []);
-    if (enabled) off.delete(key); else off.add(key);
-    const values = { ...p.values };
-    if (off.size) values.off = [...off]; else delete values.off;
-    return { ...p, preset: 'custom', values };
-  });
+  update(id, (p) => withRuleEnabled(p, key, enabled));
 }
 
 export function setStepPoints(id: string, index: number, points: number) {
-  if (!Number.isFinite(points)) return;
-  update(id, (p) => {
-    const steps = p.values.steps;
-    if (!steps || !Number.isInteger(index) || index < 0 || index >= steps.length) return p;
-    return { ...p, preset: 'custom', values: { ...p.values, steps: steps.map((rule, i) => (i === index ? { ...rule, points } : rule)) } };
-  });
+  update(id, (p) => withStepPoints(p, index, points));
 }
 
 export function setTier(id: string, index: number, value: number) {
-  if (!Number.isFinite(value) || !Number.isInteger(index) || index < 0 || index > 6) return;
-  update(id, (p) => ({
-    ...p,
-    preset: 'custom',
-    values: { ...p.values, pointsAllowed: p.values.pointsAllowed.map((v, i) => (i === index ? value : v)) },
-  }));
+  update(id, (p) => withTier(p, index, value));
 }
 
 export function setPointsAllowedBand(id: string, index: number, key: 'min' | 'max' | 'points', value: number | null) {
-  update(id, (p) => {
-    const bands = p.values.pointsAllowedBands;
-    if (!bands || !Number.isInteger(index) || index < 0 || index >= bands.length) return p;
-    const next = bands.map((band, i) => i === index ? { ...band, [key]: value } : band);
-    if (!isValidPointsAllowedBands(next)) return p;
-    return { ...p, preset: 'custom', values: { ...p.values, pointsAllowedBands: next } };
-  });
+  update(id, (p) => withBand(p, index, key, value));
 }
 
 export function clearPointsAllowedBands(id: string) {
-  update(id, (p) => {
-    const values = { ...p.values };
-    delete values.pointsAllowedBands;
-    return { ...p, values };
-  });
+  update(id, withoutBands);
 }
 
 export function applyPreset(id: string, preset: PresetId) {
-  update(id, (p) => ({ ...p, preset, values: copyValues(PRESETS[preset]) }));
+  update(id, (p) => withPreset(p, preset));
 }

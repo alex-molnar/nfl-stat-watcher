@@ -22,7 +22,7 @@ a { color: inherit; }
 main.wrap { padding-bottom: 48px; }
 
 /* Header */
-.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 22px; padding-bottom: 6px; }
+.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 14px; } /* equal, so the items sit in the middle of the bar; 28px in total as before */
 .brand { font: 900 30px/1 Anybody, sans-serif; font-stretch: 140%; margin: 0; flex: 1; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
 .brand-ball { width: 38px; height: 38px; flex: none; }
 /* Tabs and theme switch: always the last thing in the header, so they never shift when a page adds buttons. */
@@ -150,13 +150,25 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .add[aria-disabled="true"] { color: var(--muted); border-style: dashed; cursor: default; } /* muted on --bg: 5.4:1 light, 8.1:1 dark */
 
 /* Settings */
-.settings-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+/* The top padding equals the sticky menu's offset below the header, so the menu starts in the same place whether or not the form beside it is tall enough to let it slide into that offset. */
+.settings-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; padding-top: 16px; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
-.profile-list + .btn, .profile-list + .btn + .btn { width: 100%; margin-bottom: 8px; }
+.settings-side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; align-self: start; padding: 4px; margin: -4px; } /* the padding gives focus outlines room inside the scroll container; the negative margin keeps the layout where it was */
+.settings-side .section-title { margin-top: 6px; }
+.settings-side > .btn, .settings-side .delete-control .btn, .settings-side .save-actions .btn { width: 100%; margin-bottom: 8px; }
+.save-actions { display: grid; gap: 0; padding-top: 4px; }
+.save-note { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
+.profile-form .save-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.profile-form .save-actions .btn { width: auto; margin: 0; }
+.profile-form .save-note { margin: 0 auto 0 0; }
+.profile-empty { min-height: 140px; align-content: center; justify-items: center; color: var(--muted); text-align: center; }
 .profile-form { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 18px; }
-.profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+.profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; min-width: 0; }
+.profile-form fieldset.is-collapsed { padding-bottom: 6px; }
+.box-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
+.box-body[hidden] { display: none; }
 .profile-form legend { font: 800 15px/1 Anybody, sans-serif; font-stretch: 115%; padding: 0 6px; }
 .num-field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .num-field label { display: grid; gap: 4px; }
@@ -191,7 +203,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .import-issues ul { margin: 0; max-height: 180px; overflow: auto; padding-left: 22px; }
 .import-issues label { display: flex; gap: 8px; align-items: start; }
 .error { color: var(--danger); }
-@media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } .settings-side { position: static; max-height: none; overflow: visible; } }
+
 
 /* Forced colors: gradients and shadows drop out, so state is carried by borders and system colors. */
 @media (forced-colors: active) {
@@ -219,8 +232,11 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .rule-toggle input { width: 18px; height: 18px; }
 .num-field:has(.rule-toggle input:not(:checked)) > label:not(.rule-toggle) { opacity: 0.55; }
 .field-note { font-size: 12px; color: var(--muted); }
-.rule-group { border: 0; padding: 0; }
-.rule-group > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+/* The legend is the toggle: the title of the box folds and unfolds it, with a chevron. */
+.box-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 2px 4px; margin: 0; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; }
+.box-chevron { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid currentColor; transition: transform 160ms ease; }
+.box-toggle[aria-expanded="false"] .box-chevron { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .box-chevron { transition: none; } }
 .starter-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .vs-col-head { flex-wrap: wrap; gap: 8px; }
 .group-title { margin: 14px 0 8px; font: 700 13px/1.2 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -358,3 +374,13 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .bm-help { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
 .bm-help p { margin: 0; }
 .bm-link { display: inline-block; text-decoration: none; cursor: grab; border-color: var(--accent); font-weight: 800; }
+
+/* The header stays visible on every page, on screens with room for it: wide enough, and tall enough. A phone wraps it to several rows and a very short window would lose most of its height to it (WCAG 1.4.10), so there it scrolls away like any content.
+   Whatever else is sticky sits just below it, and focus scrolling clears both. */
+@media (min-width: 761px) and (min-height: 30.01em) {
+  .top-bar { position: sticky; top: 0; z-index: 20; background: var(--bg); box-shadow: 0 1px 0 var(--rule); }
+  html { scroll-padding-top: calc(var(--header-h, 0px) + 8px); }
+  .settings-side { top: calc(var(--header-h, 0px) + 16px); max-height: calc(100vh - var(--header-h, 0px) - 32px); }
+  .score-bar { top: var(--header-h, 0px); }
+  html:has(.score-bar) { scroll-padding-top: calc(var(--header-h, 0px) + var(--score-bar-h, 72px) + 8px); }
+}
