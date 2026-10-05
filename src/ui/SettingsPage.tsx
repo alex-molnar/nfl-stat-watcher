@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { DAZN_REGION, syncDaznLinks } from '../dazn/links';
+import { daznEnabledStore, daznLinksStore } from '../storage/dazn';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
 import { reloadAllStores } from '../storage/store';
 import { useStore } from '../storage/useStore';
@@ -14,11 +16,15 @@ const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery
 export function SettingsPage() {
   usePageTitle('Settings');
   const stored = useStore(nameDisplayStore);
-  const [draft, setDraft] = useState<NameDisplayMode | null>(null); // null: no unsaved change
+  const storedDazn = useStore(daznEnabledStore);
+  const daznLinks = useStore(daznLinksStore);
+  const [draft, setDraft] = useState<{ mode: NameDisplayMode; dazn: boolean } | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
+  const [syncing, setSyncing] = useState(false);
   const confirmRef = useRef<HTMLDialogElement>(null);
-  const mode = draft ?? stored;
-  const dirty = mode !== stored;
+  const mode = draft?.mode ?? stored;
+  const dazn = draft?.dazn ?? storedDazn;
+  const dirty = mode !== stored || dazn !== storedDazn;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -30,8 +36,22 @@ export function SettingsPage() {
 
   function save() {
     nameDisplayStore.set(mode);
+    daznEnabledStore.set(dazn);
     setDraft(null);
     setNotice('Saved settings.');
+  }
+
+  async function syncNow() {
+    setSyncing(true);
+    setNotice('');
+    try {
+      const { stored: result, games } = await syncDaznLinks();
+      setNotice(`Linked ${Object.keys(result.links).length} of ${games} games with DAZN.`);
+    } catch (cause) {
+      setNotice(`Could not sync with DAZN: ${cause instanceof Error ? cause.message : 'unknown error'}.`);
+    } finally {
+      setSyncing(false);
+    }
   }
 
   function clearData() {
@@ -61,13 +81,23 @@ export function SettingsPage() {
                 <div key={m} className="choice-row">
                   {/* The example sits outside the label, so the radio's name stays "Full", "Initial" or "Formal". */}
                   <label className="choice">
-                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => setDraft(m)} />
+                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => setDraft({ mode: m, dazn })} />
                     {MODE_LABELS[m]}
                   </label>
                   <span id={`name-display-${m}`} className="muted">e.g. {MODE_EXAMPLES[m]}</span>
                 </div>
               ))}
             </div>
+          </fieldset>
+          <fieldset>
+            <legend>DAZN game links</legend>
+            <label className="choice">
+              <input type="checkbox" checked={dazn} aria-describedby="dazn-help" onChange={(event) => setDraft({ mode, dazn: event.target.checked })} />
+              Expose DAZN games
+            </label>
+            <p id="dazn-help" className="muted">Looks up this week's games on DAZN's NFL Game Pass schedule (region {DAZN_REGION}), through this site's own server, and matches them to the NFL games. Off by default: nothing is requested from DAZN while it is off. When on, it syncs once every time the site loads. The matches are not used anywhere yet.</p>
+            <button type="button" className="btn press" disabled={syncing} onClick={syncNow}>Sync game links with DAZN</button>
+            <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
           </fieldset>
           <fieldset>
             <legend>Your data</legend>

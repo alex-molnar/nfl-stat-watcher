@@ -5,6 +5,7 @@ import { MainPage } from './ui/MainPage';
 import { LeaguesPage } from './ui/LeaguesPage';
 import { SettingsPage } from './ui/SettingsPage';
 import { VsPage } from './ui/VsPage';
+import { DaznAutoSync } from './ui/DaznAutoSync';
 
 // networkMode 'always': while the browser is offline, react-query would otherwise pause fetches
 // silently and the retry note would never show.
@@ -35,6 +36,7 @@ export function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <FocusPageHeading />
+      <DaznAutoSync />
     </>
   );
 }
