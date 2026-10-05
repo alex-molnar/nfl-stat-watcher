@@ -235,7 +235,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .stat span { font-size: 11px; }
   .stats { gap: 6px 11px; }
 }
-.card:not(.live) { padding: 12px 14px; gap: 10px; }
+/* 266px is the height of the longest compact card: a two-line name, an injury row, a stat line and the bottom row (measured on Antoine Winfield Jr.). Every compact card is at least that tall, so rows look even; shorter ones leave empty space above the bottom row. */
+.card:not(.live) { padding: 12px 14px; gap: 10px; min-height: 266px; }
 
 /* Scoring play highlight: the whole card floods from the centre in the play's colour, the play name pops in across it,
    touchdowns throw sparks, then it clears to leave a small tag. Offense scores are gold, defensive plays use the accent. */
