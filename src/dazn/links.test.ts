@@ -4,7 +4,7 @@ import standings from '../test/fixtures/standings.json';
 import { scoreboardFixture } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
 import { toGames } from '../stats/scoreboard';
-import { mapGames, parseScheduleTiles, syncDaznLinks } from './links';
+import { mapGames, parseDaznGameLink, parseScheduleTiles, syncDaznLinks } from './links';
 
 const html = readFileSync('src/test/fixtures/dazn-schedule.html', 'utf8');
 const teams = (standings as unknown as { children: { standings: { entries: { team: never }[] } }[] }).children.flatMap((c) => c.standings.entries.map((e) => e.team));
@@ -53,9 +53,38 @@ describe('syncDaznLinks', () => {
   });
 
   it('reports a failing DAZN request and keeps the old links', async () => {
-    daznLinksStore.set({ syncedAt: 'earlier', links: { '1': '/home/a/b' } });
+    daznLinksStore.set({ syncedAt: 'earlier', links: { '1': '/home/a/b' }, manual: {} });
     mockFetch({ '/dazn/': status(502) });
     await expect(syncDaznLinks()).rejects.toThrow('DAZN answered 502');
     expect(daznLinksStore.get().links).toEqual({ '1': '/home/a/b' });
   });
 });
+
+describe('parseDaznGameLink', () => {
+  it('takes a pasted game address of any region, or just the path', () => {
+    expect(parseDaznGameLink('https://www.dazn.com/en-NL/home/abc123/def456')).toBe('/home/abc123/def456');
+    expect(parseDaznGameLink(' https://dazn.com/de-DE/home/abc123/def456?x=1#y ')).toBe('/home/abc123/def456');
+    expect(parseDaznGameLink('/home/abc123/def456')).toBe('/home/abc123/def456');
+  });
+
+  it('refuses anything that is not a game page', () => {
+    for (const bad of ['', 'hello', 'https://example.com/en-NL/home/abc/def', 'https://www.dazn.com/en-NL/competition/Competition:x', 'https://www.dazn.com/en-NL/home/ArticleId:x/y']) {
+      expect(parseDaznGameLink(bad)).toBeNull();
+    }
+  });
+});
+
+describe('the user\'s own links', () => {
+  it('survive a sync, which only replaces what it found', async () => {
+    daznLinksStore.set({ syncedAt: null, links: {}, manual: { '999': '/home/mine/mine' } });
+    mockFetch({}).mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.startsWith('/dazn/')) return new Response(html, { status: 200 });
+      return new Response(JSON.stringify(url.includes('scoreboard') ? scoreboardFixture : standings), { status: 200 });
+    });
+    await syncDaznLinks();
+    expect(daznLinksStore.get().manual).toEqual({ '999': '/home/mine/mine' });
+    expect(Object.keys(daznLinksStore.get().links)).toEqual(['401872964']);
+  });
+});
+

@@ -401,3 +401,14 @@ dialog.sync-all { width: min(1000px, calc(100vw - 32px)); }
 
 /* A blue (never a warning colour) tag for features that are experimental. */
 .chip.note { margin-left: 8px; background: var(--note); color: var(--note-ink); font-family: 'Hanken Grotesk', sans-serif; }
+
+/* Settings, DAZN: this week's games with their link, ended games greyed and locked. */
+.dazn-games-box { margin-top: 12px; }
+.dazn-games-box summary { cursor: pointer; font-weight: 700; }
+.dazn-games { list-style: none; margin: 8px 0 0; padding: 0; }
+.dazn-game { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.dazn-game p { margin: 0; overflow-wrap: anywhere; }
+.dazn-game-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dazn-game-edit { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.dazn-game-edit .field-label { flex: 1 1 260px; }
+.dazn-game.ended { opacity: .55; }

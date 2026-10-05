@@ -342,9 +342,9 @@ describe('Watch on DAZN', () => {
     drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
   };
   const watch = (name: string) => screen.queryByRole('button', { name: `Watch ${name} on DAZN` });
-  const setup = async (enabled: boolean, links: Record<string, string>) => {
+  const setup = async (enabled: boolean, links: Record<string, string>, manual: Record<string, string> = {}) => {
     localStorage.setItem('nflsw:v1:daznEnabled', JSON.stringify(enabled));
-    localStorage.setItem('nflsw:v1:daznLinks', JSON.stringify({ syncedAt: 'now', links }));
+    localStorage.setItem('nflsw:v1:daznLinks', JSON.stringify({ syncedAt: 'now', links, manual }));
     seed([sf('4', 'SF runner', 'RB'), sf('1', 'DEN receiver', 'WR', '7', 'DEN')], profilesFixture); // seed reloads the stores
     mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
     renderAt('/');
@@ -363,6 +363,11 @@ describe('Watch on DAZN', () => {
     cleanup();
     await setup(true, {});
     expect(watch('SF runner')).not.toBeInTheDocument();
+  });
+
+  it('uses a link the user typed in for a game the sync did not find', async () => {
+    await setup(true, {}, { '401872975': '/home/mine/mine' });
+    expect(watch('SF runner')).toBeInTheDocument();
   });
 
   it('opens the game in the named window on click, and says so when the browser blocks it', async () => {

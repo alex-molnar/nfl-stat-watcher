@@ -14,7 +14,7 @@ import { MiniField } from './MiniField';
 import { injuryLabel, injuryOf, injuryTone, isOut } from '../stats/injury';
 import { onRightSide } from '../stats/liveOrder';
 import { watchOnDazn } from '../dazn/watch';
-import { daznEnabledStore, daznLinksStore } from '../storage/dazn';
+import { daznEnabledStore, daznLinksStore, daznPathFor } from '../storage/dazn';
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
 import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
@@ -44,7 +44,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
   const [open, setOpen] = useState(false);
   const daznOn = useStore(daznEnabledStore);
-  const daznPath = useStore(daznLinksStore).links[game?.eventId ?? ''];
+  const daznPath = daznPathFor(useStore(daznLinksStore), game?.eventId ?? '');
   const [watchNote, setWatchNote] = useState('');
 
   // Keep the stored team current, for example after a trade.

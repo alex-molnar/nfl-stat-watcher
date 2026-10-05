@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import standings from '../test/fixtures/standings.json';
 import { scoreboardFixture } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
-import { daznEnabledStore } from '../storage/dazn';
+import { daznEnabledStore, daznLinksStore } from '../storage/dazn';
 
 const stored = () => localStorage.getItem('nflsw:v1:nameDisplay');
 const radio = (name: string) => screen.getByRole('radio', { name });
@@ -136,6 +136,57 @@ describe('settings page', () => {
       expect(screen.getByRole('note')).toHaveTextContent('games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN');
       await userEvent.click(dazn());
       expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    });
+
+    describe('this week\'s games', () => {
+      const box = () => screen.getByText("This week's games and their links").closest('details')!;
+      const open = async () => {
+        routes();
+        renderAt('/settings');
+        await userEvent.click(within(box()).getByText("This week's games and their links"));
+        return (await within(box()).findByText('Steelers @ Browns')).closest('li')!;
+      };
+
+      it('is collapsed by default and asks for nothing until opened', () => {
+        const f = routes();
+        renderAt('/settings');
+        expect(box()).not.toHaveAttribute('open');
+        expect(f.mock.calls.filter(([u]) => String(u).includes('scoreboard'))).toHaveLength(0);
+      });
+
+      it('lists the week\'s games, with ended ones greyed and locked', async () => {
+        const ended = await open();
+        expect(within(ended).getByText('Ended')).toBeInTheDocument();
+        expect(ended).toHaveClass('ended');
+        expect(within(ended).getByLabelText('DAZN link for Steelers @ Browns')).toBeDisabled();
+        expect(within(ended).getByRole('button', { name: 'Use this link' })).toBeDisabled();
+        const upcoming = within(box()).getAllByRole('listitem').find((li) => li !== ended)!;
+        expect(upcoming).not.toHaveClass('ended');
+        expect(within(upcoming).getByRole('textbox')).toBeEnabled();
+      });
+
+      it('sets, shows and removes the user\'s own link, ahead of the one the sync found', async () => {
+        daznLinksStore.set({ syncedAt: null, links: { '401872975': '/home/found/found' }, manual: {} });
+        await open();
+        const row = within(box()).getAllByRole('listitem').find((li) => !li.classList.contains('ended'))!;
+        expect(within(row).getByText(/Found by the sync/)).toBeInTheDocument();
+        await userEvent.type(within(row).getByRole('textbox'), 'https://www.dazn.com/en-NL/home/mine/mine');
+        await userEvent.click(within(row).getByRole('button', { name: 'Use this link' }));
+        expect(within(row).getByText(/Your link/)).toBeInTheDocument();
+        expect(daznLinksStore.get().manual).toEqual({ '401872975': '/home/mine/mine' });
+        await userEvent.click(within(row).getByRole('button', { name: 'Remove my link' }));
+        expect(daznLinksStore.get().manual).toEqual({});
+        expect(within(row).getByText(/Found by the sync/)).toBeInTheDocument();
+      });
+
+      it('rejects text that is not a DAZN game link', async () => {
+        await open();
+        const row = within(box()).getAllByRole('listitem').find((li) => !li.classList.contains('ended'))!;
+        await userEvent.type(within(row).getByRole('textbox'), 'https://example.com/nope');
+        await userEvent.click(within(row).getByRole('button', { name: 'Use this link' }));
+        expect(within(row).getByRole('alert')).toHaveTextContent('not a DAZN game link');
+        expect(daznLinksStore.get().manual).toEqual({});
+      });
     });
 
     it('the button syncs through our own origin and says how many games were linked', async () => {

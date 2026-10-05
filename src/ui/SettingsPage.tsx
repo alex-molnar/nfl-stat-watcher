@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { DAZN_REGION, syncDaznLinks } from '../dazn/links';
+import { DaznGameLinks } from './DaznGameLinks';
 import { daznEnabledStore, daznLinksStore } from '../storage/dazn';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
 import { reloadAllStores } from '../storage/store';
@@ -21,6 +22,7 @@ export function SettingsPage() {
   const [draft, setDraft] = useState<{ mode: NameDisplayMode; dazn: boolean } | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [gamesOpen, setGamesOpen] = useState(false); // the list loads the week's games only once it is opened
   const confirmRef = useRef<HTMLDialogElement>(null);
   const mode = draft?.mode ?? stored;
   const dazn = draft?.dazn ?? storedDazn;
@@ -99,6 +101,10 @@ export function SettingsPage() {
             {dazn && <p className="compat-warning" role="note"><strong>Warning:</strong> games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN.</p>}
             <button type="button" className="btn press" disabled={syncing} onClick={syncNow}>Sync game links with DAZN</button>
             <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
+            <details className="dazn-games-box" open={gamesOpen} onToggle={(event) => setGamesOpen(event.currentTarget.open)}>
+              <summary>This week's games and their links</summary>
+              {gamesOpen && <DaznGameLinks />}
+            </details>
           </fieldset>
           <fieldset>
             <legend>Your data</legend>
