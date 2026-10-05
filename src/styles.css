@@ -150,7 +150,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .add[aria-disabled="true"] { color: var(--muted); border-style: dashed; cursor: default; } /* muted on --bg: 5.4:1 light, 8.1:1 dark */
 
 /* Settings */
-.settings-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+/* The top padding equals the sticky menu's offset below the header, so the menu starts in the same place whether or not the form beside it is tall enough to let it slide into that offset. */
+.settings-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; padding-top: 16px; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
