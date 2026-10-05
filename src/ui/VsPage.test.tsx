@@ -356,7 +356,7 @@ describe('vs page', () => {
     expect(statusLine()).toHaveTextContent(/^Opponent leads$/);
   });
 
-  it('shows both sides of every league under "All", each card scored with its own league, without add or sync buttons', async () => {
+  it('shows both sides of every league under "All", each card scored with its own league, with Add player but no sync buttons without imported leagues', async () => {
     seed([warren, opponent(pitDefense), { ...warren, profileId: 'p2' }], profilesFixture);
     mockFetch(routes);
     renderAt('/vs');
@@ -367,7 +367,7 @@ describe('vs page', () => {
     expect(within(oppCol()).getByText('Pittsburgh Steelers')).toBeInTheDocument();
     const points = within(mineCol()).getAllByRole('button', { name: /fantasy pts/ }).map((b) => b.textContent);
     expect(new Set(points).size).toBe(2); // PPR and standard score the same game differently
-    expect(screen.queryByRole('button', { name: /Add player/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Add player to/ })).toHaveLength(2);
     expect(screen.queryByRole('button', { name: /Sync/ })).not.toBeInTheDocument();
   });
 

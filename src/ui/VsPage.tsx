@@ -38,6 +38,7 @@ export function VsPage() {
   const [adding, setAdding] = useState(false);
   const [dialogSide, setDialogSide] = useState<Side>('mine');
   const [importSide, setImportSide] = useState<Side | 'both' | null>(null);
+  const canSync = all ? profiles.some((p) => p.source) : !!profile.source; // sync needs an imported league to read
   const opener = useRef<HTMLElement | null>(null);
   const hasSchedule = scoreboard.data !== undefined;
   const loading = mine.length + opponent.length > 0 && scoreboard.isPending;
@@ -97,12 +98,10 @@ export function VsPage() {
     <section className="vs-col" aria-labelledby={`vs-${side}`}>
       <div className="vs-col-head">
         <h2 className="section-title" id={`vs-${side}`}>{COLUMNS[side].title}</h2>
-        {!all && (
-          <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
-            Add player
-          </button>
-        )}
-        {!all && profile.source && (
+        <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
+          Add player
+        </button>
+        {canSync && (
           <button type="button" className="btn press" aria-label={`Sync ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
             Sync starters
           </button>
@@ -153,7 +152,7 @@ export function VsPage() {
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
-          {!all && profile.source && (
+          {canSync && (
             <button type="button" className="btn press" onClick={(e) => { opener.current = e.currentTarget; setImportSide('both'); }}>
               Sync all starters
             </button>
@@ -176,8 +175,8 @@ export function VsPage() {
           {column('opponent')}
         </div>
       </main>
-      <ImportStartersDialog open={importSide !== null} side={importSide ?? 'mine'} profileId={profile.id} onClose={() => { setImportSide(null); focusVisible(opener.current); }} />
-      <AddDialog open={adding} side={dialogSide} profileId={profile.id} onClose={closeDialog} />
+      <ImportStartersDialog open={importSide !== null} side={importSide ?? 'mine'} profileId={all ? ALL_LEAGUES : profile.id} onClose={() => { setImportSide(null); focusVisible(opener.current); }} />
+      <AddDialog open={adding} side={dialogSide} profileId={all ? undefined : profile.id} onClose={closeDialog} />
     </>
   );
 }

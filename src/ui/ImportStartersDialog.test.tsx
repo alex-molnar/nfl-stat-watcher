@@ -174,6 +174,51 @@ describe('sync starters', () => {
     });
   });
 
+  describe('every league in turn (vs mode, All)', () => {
+    const second = { ...league, id: 'p2', name: 'Second', source: { ...league.source, leagueId: '777', teamId: '1' } };
+    const first = { ...league, source: { ...league.source, teamId: '1' } };
+    const privateRoutes = { ...routes, 'leagues/777?view=mRoster': status(401) };
+    const openAll = async (name: string) => {
+      mockFetch(privateRoutes);
+      seed([], [first, second]);
+      renderAt('/vs');
+      await userEvent.selectOptions(document.querySelector<HTMLSelectElement>('.vs-league select')!, 'All');
+      await userEvent.click(screen.getAllByRole('button', { name })[0]!);
+    };
+
+    it('loads the public league, asks for the private one, then goes on by itself and previews everything with league names', async () => {
+      await openAll('Sync your starters');
+      expect(await screen.findByText(/This league is private/)).toBeInTheDocument();
+      expect(screen.getByText('League 2 of 2: Second')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sync starters' })).toBeDisabled(); // nothing to sync until the loop is done
+      await userEvent.click(screen.getByLabelText(/Rosters JSON for/));
+      await userEvent.paste(JSON.stringify({ ...lineups, id: 777 }));
+      const region = await screen.findByRole('region', { name: 'Starters for your side' });
+      expect(within(region).getAllByText(/ · Tapai$/)).toHaveLength(11);
+      expect(within(region).getAllByText(/ · Second$/)).toHaveLength(11);
+      await sync();
+      expect(await screen.findByText('Added 22 starters.')).toBeInTheDocument();
+      expect(new Set(followed().map((entry) => (entry as { profileId?: string }).profileId))).toEqual(new Set(['p1', 'p2']));
+    });
+
+    it('can skip a private league and syncs the rest', async () => {
+      await openAll('Sync your starters');
+      await userEvent.click(await screen.findByRole('button', { name: 'Skip Second' }));
+      await screen.findByRole('region', { name: 'Starters for your side' });
+      await sync();
+      expect(await screen.findByText('Added 11 starters.')).toBeInTheDocument();
+    });
+
+    it('syncs both sides of every league with the all starters button', async () => {
+      await openAll('Sync all starters');
+      await userEvent.click(await screen.findByRole('button', { name: 'Skip Second' }));
+      expect(await screen.findAllByRole('region', { name: /^Starters for/ })).toHaveLength(2);
+      await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Sync all starters' }));
+      expect(followed().some((entry) => entry.side === 'opponent')).toBe(true);
+      expect(followed().some((entry) => !entry.side)).toBe(true);
+    });
+  });
+
   it('still imports text that was typed or dropped into the box, with the button', async () => {
     mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
     seed([], [league]);
