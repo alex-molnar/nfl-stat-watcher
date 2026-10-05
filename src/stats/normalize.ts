@@ -1,5 +1,5 @@
 import type { EspnAthleteRef, EspnPlay, EspnStatCategory, EspnSummary } from '../espn/types';
-import type { DefenseStats, GameStats, PlayerStats, Situation } from './types';
+import type { DefenseStats, GameStats, Highlight, Injury, PlayerStats, Situation } from './types';
 
 const num = (s: string | undefined) => {
   const n = Number.parseFloat(s ?? '');
@@ -31,7 +31,23 @@ export function allPlays(s: EspnSummary): EspnPlay[] {
   return plays.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
 }
 
-export function situationFrom(plays: EspnPlay[]): Situation | null {
+/** Plays after which the offense that ran them is done: scores, kicks, turnovers, conversions and the kickoff that follows. */
+const DRIVE_ENDING = /Touchdown|Field Goal|Punt|Interception|Safety|Turnover|Fumble Recovery \(Opponent\)|Kickoff|Onside|Extra Point|Two[- ]?Point/i;
+/** Entries ESPN appends after a score or at a break that are not football plays. */
+const NOT_A_PLAY = /Timeout|End Period|End of (Half|Game|Quarter)|Two[- ]Minute/i;
+
+/**
+ * Whether the drive has ended: ESPN's drive result is set, or the last real play (looking past timeouts and
+ * period breaks that ESPN appends right after a score) is a score, kick or turnover. Without the second
+ * check the offense looks like it still has the ball until the next team runs a play.
+ */
+export function endsDrive(plays: EspnPlay[], driveResult?: string): boolean {
+  if (driveResult) return true;
+  const last = [...plays].reverse().find((play) => !NOT_A_PLAY.test(play.type?.text ?? ''));
+  return !!last && (last.scoringPlay === true || DRIVE_ENDING.test(last.type?.text ?? ''));
+}
+
+export function situationFrom(plays: EspnPlay[], driveOver = false): Situation | null {
   const last = plays.at(-1);
   if (!last) return null;
   const spot = last.end?.team?.id && last.end.yardsToEndzone != null ? last.end : last.start;
@@ -41,14 +57,54 @@ export function situationFrom(plays: EspnPlay[]): Situation | null {
     yardsToEndzone: spot.yardsToEndzone,
     downDistanceText: spot.downDistanceText ?? '',
     lastPlayText: last.text,
+    ...(driveOver ? { driveOver: true as const } : {}),
   };
 }
 
 type Named = { id: string; teamId: string; short: string };
 
 const FIELD_GOAL = /(\d+) yard field goal is GOOD/i;
+const FIELD_GOAL_MISS = /(\d+) yard field goal is (?:No Good|BLOCKED)/i;
+/** "punt is BLOCKED by S.Fehoko", "extra point is Blocked (T.Booker)", "field goal is BLOCKED (W.Anderson)". */
+const BLOCKED_KICK = /\b(?:field goal|punt|extra point|PAT) is blocked(?: by |\s*\()([^,)]+)/i;
+/** "FUMBLES (J.Parrish)" names the player who forced it; sack plays add "Fumble Forced by 98-M.Crosby". */
+const FUMBLE_BY = /FUMBLES \(([^)]+)\)/;
+const FUMBLE_FORCED_BY = /Fumble Forced by (?:\d+-)?([^,. ]+\.[^,. ]+)/i;
+/** "... for no gain (G.Gaines; T.Bernard)": a rush for no gain or a loss with its tacklers. */
+const STUFF = /\bfor (?:no gain|-\d+ yards?)\s*\(([^)]*)\)/;
+const TD_YARDS = /for (-?\d+) yards?, TOUCHDOWN/i;
+const TD_VOID = /NULLIFIED|REVERSED|WIPED/i;
 const TWO_POINT = /TWO-POINT CONVERSION ATTEMPT\.(.*?)ATTEMPT SUCCEEDS/i;
 const SAFETY = /\bSAFETY\b/;
+
+/** Credits the length of a passing or rushing touchdown to the players named in its play text. */
+function applyTouchdownYards(play: EspnPlay, offense: string, players: Record<string, PlayerStats>, names: Named[]) {
+  const kind = play.type?.text;
+  if (kind !== 'Passing Touchdown' && kind !== 'Rushing Touchdown') return;
+  if (TD_VOID.test(play.text)) return;
+  const match = TD_YARDS.exec(play.text);
+  if (!match || match.index === undefined) return;
+  const yards = Number(match[1]);
+  const lead = play.text.slice(0, match.index);
+  const mentioned = names
+    .filter((n) => n.teamId === offense && players[n.id])
+    .map((n) => ({ n, at: lead.lastIndexOf(n.short) }))
+    .filter(({ at }) => at >= 0)
+    .sort((a, b) => a.at - b.at);
+  const credit = (id: string, key: 'pass' | 'rush' | 'rec') => {
+    const p = players[id];
+    if (p) (p.tdYards ??= { pass: [], rush: [], rec: [] })[key].push(yards);
+  };
+  if (kind === 'Passing Touchdown') {
+    const passer = mentioned.find(({ n }) => players[n.id]?.passing);
+    const receiver = [...mentioned].reverse().find(({ n }) => players[n.id]?.receiving && n.id !== passer?.n.id);
+    if (passer) credit(passer.n.id, 'pass');
+    if (receiver) credit(receiver.n.id, 'rec');
+  } else {
+    const runner = [...mentioned].reverse().find(({ n }) => players[n.id]?.rushing);
+    if (runner) credit(runner.n.id, 'rush');
+  }
+}
 
 function applyPlays(
   plays: EspnPlay[],
@@ -64,6 +120,38 @@ function applyPlays(
     if (fg) {
       const kicker = names.find((n) => n.teamId === offense && players[n.id]?.kicking && play.text.includes(n.short));
       players[kicker?.id ?? '']?.kicking?.madeDistances.push(Number(fg[1]));
+    }
+
+    const miss = FIELD_GOAL_MISS.exec(play.text);
+    if (miss) {
+      const kicker = names.find((n) => n.teamId === offense && players[n.id]?.kicking && play.text.includes(n.short));
+      const k = players[kicker?.id ?? '']?.kicking;
+      if (k) (k.missedDistances ??= []).push(Number(miss[1]));
+    }
+
+    applyTouchdownYards(play, offense, players, names);
+
+    const block = BLOCKED_KICK.exec(play.text);
+    if (block && !TD_VOID.test(play.text)) {
+      const defense = Object.keys(defenses).find((id) => id !== offense);
+      if (defense) defenses[defense]!.blockedKicks = (defenses[defense]!.blockedKicks ?? 0) + 1;
+      const blocker = names.find((n) => n.teamId !== offense && n.short === block[1]!.trim());
+      if (blocker) players[blocker.id]!.blockedKicks = (players[blocker.id]!.blockedKicks ?? 0) + 1;
+    }
+
+    if (!TD_VOID.test(play.text)) {
+      const forcer = (FUMBLE_FORCED_BY.exec(play.text)?.[1] ?? FUMBLE_BY.exec(play.text)?.[1])?.trim();
+      const forced = forcer && names.find((n) => n.teamId !== offense && n.short === forcer);
+      if (forced) players[forced.id]!.forcedFumbles = (players[forced.id]!.forcedFumbles ?? 0) + 1;
+
+      const stop = play.type?.text === 'Rush' ? STUFF.exec(play.text) : null;
+      if (stop) {
+        const tacklers = stop[1]!.split(';').map((name) => name.trim()).filter(Boolean);
+        for (const name of tacklers) {
+          const tackler = names.find((n) => n.teamId !== offense && n.short === name);
+          if (tackler) players[tackler.id]!.stuffs = (players[tackler.id]!.stuffs ?? 0) + 1 / tacklers.length;
+        }
+      }
     }
 
     const two = TWO_POINT.exec(play.text);
@@ -85,6 +173,51 @@ function applyPlays(
   }
 }
 
+function yardsAllowedOf(s: EspnSummary, opponentId: string | undefined): { yardsAllowed?: number } {
+  const stat = s.boxscore.teams?.find((t) => t.team.id === opponentId)?.statistics.find((c) => c.name === 'totalYards');
+  const yards = Number.parseFloat(stat?.displayValue ?? '');
+  return Number.isFinite(yards) ? { yardsAllowed: yards } : {};
+}
+
+const httpsUrl = (value: string | undefined): string | undefined => {
+  try { return value && new URL(value).protocol === 'https:' ? value : undefined; } catch { return undefined; }
+};
+
+function highlightsOf(s: EspnSummary): Highlight[] {
+  return (s.videos ?? []).flatMap((video): Highlight[] => {
+    const file = httpsUrl(video.links?.source?.href);
+    const mp4 = file && /\.mp4($|\?)/i.test(file) ? file : undefined;
+    const page = httpsUrl(video.links?.web?.href);
+    if (!video.id || !video.headline || (!mp4 && !page)) return [];
+    return [{
+      id: String(video.id),
+      headline: video.headline.slice(0, 200),
+      publishedAt: video.originalPublishDate ?? '',
+      ...(video.duration ? { duration: video.duration } : {}),
+      ...(httpsUrl(video.thumbnail) ? { thumbnail: video.thumbnail } : {}),
+      ...(mp4 ? { mp4 } : {}),
+      ...(page ? { page } : {}),
+    }];
+  }).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+function injuriesOf(s: EspnSummary): Record<string, Injury> {
+  const injuries: Record<string, Injury> = {};
+  for (const team of s.injuries ?? []) {
+    for (const item of team.injuries ?? []) {
+      const status = typeof item.status === 'string' ? item.status.trim().slice(0, 40) : '';
+      if (!status || !item.athlete?.id) continue;
+      const type = item.details?.type?.trim();
+      injuries[item.athlete.id] = {
+        status,
+        ...(type && !/^not specified$/i.test(type) ? { type: type.slice(0, 40) } : {}),
+        ...(item.details?.returnDate ? { returnDate: item.details.returnDate } : {}),
+      };
+    }
+  }
+  return injuries;
+}
+
 export function normalizeSummary(s: EspnSummary): GameStats {
   const players: Record<string, PlayerStats> = {};
   const names: Named[] = [];
@@ -102,7 +235,7 @@ export function normalizeSummary(s: EspnSummary): GameStats {
         switch (cat.name) {
           case 'passing': {
             const [completions, attempts] = pair(cat, stats, 'completions/passingAttempts');
-            p.passing = { completions, attempts, yards: v('passingYards'), touchdowns: v('passingTouchdowns'), interceptions: v('interceptions') };
+            p.passing = { completions, attempts, yards: v('passingYards'), touchdowns: v('passingTouchdowns'), interceptions: v('interceptions'), sacked: pair(cat, stats, 'sacks-sackYardsLost')[0] };
             break;
           }
           case 'rushing':
@@ -127,7 +260,9 @@ export function normalizeSummary(s: EspnSummary): GameStats {
           case 'kickReturns':
           case 'puntReturns':
             p.returns = {
+              ...p.returns,
               touchdowns: (p.returns?.touchdowns ?? 0) + v(cat.name === 'kickReturns' ? 'kickReturnTouchdowns' : 'puntReturnTouchdowns'),
+              [cat.name === 'kickReturns' ? 'kickYards' : 'puntYards']: v(cat.name === 'kickReturns' ? 'kickReturnYards' : 'puntReturnYards'),
             };
             break;
           case 'kicking': {
@@ -162,10 +297,14 @@ export function normalizeSummary(s: EspnSummary): GameStats {
         total(team, 'puntReturns', 'puntReturnTouchdowns'),
       safeties: 0,
       pointsAllowed: opp ? scores[opp.team.id] ?? 0 : 0,
+      ...yardsAllowedOf(s, opp?.team.id),
     };
   }
 
   const plays = allPlays(s);
   applyPlays(plays, players, defenses, names);
-  return { players, defenses, situation: situationFrom(plays) };
+  const last = plays.at(-1);
+  const drives = [...(s.drives?.previous ?? []), ...(s.drives?.current ? [s.drives.current] : [])];
+  const lastDrive = last ? [...drives].reverse().find((d) => d.plays.some((p) => p.id === last.id)) : undefined;
+  return { players, defenses, situation: situationFrom(plays, endsDrive(lastDrive?.plays ?? plays, lastDrive?.result)), injuries: injuriesOf(s), highlights: highlightsOf(s) };
 }

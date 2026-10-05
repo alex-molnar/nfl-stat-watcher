@@ -34,3 +34,6 @@ export const profilesFixture: Profile[] = [
 export const warren: FollowedEntry = { kind: 'player', espnId: '4569987', name: 'Jaylen Warren', teamId: '23', teamAbbr: 'PIT', position: 'RB', jersey: '30', profileId: 'p1' };
 export const pitDefense: FollowedEntry = { kind: 'defense', espnId: '23', name: 'Pittsburgh Steelers', teamId: '23', teamAbbr: 'PIT', position: 'D/ST', profileId: 'p1' };
 export const mahomes: FollowedEntry = { kind: 'player', espnId: '3139477', name: 'Patrick Mahomes', teamId: '12', teamAbbr: 'KC', position: 'QB', jersey: '15', profileId: 'p2' };
+
+/** The same entry on the opponent side of its league (vs mode). */
+export const opponent = (e: FollowedEntry): FollowedEntry => ({ ...e, side: 'opponent' });

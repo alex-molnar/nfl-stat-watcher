@@ -6,6 +6,7 @@ import { reloadAllStores } from '../storage/store';
 
 // Tests never reach the network. Tests that need data call mockFetch().
 beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn(); // jsdom has none
   vi.stubGlobal('fetch', vi.fn(async () => new Response('not mocked', { status: 404 })));
 });
 

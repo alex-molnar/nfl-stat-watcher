@@ -58,14 +58,43 @@ export interface EspnPlay {
   id: string;
   text: string;
   scoringPlay?: boolean;
+  type?: { text?: string };
   start: EspnPlaySpot;
   end?: EspnPlaySpot;
 }
 
+/** `result` ("TD", "FG", "PUNT", "INT", ...) appears once the drive has ended. */
+export interface EspnDrive {
+  plays: EspnPlay[];
+  result?: string;
+  isScore?: boolean;
+}
+
+/** A highlight clip in a game summary. `links.source.href` is a direct mp4 when ESPN offers one. */
+export interface EspnVideo {
+  id: number;
+  headline?: string;
+  originalPublishDate?: string;
+  duration?: number;
+  thumbnail?: string;
+  links?: { source?: { href?: string }; web?: { href?: string } };
+}
+
+export interface EspnInjury {
+  status: string;
+  athlete: { id: string };
+  details?: { type?: string; returnDate?: string };
+}
+
 export interface EspnSummary {
   header: { id: string; competitions: { competitors: EspnCompetitor[] }[] };
-  boxscore: { players?: { team: { id: string; abbreviation?: string }; statistics: EspnStatCategory[] }[] };
-  drives?: { previous?: { plays: EspnPlay[] }[]; current?: { plays: EspnPlay[] } };
+  boxscore: {
+    players?: { team: { id: string; abbreviation?: string }; statistics: EspnStatCategory[] }[];
+    teams?: { team: { id: string }; statistics: { name: string; displayValue: string }[] }[];
+  };
+  drives?: { previous?: EspnDrive[]; current?: EspnDrive };
+  injuries?: { team?: { id: string }; injuries?: EspnInjury[] }[];
+  videos?: EspnVideo[];
 }
 
 export interface EspnSearchItem {

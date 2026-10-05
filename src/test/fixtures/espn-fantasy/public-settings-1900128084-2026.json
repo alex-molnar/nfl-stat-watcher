@@ -1,0 +1,657 @@
+{
+  "id": 1900128084,
+  "seasonId": 2026,
+  "settings": {
+    "scoringSettings": {
+      "scoringItems": [
+        {
+          "statId": 8,
+          "points": 1,
+          "pointsOverrides": null,
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 123,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -1
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 91,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 4
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 90,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 7
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 206,
+          "points": 2,
+          "pointsOverrides": {
+            "16": 2
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 133,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -3
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 25,
+          "points": 6,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 82,
+          "points": -1,
+          "pointsOverrides": null,
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 209,
+          "points": 1,
+          "pointsOverrides": {
+            "16": 1
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 72,
+          "points": -2,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 134,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -5
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 95,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 2
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 135,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -6
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 136,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -7
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 93,
+          "points": 6,
+          "pointsOverrides": {
+            "16": 6
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 98,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 2
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 96,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 2
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 97,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 2
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 19,
+          "points": 2,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 43,
+          "points": 6,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 20,
+          "points": -2,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 4,
+          "points": 4,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 102,
+          "points": 6,
+          "pointsOverrides": {
+            "16": 6
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 53,
+          "points": 0.5,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 103,
+          "points": 6,
+          "pointsOverrides": {
+            "16": 6
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 24,
+          "points": 0.1,
+          "pointsOverrides": null,
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 63,
+          "points": 6,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 101,
+          "points": 6,
+          "pointsOverrides": {
+            "16": 6
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 80,
+          "points": 3,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 26,
+          "points": 2,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 104,
+          "points": 6,
+          "pointsOverrides": {
+            "16": 6
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 77,
+          "points": 4,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 92,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 1
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 128,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 5
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 124,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -4
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 99,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 1
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 125,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -5
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 85,
+          "points": -1,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 132,
+          "points": 0,
+          "pointsOverrides": {
+            "16": -1
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 86,
+          "points": 1,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 89,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 10
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 42,
+          "points": 0.1,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 129,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 3
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 44,
+          "points": 2,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 130,
+          "points": 0,
+          "pointsOverrides": {
+            "16": 2
+          },
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 201,
+          "points": 6,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        },
+        {
+          "statId": 198,
+          "points": 5,
+          "pointsOverrides": {},
+          "pointsOverridesByPosition": null,
+          "isActive": null,
+          "isDisabled": null,
+          "scoringPeriodId": null,
+          "statOffset": null,
+          "statPeriodId": null,
+          "pointsByDistance": null
+        }
+      ]
+    },
+    "rosterSettings": {
+      "lineupSlotCounts": {
+        "0": 1,
+        "1": 0,
+        "2": 2,
+        "3": 0,
+        "4": 3,
+        "5": 0,
+        "6": 1,
+        "7": 0,
+        "8": 0,
+        "9": 0,
+        "10": 0,
+        "11": 0,
+        "12": 0,
+        "13": 0,
+        "14": 0,
+        "15": 0,
+        "16": 1,
+        "17": 1,
+        "18": 0,
+        "19": 0,
+        "20": 5,
+        "21": 2,
+        "22": 0,
+        "23": 2,
+        "24": 0
+      }
+    }
+  }
+}

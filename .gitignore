@@ -1,6 +1,7 @@
 .DS_Store
 node_modules/
 dist/
+extensions/espn-connector/dist/
 coverage/
 .impeccable/hook.cache.json
 *.tsbuildinfo

@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import teams from '../test/fixtures/standings.json';
 import summary from '../test/fixtures/summary-pit-cle.json';
-import { mahomes, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
+import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 
@@ -262,5 +262,157 @@ describe('orphaned entries', () => {
     await screen.findByText('15.60');
     await userEvent.selectOptions(within(card('Jaylen Warren')).getByLabelText('League'), 'Friends league');
     expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)[0].profileId).toBe('p2');
+  });
+});
+
+describe('opponent entries on the Players page', () => {
+  it('never show as cards', async () => {
+    seed([warren, opponent(pitDefense)], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    expect(await screen.findByText('15.60')).toBeInTheDocument();
+    expect(screen.queryByText('Pittsburgh Steelers')).not.toBeInTheDocument();
+  });
+
+  it('do not count as followed for the empty state', () => {
+    seed([opponent(warren)], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+    expect(screen.queryByText('Loading games')).not.toBeInTheDocument();
+  });
+});
+
+describe('live ordering', () => {
+  const sf = (espnId: string, name: string, position: string, teamId = '25', teamAbbr = 'SF') =>
+    ({ ...warren, espnId, name, position, teamId, teamAbbr, profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  // SF has the ball at DEN 12, so SF offense is in the red zone.
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+  };
+  const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('orders live cards red zone first, then the side with the ball, then the rest, by position within each', async () => {
+    seed([
+      sf('1', 'DEN receiver', 'WR', '7', 'DEN'),
+      sf('2', 'SF kicker', 'K'),
+      sf('3', 'SF quarterback', 'QB'),
+      { ...pitDefense, espnId: '7', name: 'Denver D/ST', teamId: '7', teamAbbr: 'DEN' },
+      sf('4', 'SF runner', 'RB'),
+      { ...pitDefense, espnId: '25', name: 'SF D/ST', teamId: '25', teamAbbr: 'SF' },
+    ], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await screen.findByText('SF runner');
+    await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
+  });
+
+  it('styles the right side of the ball, and pulses a red zone card only until the page is paused', async () => {
+    seed([sf('4', 'SF runner', 'RB'), { ...pitDefense, espnId: '7', name: 'Denver D/ST', teamId: '7', teamAbbr: 'DEN' }, sf('1', 'DEN receiver', 'WR', '7', 'DEN')], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    const card = (name: string) => screen.getByText(name).closest('.card')!;
+    await waitFor(() => expect(card('SF runner')).toHaveClass('is-rz'));
+    expect(card('SF runner')).not.toHaveClass('on-field');
+    expect(within(card('SF runner') as HTMLElement).getByText('Offense on the field')).toBeInTheDocument();
+    expect(card('Denver D/ST')).toHaveClass('on-field');
+    expect(card('Denver D/ST')).not.toHaveClass('is-rz');
+    expect(card('DEN receiver')).not.toHaveClass('on-field');
+    expect(within(card('Denver D/ST') as HTMLElement).getByText('Defense on the field')).toBeInTheDocument();
+    expect(card('SF runner')).not.toHaveClass('still');
+    await userEvent.click(screen.getByRole('button', { name: /Pause live updates/ }));
+    expect(card('SF runner')).toHaveClass('still');
+  });
+});
+
+describe('injury designations', () => {
+  const sf = (espnId: string, name: string, position: string) => ({ ...warren, espnId, name, position, teamId: '25', teamAbbr: 'SF', profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  // SF has the ball at DEN 12: SF offense is in the red zone.
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+    injuries: [{ team: { id: '25' }, injuries: [
+      { status: 'Out', athlete: { id: '1' }, details: { type: 'Ankle' } },
+      { status: 'Questionable', athlete: { id: '2' }, details: { type: 'Hamstring' } },
+    ] }],
+  };
+  const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('marks every designation on the card and sends an out player to the back without red zone styling', async () => {
+    seed([sf('1', 'Hurt runner', 'RB'), sf('2', 'Iffy receiver', 'WR'), sf('3', 'Healthy quarterback', 'QB')], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(screen.getByText('Out · Ankle')).toBeInTheDocument());
+    expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
+    expect(screen.getByText('Questionable · Hamstring').parentElement).toHaveClass('inj-row'); // its own row, not squeezed beside the name
+    expect(within(screen.getByText('Healthy quarterback').closest('.card') as HTMLElement).queryByText(/Questionable|Out/)).not.toBeInTheDocument(); // no row when healthy
+    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    const hurt = screen.getByText('Hurt runner').closest('.card')!;
+    expect(hurt).not.toHaveClass('is-rz');
+    expect(hurt).not.toHaveClass('on-field');
+    expect(screen.getByText('Iffy receiver').closest('.card')).toHaveClass('is-rz');
+  });
+
+  it('shows the designation on a game that has not started yet', async () => {
+    seed([{ ...warren, espnId: '9', name: 'Later player', teamId: '25', teamAbbr: 'SF', position: 'WR', profileId: 'p1' }], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872975': { ...liveSummary, injuries: [{ team: { id: '25' }, injuries: [{ status: 'Doubtful', athlete: { id: '9' } }] }] }, standings: teams });
+    renderAt('/');
+    expect(await screen.findByText('Doubtful')).toHaveClass('inj-doubtful');
+  });
+});
+
+describe('injury designations from the league report', () => {
+  const sf = (espnId: string, name: string, position: string) => ({ ...warren, espnId, name, position, teamId: '25', teamAbbr: 'SF', profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  // The game's own report lists nobody (ESPN truncates it to five players per team); SF has the ball in the red zone.
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+    injuries: [{ team: { id: '25' }, injuries: [] }],
+  };
+  const league = { injuries: [{ displayName: 'SF', injuries: [
+    { status: 'Out', athlete: { links: [{ rel: ['playercard'], href: 'https://www.espn.com/nfl/player/_/id/1/hurt' }] }, details: { type: 'Toe' } },
+    { status: 'Questionable', athlete: { links: [{ rel: ['playercard'], href: 'https://www.espn.com/nfl/player/_/id/2/iffy' }] }, details: { type: 'Hamstring' } },
+  ] }] };
+  const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('marks a player the game report does not list, and ranks one who is out last', async () => {
+    seed([sf('1', 'Hurt runner', 'RB'), sf('2', 'Iffy receiver', 'WR'), sf('3', 'Healthy quarterback', 'QB')], profilesFixture);
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, 'nfl/injuries': league, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(screen.getByText('Out · Toe')).toBeInTheDocument());
+    expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
+    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    expect(screen.getByText('Hurt runner').closest('.card')).not.toHaveClass('is-rz');
+  });
+
+  it('marks a player on a bye or in a finished game too', async () => {
+    seed([{ ...warren, espnId: '1' }], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary, 'nfl/injuries': league, standings: teams });
+    renderAt('/');
+    expect(await screen.findByText('Out · Toe')).toHaveClass('inj-out');
+  });
+});
+
+describe('league tag colour', () => {
+  it('shows the tag in the league colour with readable text, and uncoloured when a league has none', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary, standings: teams });
+    seed([warren, mahomes], [{ ...profilesFixture[0]!, color: '#ffeb3b' }, { ...profilesFixture[1]!, color: '#0b1d51' }]);
+    renderAt('/');
+    const tag = async (name: string) => (await screen.findByText(name)).closest('.card')!.querySelector('.league-chip') as HTMLElement;
+    expect(await tag('Jaylen Warren')).toHaveStyle({ background: '#ffeb3b', color: '#000000' }); // dark text on a light colour
+    expect(await tag('Patrick Mahomes')).toHaveStyle({ background: '#0b1d51', color: '#ffffff' }); // light text on a dark one
   });
 });

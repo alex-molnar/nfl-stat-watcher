@@ -15,6 +15,9 @@ spec:
         app: stat-watch
     spec:
       automountServiceAccountToken: false
+      # Only needed when the GHCR package is private; see docs/deployment.md. A missing secret is only a warning.
+      imagePullSecrets:
+        - name: ghcr-pull
       securityContext:
         runAsNonRoot: true
         runAsUser: 101
@@ -23,8 +26,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          # Set this to the image you pushed to your registry.
-          image: registry.example.com/stat-watch:0.1.0
+          # The pipeline substitutes the image (ghcr.io/<owner>/<repo>:<commit>) before applying this file.
+          image: ${IMAGE}
           ports:
             - name: http
               containerPort: 8080
@@ -72,3 +75,29 @@ spec:
     - name: http
       port: 80
       targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stat-watch
+  labels:
+    app: stat-watch
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - ${HOST}
+      secretName: stat-watch-tls
+  rules:
+    - host: ${HOST}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: stat-watch
+                port:
+                  name: http

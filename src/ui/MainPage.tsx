@@ -1,42 +1,36 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { freshness, useScoreboard } from '../hooks/queries';
+import { useEffect, useRef, useState } from 'react';
+import { useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
-import { followedStore, moveEntry, removeEntry, withValidProfiles } from '../storage/followed';
-import { isPaused, setPaused, subscribePause } from '../storage/pause';
+import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfiles } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
-import { EntryCard, entryKey } from './EntryCard';
+import { ImportStartersDialog } from './ImportStartersDialog';
+import { EntryCard } from './EntryCard';
 import { Header } from './Header';
+import { PauseButton, pageNote, usePaused } from './PauseButton';
 import type { FollowedEntry } from '../storage/types';
 import { usePageTitle } from './usePageTitle';
-
-const GROUPS = [
-  { key: 'in', title: 'Live now' },
-  { key: 'post', title: 'Final' },
-  { key: 'pre', title: 'Later' },
-  { key: 'none', title: 'Bye week' },
-] as const;
+import { GROUPS } from './gameGroups';
+import { useLiveOrder } from '../hooks/useLiveOrder';
 
 export function MainPage() {
   usePageTitle('Players');
   const profiles = useStore(profilesStore);
-  const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id));
-  const paused = useSyncExternalStore(subscribePause, isPaused, isPaused); // session only, never persisted
+  // Only my entries: opponent entries (vs mode) never show here, in cards or in the empty state.
+  const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id)).filter((e) => sideOf(e) === 'mine');
+  const paused = usePaused();
   const scoreboard = useScoreboard(paused);
-  const client = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const hasImported = profiles.some((profile) => profile.source);
   const hasSchedule = scoreboard.data !== undefined;
   const games = scoreboard.data ?? [];
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
+  const liveOrder = useLiveOrder(rows, paused);
   const loading = followed.length > 0 && scoreboard.isPending;
   // One status container stays mounted so screen readers announce text changes.
-  const note = loading
-    ? 'Loading games'
-    : paused
-      ? 'Live updates are paused. The numbers shown may be out of date.'
-      : freshness(scoreboard.isError, scoreboard.dataUpdatedAt);
+  const note = pageNote(loading, paused, scoreboard);
 
   // Focus survives the remount that a league change causes (the card key includes the league).
   const refocusLeague = useRef<string | null>(null);
@@ -59,11 +53,6 @@ export function MainPage() {
     removeEntry(entry);
   }
 
-  function togglePause() {
-    setPaused(!paused);
-    if (paused) void client.refetchQueries({ type: 'active', predicate: (q) => q.queryKey[0] === 'scoreboard' || q.queryKey[0] === 'summary' });
-  }
-
   const opener = useRef<HTMLElement | null>(null);
   const headerAdd = useRef<HTMLButtonElement>(null);
   const addButton = (ref?: React.Ref<HTMLButtonElement>) => (
@@ -83,9 +72,8 @@ export function MainPage() {
       <Header
         actions={
           <>
-            <button type="button" className="btn press" aria-pressed={paused} onClick={togglePause}>
-              {paused ? 'Resume live updates' : 'Pause live updates'}
-            </button>
+            <PauseButton />
+            {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Sync starters</button>}
             {addButton(headerAdd)}
           </>
         }
@@ -101,6 +89,7 @@ export function MainPage() {
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);
+            if (key === 'in') group.sort(liveOrder); // stable: ties keep the order they were added in
             if (group.length === 0) return null;
             return (
               <section key={key} aria-labelledby={`group-${key}`}>
@@ -127,6 +116,7 @@ export function MainPage() {
         )}
       </main>
       <AddDialog open={adding} onClose={closeDialog} />
+      <ImportStartersDialog open={importing} onClose={() => setImporting(false)} />
     </>
   );
 }

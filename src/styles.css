@@ -23,8 +23,11 @@ main.wrap { padding-bottom: 48px; }
 
 /* Header */
 .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 22px; padding-bottom: 6px; }
-.brand { font: 900 30px/1 Anybody, sans-serif; font-stretch: 140%; margin: 0; flex: 1; letter-spacing: -.01em; }
-.nav { display: flex; gap: 14px; margin-right: 8px; }
+.brand { font: 900 30px/1 Anybody, sans-serif; font-stretch: 140%; margin: 0; flex: 1; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+.brand-ball { width: 38px; height: 38px; flex: none; }
+/* Tabs and theme switch: always the last thing in the header, so they never shift when a page adds buttons. */
+.top-end { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.nav { display: flex; gap: 14px; }
 .nav a { text-decoration: none; color: var(--muted); font-weight: 700; padding: 4px 2px; }
 .nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
 .btn { font-weight: 700; font-size: 14px; line-height: 1; border-radius: 999px; padding: 11px 16px; cursor: pointer; border: 1px solid var(--field-border); background: var(--panel); }
@@ -41,13 +44,24 @@ main.wrap { padding-bottom: 48px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 14px; list-style: none; margin: 0; padding: 0; }
 .grid.live { grid-template-columns: repeat(auto-fill, minmax(min(470px, 100%), 1fr)); }
 .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.card { container-type: inline-size; }
+/* Live card states. Wrong side of the ball: plain card. Right side: an accent bar and a faint tint. Red zone: replaces that with the orange border and a slow pulsing glow, never both. */
+.card { position: relative; isolation: isolate; }
+.card.on-field { background: color-mix(in srgb, var(--accent) 7%, var(--panel)); box-shadow: inset 4px 0 0 var(--accent); }
 .card.is-rz { border-color: var(--pylon); box-shadow: 0 0 0 1px var(--pylon); }
-.hd { display: flex; align-items: center; gap: 12px; }
-.badge { width: 42px; height: 42px; border-radius: 50%; background: var(--team); color: var(--team-ink); display: grid; place-items: center; font: 800 13px/1 Anybody, sans-serif; font-stretch: 110%; flex: none; }
-.id { flex: 1; min-width: 0; }
-.nm { font: 800 19px/1.15 Anybody, sans-serif; font-stretch: 108%; margin: 0; overflow-wrap: anywhere; }
-.sub { color: var(--muted); font-size: 13px; display: flex; gap: 10px; flex-wrap: wrap; }
-.chip { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--ink); }
+/* The glow is a separate layer whose opacity pulses, so the animation never repaints the card or moves layout. */
+.card.is-rz::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; z-index: -1; pointer-events: none; box-shadow: 0 0 16px 3px var(--pylon); opacity: .35; animation: rz-glow 2.4s ease-in-out infinite; }
+@keyframes rz-glow { 50% { opacity: .95; } }
+.card.is-rz.still::before { animation: none; opacity: .6; } /* paused by the page's Pause button (WCAG 2.2.2) */
+.hd { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px; }
+/* Row 1: the name, as wide as it can go, with the points. Rows 2 and 3: the team badge spanning both, beside the team, position and opponent line and the league label. Optional injury row below. */
+.nm { grid-column: 1 / 3; grid-row: 1; font: 800 19px/1.15 Anybody, sans-serif; font-stretch: 108%; margin: 0 0 4px; overflow-wrap: break-word; min-width: 0; }
+.pts { grid-column: 3; grid-row: 1 / span 2; align-self: start; }
+.badge { grid-column: 1; grid-row: 2 / span 2; width: 42px; height: 42px; border-radius: 50%; background: var(--team); color: var(--team-ink); display: grid; place-items: center; font: 800 13px/1 Anybody, sans-serif; font-stretch: 110%; }
+.sub { grid-column: 2; grid-row: 2; align-self: end; color: var(--muted); font-size: 13px; min-width: 0; }
+.league-chip { grid-column: 2; grid-row: 3; justify-self: start; align-self: start; }
+.inj-row { grid-column: 1 / -1; grid-row: 4; display: flex; margin-top: 4px; }
+.chip { overflow-wrap: anywhere; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--ink); }
 .pts { border: 0; background: none; cursor: pointer; text-align: right; padding: 2px 4px; border-radius: 8px; }
 .pts b { display: block; font: 900 28px/1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 6px; }
 .live .pts b { font-size: 38px; font-stretch: 135%; }
@@ -65,17 +79,52 @@ main.wrap { padding-bottom: 48px; }
 .rzt { color: var(--pylon); font-weight: 700; }
 .score { font-size: 14px; color: var(--muted); }
 .stats { display: flex; flex-wrap: wrap; gap: 8px 18px; }
-.stat b { display: block; font: 800 20px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 4px; }
+.stat b { display: block; font: 800 18px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; border-radius: 4px; }
 .stat span { font-size: 12px; color: var(--muted); }
 .brk { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 2px 20px; font-size: 13px; margin: 0; }
 .brk div { display: flex; justify-content: space-between; }
 .brk dd { margin: 0; font-weight: 700; }
 .note { font-size: 12px; color: var(--muted); margin: 0; }
-.ft { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+/* margin-top: auto pins the bottom row to the card's bottom edge when a taller card in the same row stretches this one. */
+.ft { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .ft label { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.ft .rm { margin-left: auto; }
 .ft select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); }
-.rm { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; text-decoration: underline; padding: 0 4px; min-height: 24px; min-width: 24px; }
+.rm { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; text-decoration: underline; padding: 0 4px; min-height: 24px; min-width: 24px; margin-left: auto; } /* stays right on opponent cards, which have no league select */
 .empty { background: var(--panel); border-radius: 16px; padding: 40px; text-align: center; margin-top: 24px; }
+
+/* Vs mode */
+.vs-league { max-width: 320px; margin-top: 16px; }
+.score-bar {
+  position: sticky; top: 0; z-index: 2; margin-top: 12px; padding: 10px 16px;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "mine opp" "lead lead"; gap: 2px 12px; align-items: baseline;
+  background: var(--panel); border: 1px solid var(--rule); border-bottom: 2px solid var(--field-border); border-radius: 0 0 12px 12px;
+} /* bottom border 6.3:1 light, 7.3:1 dark on the panel; 5.4:1 and 8.1:1 against the page background */
+.sb-mine { grid-area: mine; }
+.sb-opp { grid-area: opp; text-align: right; }
+.sb-lead { grid-area: lead; text-align: center; font-weight: 700; }
+.score-bar b { font: 900 22px/1.1 Anybody, sans-serif; font-stretch: 115%; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.vs { display: grid; gap: 0 20px; }
+.vs-col { min-width: 0; }
+.vs-col-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.vs-list { grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); }
+.vs-list.live { grid-template-columns: 1fr; }
+/* Focused cards scroll clear of the sticky score bar (WCAG 2.4.11). VsPage publishes the measured bar height as --score-bar-h; the fallbacks cover the moment before it runs. */
+html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 112px) + 8px); }
+@media (min-width: 720px) {
+  .score-bar { grid-template-columns: 1fr auto 1fr; grid-template-areas: "mine lead opp"; }
+  /* Rows: column heading, then one per game group (live, final, later, bye). Each column borrows them from .vs, so the same group lines up across both sides and the shorter side leaves empty space. */
+  .vs { grid-template-columns: 1fr 1fr; grid-template-rows: auto repeat(4, auto); align-items: start; }
+  .vs-col { display: grid; grid-template-rows: subgrid; grid-row: 1 / span 5; align-content: start; }
+  .vs-col-head { grid-row: 1; }
+  html:has(.score-bar) { scroll-padding-top: calc(var(--score-bar-h, 72px) + 8px); }
+}
+/* Very short viewports (400% zoom, landscape phones): a sticky bar would cover most of the screen (WCAG 1.4.10). */
+@media (max-height: 30em) {
+  .score-bar { position: static; }
+  html:has(.score-bar) { scroll-padding-top: 0; }
+}
+select { max-width: 100%; }
 
 /* Changed numbers */
 .bump { animation: bump 900ms ease-out; }
@@ -91,7 +140,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .dlg-head h2 { margin: 0; font: 800 20px/1.2 Anybody, sans-serif; font-stretch: 115%; }
 .close { border: 0; background: none; font-size: 24px; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; }
 .field-label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
-.field-label input, .field-label select { font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); }
+.field-label input, .field-label select, .field-label textarea { font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); }
+.field-label textarea { resize: vertical; min-height: 74px; }
 .results { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
 .results li { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--rule); }
 .results .r { flex: 1; }
@@ -104,6 +154,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
+.profile-list + .btn, .profile-list + .btn + .btn { width: 100%; margin-bottom: 8px; }
 .profile-form { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 18px; }
 .profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
 .profile-form legend { font: 800 15px/1 Anybody, sans-serif; font-stretch: 115%; padding: 0 6px; }
@@ -117,6 +168,29 @@ dialog[open] { animation: dlg 180ms ease-out; }
 /* Empty status regions stay in the tree (no display toggle) but take no space. */
 .field-msg:empty, .page-note:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
 .confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--danger); border-radius: 12px; }
+.source-details { display: grid; gap: 8px; border: 1px solid var(--rule); border-radius: 12px; padding: 14px; }
+.source-details h3, .source-details p { margin: 0; }
+.source-modified { color: var(--danger); font-weight: 700; }
+.source-actions, .dlg-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.compat-warning { border: 1px solid var(--danger); border-radius: 10px; padding: 10px 12px; color: var(--ink); background: var(--panel); }
+.compat-warning summary { cursor: pointer; font-weight: 700; }
+.compat-warning ul { margin-bottom: 0; padding-left: 22px; }
+.matchup-warning { margin: 14px 0; }
+.import-dlg { max-height: min(90vh, 900px); overflow-y: auto; }
+.import-dlg .dlg-actions { position: sticky; bottom: -20px; padding: 12px 0; background: var(--panel); border-top: 1px solid var(--rule); justify-content: end; }
+.import-results { display: grid; gap: 12px; }
+.import-card { border: 1px solid var(--rule); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.import-card h3 { overflow-wrap: anywhere; }
+.import-select { display: flex; align-items: start; gap: 10px; }
+.import-select input, .import-issues input { width: 18px; height: 18px; accent-color: var(--accent); flex: 0 0 auto; }
+.import-select span { display: grid; gap: 4px; }
+.import-select small { color: var(--muted); }
+.import-preview { display: grid; gap: 10px; }
+.import-preview p { margin: 0; }
+.import-issues { border: 1px solid var(--rule); border-radius: 10px; display: grid; gap: 8px; }
+.import-issues ul { margin: 0; max-height: 180px; overflow: auto; padding-left: 22px; }
+.import-issues label { display: flex; gap: 8px; align-items: start; }
+.error { color: var(--danger); }
 @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
 
 /* Forced colors: gradients and shadows drop out, so state is carried by borders and system colors. */
@@ -127,12 +201,160 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .los { background: Highlight; width: 3px; }
   .ball { background: CanvasText; box-shadow: none; border: 2px solid Highlight; }
   .card.is-rz { border-width: 3px; }
+  .card.on-field { border-left-width: 6px; }
+  .card.is-rz::before { display: none; }
   .profile-list button[aria-current="true"] { border: 2px solid Highlight; box-shadow: none; }
   .btn:disabled { color: GrayText; border-color: GrayText; }
+  .score-bar { background: Canvas; color: CanvasText; border-color: CanvasText; }
   .nav a[aria-current="page"] { box-shadow: none; text-decoration: underline 2px; text-underline-offset: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bump, dialog[open] { animation: none; }
+  .card.is-rz::before { animation: none; opacity: .6; }
   .ballrail, .press { transition: none; }
 }
+
+.rule-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.rule-toggle input { width: 18px; height: 18px; }
+.num-field:has(.rule-toggle input:not(:checked)) > label:not(.rule-toggle) { opacity: 0.55; }
+.field-note { font-size: 12px; color: var(--muted); }
+.rule-group { border: 0; padding: 0; }
+.rule-group > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.starter-list { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.vs-col-head { flex-wrap: wrap; gap: 8px; }
+.group-title { margin: 14px 0 8px; font: 700 13px/1.2 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+/* Narrow cards (two to a row on the Vs screen, small phones) tighten up so names read as words, not letter stacks. */
+@container (max-width: 340px) {
+  .hd { column-gap: 8px; row-gap: 2px; }
+  .nm { font-size: 16px; font-stretch: 100%; }
+  .chip { white-space: nowrap; }
+  .pts b { font-size: 22px; font-stretch: 105%; }
+  .stat b { font-size: 15px; }
+  .stat span { font-size: 11px; }
+  .stats { gap: 6px 11px; }
+}
+/* 266px is the height of the longest compact card: a two-line name, an injury row, a stat line and the bottom row (measured on Antoine Winfield Jr.). Every compact card is at least that tall, so rows look even; shorter ones leave empty space above the bottom row. */
+.card:not(.live) { padding: 12px 14px; gap: 10px; min-height: 266px; }
+
+/* Scoring play highlight: the whole card floods from the centre in the play's colour, the play name pops in across it,
+   touchdowns throw sparks, then it clears to leave a small tag. Offense scores are gold, defensive plays use the accent. */
+.celebrate-td, .celebrate-fg, .play-td, .play-fg, .burst-td, .burst-fg { --tag-bg: #FFC83D; --tag-ink: #1A1300; }
+.celebrate-int, .celebrate-fumble, .celebrate-safety, .play-int, .play-fumble, .play-safety { --tag-bg: var(--accent); --tag-ink: var(--accent-ink); }
+/* Small plays: kicks and scoring conversions in gold, defensive plays in the accent, long gains in a calm blue. */
+.burst-xp, .burst-twopoint, .play-xp, .play-twopoint { --tag-bg: #FFC83D; --tag-ink: #1A1300; }
+.burst-block, .burst-sack, .play-block, .play-sack { --tag-bg: var(--accent); --tag-ink: var(--accent-ink); }
+.burst-pass, .burst-run, .burst-catch, .play-pass, .play-run, .play-catch { --tag-bg: #5AA9FF; --tag-ink: #04152B; }
+/* Bad plays: one calm red for everything that goes against the player or defense. Declared after the kind colours so it wins. */
+.tone-bad { --tag-bg: #C8281F; --tag-ink: #FFFFFF; }
+/* A small play: one ring from the card edge and a tag on the corner. */
+.burst { position: absolute; inset: -2px; border-radius: inherit; border: 3px solid var(--tag-bg); pointer-events: none; z-index: 2; animation: burst 1000ms cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes burst { from { opacity: .95; transform: scale(1); } to { opacity: 0; transform: scale(1.05); } }
+.celebrate { --dur: 1.8s; position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; overflow: hidden; border-radius: inherit; pointer-events: none; color: var(--tag-ink);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--tag-bg) 100%, white 18%) 0%, var(--tag-bg) 55%, color-mix(in srgb, var(--tag-bg) 88%, black) 100%);
+  animation: celebrate-wash var(--dur) cubic-bezier(.22, 1, .36, 1) both; }
+.celebrate-long { --dur: 2.6s; }
+@keyframes celebrate-wash {
+  0% { opacity: 1; clip-path: circle(0% at 50% 50%); }
+  16% { opacity: 1; clip-path: circle(85% at 50% 50%); }
+  62% { opacity: .96; clip-path: circle(85% at 50% 50%); }
+  100% { opacity: 0; clip-path: circle(85% at 50% 50%); }
+}
+/* The word is sized from the card width (the card is a size container) and its length, so it fills any card. */
+.celebrate-word { position: relative; max-width: 94%; text-align: center; text-transform: uppercase; white-space: nowrap; font: 900 clamp(14px, calc(70cqi / var(--chars)), 64px)/1 Anybody, sans-serif; font-stretch: 125%; letter-spacing: .02em; animation: celebrate-word var(--dur) cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes celebrate-word {
+  0%, 8% { opacity: 0; transform: scale(.45); }
+  22% { opacity: 1; transform: scale(1.14); }
+  30% { transform: scale(1); }
+  72% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+.celebrate i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #FFFFFF; animation: celebrate-spark 1.5s cubic-bezier(.2, .8, .3, 1) .12s both; }
+.celebrate i:nth-child(3n) { background: #1A1300; width: 9px; height: 9px; }
+.celebrate i:nth-child(3n + 1) { background: #FF7A2E; }
+@keyframes celebrate-spark {
+  from { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1); }
+  70% { opacity: 1; }
+  to { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) scale(.4); }
+}
+.play-tag { position: absolute; top: -12px; right: 16px; z-index: 5; padding: 3px 12px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-ink); font: 800 12px/1.3 Anybody, sans-serif; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); animation: tag-in 380ms cubic-bezier(.16, 1, .3, 1) var(--tag-delay, 0s) both, tag-out 300ms ease-in 3.9s forwards; }
+.play-late { --tag-delay: 1.6s; } /* after the full-card takeover has cleared */
+@keyframes tag-in { from { opacity: 0; transform: translateY(6px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes tag-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  /* No sweep, pop or sparks: the colour wash and the word just appear and fade out. */
+  .celebrate { animation-name: celebrate-fade; }
+  .celebrate-word { animation: none; }
+  .celebrate i, .burst { display: none; }
+  .play-tag { animation: tag-out 300ms ease-in 3.9s forwards; }
+}
+@keyframes celebrate-fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+@media (forced-colors: active) {
+  .celebrate { background: Canvas; color: CanvasText; border: 3px solid Highlight; }
+  .burst { border-color: Highlight; }
+  .play-tag { background: Canvas; color: CanvasText; border: 2px solid Highlight; box-shadow: none; }
+}
+
+/* Injury designation next to the name: the word carries the meaning, the colour reinforces it. */
+:root { --inj-out: #B42318; --inj-out-ink: #FFFFFF; --inj-doubt: #C2410C; --inj-doubt-ink: #FFFFFF; --inj-q: #F5C542; --inj-q-ink: #2B2000; }
+[data-theme="dark"] { --inj-out: #F97066; --inj-out-ink: #2A0A07; --inj-doubt: #FB923C; --inj-doubt-ink: #2A1200; --inj-q: #FFC83D; --inj-q-ink: #1A1300; }
+.inj { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--rule); color: var(--ink); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.inj-out { background: var(--inj-out); color: var(--inj-out-ink); }
+.inj-doubtful { background: var(--inj-doubt); color: var(--inj-doubt-ink); }
+.inj-questionable { background: var(--inj-q); color: var(--inj-q-ink); }
+@media (forced-colors: active) { .inj { border: 1px solid CanvasText; background: Canvas; color: CanvasText; } }
+
+/* Highlights: a small play button beside the points, and a dialog with the clip. */
+@container (max-width: 400px) { .hl-word { display: none; } }
+.hl-btn { position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font-size: 12px; font-weight: 800; cursor: pointer; }
+.hl-btn.fresh { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+.hl-dot { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--pylon); }
+.hl-dlg { width: min(720px, calc(100vw - 24px)); max-height: 92vh; overflow-y: auto; }
+.hl-player { margin: 0; display: grid; gap: 6px; }
+.hl-player video { width: 100%; max-height: 56vh; border-radius: 10px; background: #000; }
+.hl-player figcaption { font-size: 13px; color: var(--muted); }
+.hl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.hl-item { width: 100%; display: flex; gap: 12px; align-items: center; text-align: left; padding: 8px; border-radius: 10px; border: 1px solid var(--rule); background: var(--panel); cursor: pointer; }
+.hl-item.on { border-color: var(--accent); }
+.hl-item img { width: 96px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex: none; }
+.hl-text { display: grid; gap: 2px; min-width: 0; }
+.hl-text small { color: var(--muted); }
+@media (forced-colors: active) { .hl-btn { border: 1px solid CanvasText; } .hl-dot { background: Highlight; } }
+
+/* Theme switch: a sun on the left, a crescent on the right, and a thumb that slides over the active side. */
+.theme-toggle { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; align-items: center; justify-items: center; width: 64px; height: 34px; padding: 0 3px; border-radius: 999px; border: 1px solid var(--field-border); background: var(--bg); color: var(--muted); cursor: pointer; flex: none; }
+.theme-toggle svg { position: relative; z-index: 1; width: 18px; height: 18px; transition: color 200ms ease; }
+.tt-thumb { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, .3); transition: transform 240ms cubic-bezier(.34, 1.4, .64, 1); }
+.theme-toggle:not(.is-dark) .tt-sun, .theme-toggle.is-dark .tt-moon { color: var(--accent-ink); }
+.theme-toggle.is-dark .tt-thumb { transform: translateX(30px); }
+@media (prefers-reduced-motion: reduce) { .tt-thumb, .theme-toggle svg { transition: none; } }
+@media (forced-colors: active) { .theme-toggle { border-color: CanvasText; } .tt-thumb { background: Highlight; box-shadow: none; } .theme-toggle svg { color: CanvasText; } }
+
+/* Import starters: the checkbox and the three preview lists. */
+.check-row { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.check-row input { width: 18px; height: 18px; }
+.plan { display: grid; gap: 10px; }
+.plan h3, .plan h4 { margin: 0; }
+.plan-list { display: grid; gap: 4px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--rule); border-left-width: 4px; }
+.plan-list h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.plan-added { --plan: #1F9D55; border-left-color: var(--plan); background: color-mix(in srgb, var(--plan) 10%, var(--panel)); }
+.plan-removed { --plan: #D92D20; border-left-color: var(--plan); background: color-mix(in srgb, var(--plan) 10%, var(--panel)); }
+.plan-added h4, .plan-added b { color: #1F9D55; }
+.plan-removed h4, .plan-removed b { color: #D92D20; }
+[data-theme="dark"] .plan-added h4, [data-theme="dark"] .plan-added b { color: #5BD58A; }
+[data-theme="dark"] .plan-removed h4, [data-theme="dark"] .plan-removed b { color: #FF8A80; }
+[data-theme="dark"] .plan-added { --plan: #5BD58A; }
+[data-theme="dark"] .plan-removed { --plan: #FF8A80; }
+.plan-removed li { text-decoration: line-through; text-decoration-thickness: 1px; }
+@media (forced-colors: active) { .plan-list { border-color: CanvasText; } }
+
+/* League colour: the picker in settings, the dot in the profile list, and the tag on cards. */
+.color-row { display: flex; align-items: flex-end; gap: 12px; }
+.color-row input[type="color"] { width: 48px; height: 36px; padding: 2px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); cursor: pointer; }
+.profile-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
+@media (forced-colors: active) { .chip, .profile-dot { forced-color-adjust: none; } }
+
+.bm-help { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.bm-help p { margin: 0; }
+.bm-link { display: inline-block; text-decoration: none; cursor: grab; border-color: var(--accent); font-weight: 800; }

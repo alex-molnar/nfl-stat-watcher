@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getAthlete, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
+import { queryOptions, useQuery } from '@tanstack/react-query';
+import { getAthlete, getLeagueInjuries, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
+import { parseLeagueInjuries } from '../stats/injury';
 import { normalizeSummary } from '../stats/normalize';
 import { toGames, type GameInfo } from '../stats/scoreboard';
 
@@ -18,6 +19,8 @@ export function summaryPolling(state: GameInfo['state'] | undefined, paused = fa
 } {
   if (state === 'in') return { enabled: true, refetchInterval: paused ? false : 10_000, staleTime: 0 };
   if (state === 'post') return { enabled: true, refetchInterval: false, staleTime: Infinity };
+  // Not started yet: one fetch for the injury report, refreshed now and then because designations change before kickoff.
+  if (state === 'pre') return { enabled: true, refetchInterval: paused ? false : 600_000, staleTime: 300_000 };
   return { enabled: false, refetchInterval: false, staleTime: 0 };
 }
 
@@ -39,9 +42,10 @@ export function useScoreboard(paused = false) {
   });
 }
 
-export function useGameSummary(game: GameInfo | null, paused = false) {
+/** One cache entry per game, shared by every card and by the matchup totals, so nothing is fetched twice. */
+export function summaryQuery(game: GameInfo | null, paused = false) {
   const polling = summaryPolling(game?.state, paused);
-  return useQuery({
+  return queryOptions({
     queryKey: ['summary', game?.eventId],
     queryFn: async () => normalizeSummary(await getSummary(game!.eventId)),
     enabled: polling.enabled && game !== null,
@@ -52,12 +56,28 @@ export function useGameSummary(game: GameInfo | null, paused = false) {
   });
 }
 
+export function useGameSummary(game: GameInfo | null, paused = false) {
+  return useQuery(summaryQuery(game, paused));
+}
+
 export function useAthlete(id: string | undefined) {
   return useQuery({
     queryKey: ['athlete', id],
     queryFn: () => getAthlete(id!),
     enabled: id !== undefined,
     staleTime: Infinity,
+    retry: 1,
+  });
+}
+
+/** Every player's injury designation, refreshed every five minutes while the page is open (not while paused). */
+export function useLeagueInjuries(paused = false) {
+  return useQuery({
+    queryKey: ['injuries'],
+    queryFn: async () => parseLeagueInjuries(await getLeagueInjuries()),
+    staleTime: 5 * 60_000,
+    refetchInterval: paused ? false : 5 * 60_000,
+    refetchOnWindowFocus: !paused,
     retry: 1,
   });
 }

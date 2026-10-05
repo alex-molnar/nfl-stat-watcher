@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { AppRoutes } from '../App';
 import summary from '../test/fixtures/summary-pit-cle.json';
-import { profilesFixture, scoreboardFixture, warren } from '../test/data';
+import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 
@@ -222,7 +222,16 @@ describe('settings page', () => {
     seed([], profilesFixture);
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription('Delete Office league? No followed cards use it.');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription('Delete Office league? None of your cards use it.');
+  });
+
+  it('describes the destructive Delete button with the question and the opponent count', async () => {
+    seed([opponent(warren)], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByRole('button', { name: 'Delete Office league' })).toHaveAccessibleDescription(
+      'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
+    );
   });
 
   it('lists profiles in a plain list under a heading, not a nav', () => {
@@ -259,5 +268,67 @@ describe('settings page', () => {
     unmount();
     renderAt('/');
     expect(await screen.findByText('12.60')).toBeInTheDocument();
+  });
+
+  it('says how many opponent cards a delete removes and counts only my cards to move', async () => {
+    seed([warren, opponent(pitDefense), opponent({ ...mahomes, profileId: 'p1' })], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    const select = screen.getByLabelText('Move 1 followed card to');
+    expect(select).toHaveFocus();
+    expect(screen.getByText('Also removes 2 opponent cards.')).toBeInTheDocument();
+    expect(select).toHaveAccessibleDescription('Also removes 2 opponent cards.');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Office league' }));
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([{ ...warren, profileId: 'p2' }]);
+  });
+
+  it('describes Cancel with the opponent count when no cards of mine use the profile', async () => {
+    seed([opponent(warren)], profilesFixture);
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription(
+      'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
+    );
+  });
+
+  it('switches a rule off, keeps its weight and scores nothing for it', async () => {
+    renderAt('/settings');
+    const toggle = within(fieldset('Offense')).getByRole('checkbox', { name: 'Count Passing TD' });
+    expect(toggle).toBeChecked();
+    await userEvent.click(toggle);
+    expect(within(fieldset('Offense')).getByLabelText('Passing TD')).toBeDisabled();
+    expect(profiles()[0].values.off).toEqual(['passTd']);
+    expect(profiles()[0].values.passTd).toBe(4);
+    await userEvent.click(within(fieldset('Offense')).getByRole('checkbox', { name: 'Count Passing TD' }));
+    expect(profiles()[0].values.off).toBeUndefined();
+  });
+
+  it('offers the bonus rules and says which ones the live feed cannot score', async () => {
+    renderAt('/settings');
+    await userEvent.click(screen.getByText('Offense bonuses', { selector: 'summary' }));
+    expect(within(fieldset('Offense bonuses')).getByLabelText('40+ yard passing TD')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('Offense volume', { selector: 'summary' }));
+    const recoveryTd = within(fieldset('Offense volume')).getByLabelText('Fumble recovered for TD');
+    expect(within(fieldset('Offense volume')).queryByText(/never scores/)).not.toBeInTheDocument();
+    await userEvent.clear(recoveryTd);
+    await userEvent.type(recoveryTd, '6');
+    expect(within(fieldset('Offense volume')).getByText(/never scores/)).toBeInTheDocument();
+    const forced = within(fieldset('IDP')).getByLabelText('Forced fumble');
+    await userEvent.clear(forced);
+    await userEvent.type(forced, '2');
+    expect(within(fieldset('IDP')).getByText(/may be inaccurate/)).toBeInTheDocument();
+  });
+
+  it('edits the league colour and shows it on the list dot, the preview and the tag on a card', async () => {
+    seed([warren], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/settings');
+    const picker = screen.getByLabelText('Color') as HTMLInputElement;
+    expect(picker.value).toMatch(/^#[0-9a-f]{6}$/);
+    fireEvent.input(picker, { target: { value: '#ff0000' } });
+    fireEvent.change(picker, { target: { value: '#ff0000' } });
+    expect(profiles()[0].color).toBe('#ff0000');
+    expect(document.querySelector('.color-row .chip')).toHaveStyle({ background: '#ff0000' });
+    expect(document.querySelector('[data-profile="p1"] .profile-dot')).toHaveStyle({ background: '#ff0000' });
   });
 });

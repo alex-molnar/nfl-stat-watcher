@@ -1,5 +1,5 @@
 import type { GameInfo } from '../stats/scoreboard';
-import { freshness, scoreboardInterval, scoreboardRefetch, summaryPolling } from './queries';
+import { freshness, scoreboardInterval, scoreboardRefetch, summaryPolling, summaryQuery } from './queries';
 
 const game = (state: GameInfo['state']) => ({ state }) as GameInfo;
 
@@ -16,10 +16,11 @@ describe('polling rules', () => {
     expect(scoreboardRefetch('success', [game('in')])).toBe(60_000);
   });
 
-  it('polls live summaries, fetches finals once and skips scheduled games', () => {
+  it('polls live summaries, fetches finals once and checks scheduled games now and then for injuries', () => {
     expect(summaryPolling('in')).toEqual({ enabled: true, refetchInterval: 10_000, staleTime: 0 });
     expect(summaryPolling('post')).toEqual({ enabled: true, refetchInterval: false, staleTime: Infinity });
-    expect(summaryPolling('pre')).toEqual({ enabled: false, refetchInterval: false, staleTime: 0 });
+    expect(summaryPolling('pre')).toEqual({ enabled: true, refetchInterval: 600_000, staleTime: 300_000 });
+    expect(summaryPolling('pre', true)).toEqual({ enabled: true, refetchInterval: false, staleTime: 300_000 });
     expect(summaryPolling(undefined)).toEqual({ enabled: false, refetchInterval: false, staleTime: 0 });
   });
 });
@@ -38,5 +39,19 @@ describe('freshness', () => {
   it('says when data was never loaded', () => expect(freshness(true, 0)).toBe('Live data unavailable, retrying'));
   it('shows the time of the last good update', () => {
     expect(freshness(true, new Date('2026-10-04T14:32:00').getTime())).toMatch(/^Updated .*32.*, retrying$/);
+  });
+});
+
+describe('summary query options', () => {
+  const live = { eventId: '1', state: 'in' } as GameInfo;
+
+  it('uses one cache key per game, so cards and the matchup share it', () => {
+    expect(summaryQuery(live).queryKey).toEqual(['summary', '1']);
+    expect(summaryQuery(live).refetchInterval).toBe(10_000);
+    expect(summaryQuery(null).enabled).toBe(false);
+  });
+
+  it('stops polling and focus refetching while paused', () => {
+    expect(summaryQuery(live, true)).toMatchObject({ refetchInterval: false, refetchOnWindowFocus: false, refetchOnReconnect: false });
   });
 });

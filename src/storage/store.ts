@@ -1,6 +1,6 @@
 export interface Store<T> {
   get(): T;
-  set(next: T): void;
+  set(next: T): boolean;
   subscribe(listener: () => void): () => void;
   reload(): void;
 }
@@ -21,11 +21,13 @@ export function createStore<T>(opts: {
   const listeners = new Set<() => void>();
   const notify = () => listeners.forEach((l) => l());
 
-  function persist(next: T) {
+  function persist(next: T): boolean {
     try {
       localStorage.setItem(opts.key, JSON.stringify(next));
+      return true;
     } catch {
       console.warn(`Stat Watch: could not save ${opts.key}, keeping it in memory only`);
+      return false;
     }
   }
 
@@ -54,8 +56,9 @@ export function createStore<T>(opts: {
     get: () => value,
     set(next) {
       value = next;
-      persist(next);
+      const persisted = persist(next);
       notify();
+      return persisted;
     },
     subscribe(listener) {
       listeners.add(listener);

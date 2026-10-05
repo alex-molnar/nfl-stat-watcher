@@ -1,20 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
+import { backdropClose } from './backdropClose';
 import { useQueries } from '@tanstack/react-query';
 import { getAthlete } from '../espn/client';
 import type { EspnTeamRef } from '../espn/types';
 import { useDebounced, usePlayerSearch, useTeams } from '../hooks/queries';
-import { addEntry, followedStore } from '../storage/followed';
+import { addEntry, followedStore, sameEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import type { FollowedEntry } from '../storage/types';
 
-export function AddDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  /** Which side new entries join. Defaults to mine. */
+  side?: Side;
+  /** A fixed league (vs mode): hides the league select and names the side and league in the title. */
+  profileId?: string;
+}
+
+export function AddDialog({ open, onClose, side = 'mine', profileId: fixedProfileId }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const profiles = useStore(profilesStore);
   const followed = useStore(followedStore);
   const [query, setQuery] = useState('');
-  const [profileId, setProfileId] = useState(profiles[0]?.id ?? '');
+  const [chosenId, setChosenId] = useState(profiles[0]?.id ?? '');
+  const profileId = fixedProfileId ?? chosenId;
+  const sideField = side === 'opponent' ? { side: 'opponent' as const } : {}; // mine stays without the key
+  const title =
+    fixedProfileId === undefined
+      ? 'Add a player or defense'
+      : `Add to ${side === 'opponent' ? 'opponent side' : 'your side'}, ${profiles.find((p) => p.id === fixedProfileId)?.name ?? ''}`;
   const term = useDebounced(query.trim(), 300);
   const search = usePlayerSearch(term);
   const teams = useTeams();
@@ -23,6 +39,7 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
+      setQuery(''); // each opening starts clean, not with the other side's last search
       dialog.showModal();
       inputRef.current?.focus();
     }
@@ -39,17 +56,18 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
       ? (teams.data ?? []).filter((t) => [t.displayName, t.location, t.name, t.abbreviation].some((s) => s?.toLowerCase().includes(lower)))
       : [];
 
+  // Same side and league only, so a player already on the other side can still be added.
   const isFollowed = (kind: FollowedEntry['kind'], espnId: string) =>
-    followed.some((f) => f.kind === kind && f.espnId === espnId && f.profileId === profileId);
+    followed.some((f) => sameEntry(f, { kind, espnId, profileId, ...sideField }));
 
   function addPlayer(index: number) {
     const a = details[index]?.data?.athlete;
     if (!a?.team) return;
-    addEntry({ kind: 'player', espnId: a.id, name: a.displayName, teamId: a.team.id, teamAbbr: a.team.abbreviation, position: a.position?.abbreviation ?? '', jersey: a.jersey, profileId });
+    addEntry({ kind: 'player', espnId: a.id, name: a.displayName, teamId: a.team.id, teamAbbr: a.team.abbreviation, position: a.position?.abbreviation ?? '', jersey: a.jersey, profileId, ...sideField });
   }
 
   function addDefense(t: EspnTeamRef) {
-    addEntry({ kind: 'defense', espnId: t.id, name: t.displayName, teamId: t.id, teamAbbr: t.abbreviation, position: 'D/ST', profileId });
+    addEntry({ kind: 'defense', espnId: t.id, name: t.displayName, teamId: t.id, teamAbbr: t.abbreviation, position: 'D/ST', profileId, ...sideField });
   }
 
   // aria-disabled, not disabled, so focus stays on the button after it is pressed.
@@ -82,22 +100,24 @@ export function AddDialog({ open, onClose }: { open: boolean; onClose: () => voi
   const summary = message ?? (searching ? 'Searching' : `${count} ${count === 1 ? 'result' : 'results'}`);
 
   return (
-    <dialog ref={ref} aria-labelledby="add-title" onClose={onClose}>
+    <dialog ref={ref} aria-labelledby="add-title" onClose={onClose} {...backdropClose}>
       <div className="dlg">
         <div className="dlg-head">
-          <h2 id="add-title">Add a player or defense</h2>
+          <h2 id="add-title">{title}</h2>
           <button type="button" className="close" aria-label="Close" onClick={onClose}>×</button>
         </div>
         <label className="field-label">
           Search
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" ref={inputRef} />
         </label>
-        <label className="field-label">
-          League
-          <select value={profileId} onChange={(e) => setProfileId(e.target.value)}>
-            {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+        {fixedProfileId === undefined && (
+          <label className="field-label">
+            League
+            <select value={chosenId} onChange={(e) => setChosenId(e.target.value)}>
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+        )}
         <p role="status" className={message ? 'muted msg' : 'sr'}>{summary}</p>
         <ul className="results">
           {defenses.map((t) => (

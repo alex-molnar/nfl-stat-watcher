@@ -1,13 +1,13 @@
 import summaryJson from '../test/fixtures/summary-pit-cle.json';
 import type { EspnPlay, EspnSummary } from '../espn/types';
-import { allPlays, normalizeSummary, shortName, situationFrom } from './normalize';
+import { allPlays, endsDrive, normalizeSummary, shortName, situationFrom } from './normalize';
 
 const summary = summaryJson as unknown as EspnSummary;
 const game = normalizeSummary(summary);
 
 describe('normalizeSummary on PIT 24 at CLE 27', () => {
   it('reads passing and credits a successful 2-point run', () => {
-    expect(game.players['8439']?.passing).toEqual({ completions: 22, attempts: 40, yards: 299, touchdowns: 3, interceptions: 2 });
+    expect(game.players['8439']?.passing).toEqual({ completions: 22, attempts: 40, yards: 299, touchdowns: 3, interceptions: 2, sacked: 5 });
     expect(game.players['8439']?.twoPointConversions).toBe(1);
   });
 
@@ -23,7 +23,7 @@ describe('normalizeSummary on PIT 24 at CLE 27', () => {
   });
 
   it('reads kicking and parses made field goal distances', () => {
-    expect(game.players['17372']?.kicking).toEqual({ fgMade: 1, fgAttempts: 2, longest: 31, xpMade: 1, xpAttempts: 1, madeDistances: [31] });
+    expect(game.players['17372']?.kicking).toEqual({ fgMade: 1, fgAttempts: 2, longest: 31, xpMade: 1, xpAttempts: 1, madeDistances: [31], missedDistances: [48] });
     expect(game.players['4258620']?.kicking?.madeDistances).toEqual([44, 56]);
   });
 
@@ -34,9 +34,16 @@ describe('normalizeSummary on PIT 24 at CLE 27', () => {
     expect(game.players['3122840']?.fumbles?.lost).toBe(1);
   });
 
+  it('credits touchdown lengths to the passer, receiver and runner named in the play text', () => {
+    const lengths = Object.values(game.players).flatMap((p) => p.tdYards ? [p.tdYards] : []);
+    expect(lengths.flatMap((l) => l.pass).sort((a, b) => a - b)).toEqual([2, 3, 12, 21]);
+    expect(lengths.flatMap((l) => l.rec).sort((a, b) => a - b)).toEqual([2, 3, 12, 21]);
+    expect(lengths.flatMap((l) => l.rush).sort((a, b) => a - b)).toEqual([2, 28]);
+    expect(game.players['8439']?.tdYards?.pass).toEqual([12, 21, 3]);
+  });
   it('builds team defense stats for both teams', () => {
-    expect(game.defenses['23']).toEqual({ sacks: 2, interceptions: 1, fumbleRecoveries: 1, touchdowns: 0, safeties: 0, pointsAllowed: 27 });
-    expect(game.defenses['5']).toEqual({ sacks: 5, interceptions: 2, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 24 });
+    expect(game.defenses['23']).toEqual({ sacks: 2, interceptions: 1, fumbleRecoveries: 1, touchdowns: 0, safeties: 0, pointsAllowed: 27, yardsAllowed: 372 });
+    expect(game.defenses['5']).toEqual({ sacks: 5, interceptions: 2, fumbleRecoveries: 0, touchdowns: 0, safeties: 0, pointsAllowed: 24, yardsAllowed: 361 });
   });
 });
 
@@ -88,4 +95,146 @@ describe('plays', () => {
     expect(situationFrom([play('4', 'Kickoff', '7')])?.yardsToEndzone).toBe(40);
     expect(situationFrom([])).toBeNull();
   });
+});
+
+describe('blocked kicks from play text', () => {
+  const side = (id: string, name: string) => ({ team: { id }, statistics: [{ name: 'defensive', keys: [] as string[], totals: [] as string[], athletes: [{ athlete: { id: `a${id}`, displayName: name }, stats: [] as string[] }] }] });
+  // Two teams, as in a real game: the kicking team has the ball, the other team blocks.
+  const game = (kicking: string, blocker: [string, string], text: string) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] },
+    boxscore: { players: [side(kicking, 'Some Kicker'), side(blocker[0], blocker[1])] },
+    drives: { previous: [{ plays: [{ id: '1', text, start: { team: { id: kicking } } }] }] },
+  } as unknown as EspnSummary);
+
+  it.each([
+    ['punt', 'J.Scott punt is BLOCKED by S.Fehoko, Center-J.Harris, recovered by LAC-A.Ingold at LAC 3.', ['22', 'Simi Fehoko']],
+    ['extra point', 'T.Shough pass short left to J.Johnson for 2 yards, TOUCHDOWN. D.Carlson extra point is Blocked (T.Booker), Center-C.Adomitis, Holder-R.Wright.', ['13', 'Thomas Booker']],
+    ['field goal', 'B.Aubrey 62 yard field goal is BLOCKED (W.Anderson), Center-T.Sieg, Holder-B.Anger.', ['34', 'Will Anderson']],
+  ] as const)('credits a blocked %s to the defense and the named blocker', (_kind, text, blocker) => {
+    const g = game('24', [blocker[0], blocker[1]], text);
+    expect(g.defenses[blocker[0]]?.blockedKicks).toBe(1);
+    expect(g.players[`a${blocker[0]}`]?.blockedKicks).toBe(1);
+    expect(g.defenses['24']?.blockedKicks).toBeUndefined();
+  });
+
+  it('ignores a kick that is only mentioned, not blocked', () => {
+    const g = game('24', ['22', 'Simi Fehoko'], 'J.Scott punt is Good, blocked by nobody. D.Carlson extra point is GOOD.');
+    expect(Object.values(g.defenses).every((d) => !d.blockedKicks)).toBe(true);
+  });
+});
+
+describe('forced fumbles and stuffs from play text', () => {
+  const side = (id: string, names: string[]) => ({ team: { id }, statistics: [{ name: 'defensive', keys: [] as string[], totals: [] as string[], athletes: names.map((n, i) => ({ athlete: { id: `${id}${i}`, displayName: n }, stats: [] as string[] })) }] });
+  const game = (plays: { type: string; text: string }[]) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] },
+    boxscore: { players: [side('9', ['Jordan Love']), side('27', ['Antoine Winfield', 'Terrel Bernard', 'Gaines Gaines'])] },
+    drives: { previous: [{ plays: plays.map((p, i) => ({ id: String(i), text: p.text, type: { text: p.type }, start: { team: { id: '9' } } })) }] },
+  } as unknown as EspnSummary);
+
+  it('credits a forced fumble to the named defender, but not on a play replay reversed', () => {
+    const g = game([
+      { type: 'Pass Reception', text: 'J.Love pass short right to M.Lloyd to TB 16 for 16 yards (A.Winfield). FUMBLES (A.Winfield), ball out of bounds at TB 16.' },
+      { type: 'Pass Incompletion', text: 'J.Love pass short left to M.Golden to GB 42 for 11 yards (J.Parrish). FUMBLES (A.Winfield), RECOVERED by TB-A.Winfield at GB 47.The Replay Official reviewed the pass completion ruling, and the play was REVERSED.' },
+    ]);
+    expect(g.players['270']?.forcedFumbles).toBe(1);
+  });
+
+  it('prefers "Fumble Forced by" over the sacker named in parentheses', () => {
+    const g = game([{ type: 'Sack', text: 'T.Shough sacked at LV 30 for -10 yards (J.Chinn). FUMBLES (J.Chinn) [J.Chinn], RECOVERED by LV-T.Johnson at LV 32. Fumble Forced by 27-A.Winfield.' }]);
+    expect(g.players['270']?.forcedFumbles).toBe(1);
+  });
+
+  it('splits a stuff between the tacklers of a no gain or losing rush and ignores ordinary gains', () => {
+    const g = game([
+      { type: 'Rush', text: 'R.Stevenson up the middle to NE 19 for no gain (G.Gaines; T.Bernard).' },
+      { type: 'Rush', text: 'T.Henderson up the middle to NE 21 for 1 yard (T.Bernard).' },
+      { type: 'Rush', text: 'T.Henderson up the middle to NE 21 for -3 yards (T.Bernard).' },
+    ]);
+    expect(g.players['271']?.stuffs).toBeCloseTo(1.5);
+    expect(g.players['272']?.stuffs).toBeCloseTo(0.5);
+  });
+});
+
+describe('drive end detection', () => {
+  const play = (type: string, text = type, extra: Partial<EspnPlay> = {}): EspnPlay => ({ id: `${type}${text}`.slice(0, 40), text, type: { text: type }, start: { team: { id: '25' }, yardsToEndzone: 4 }, ...extra });
+
+  it('knows a drive is over right after a score, even though ESPN appends a timeout to it', () => {
+    expect(endsDrive([play('Rush'), play('Rushing Touchdown', 'J.Cook for 4 yards, TOUCHDOWN.'), play('Official Timeout')])).toBe(true);
+    expect(endsDrive([play('Pass Reception'), play('Field Goal Good'), play('Official Timeout')])).toBe(true);
+    expect(endsDrive([play('Pass Reception'), play('Punt'), play('End Period')])).toBe(true);
+  });
+
+  it('knows from the drive result alone when the last play looks ordinary (a turnover on downs)', () => {
+    expect(endsDrive([play('Pass Incompletion')])).toBe(false);
+    expect(endsDrive([play('Pass Incompletion')], 'DOWNS')).toBe(true);
+  });
+
+  it('keeps a drive alive through timeouts and period breaks in the middle of it', () => {
+    expect(endsDrive([play('Rush'), play('Pass Reception'), play('Official Timeout')])).toBe(false);
+    expect(endsDrive([play('Sack'), play('End Period')])).toBe(false);
+  });
+
+  it('treats the kickoff after a score as nobody having the ball yet', () => {
+    expect(endsDrive([play('Kickoff')])).toBe(true);
+  });
+
+  it('flags the situation as drive over, so the scorer is no longer in the red zone', () => {
+    const s = situationFrom([play('Rushing Touchdown'), play('Official Timeout')], true);
+    expect(s).toMatchObject({ possessionTeamId: '25', yardsToEndzone: 4, driveOver: true });
+    expect(situationFrom([play('Rush')], false)).not.toHaveProperty('driveOver');
+  });
+});
+
+describe('injury report', () => {
+  const summary = (injuries: unknown) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] }, boxscore: { players: [] }, injuries,
+  } as unknown as EspnSummary);
+
+  it('keys designations by athlete id, with the injury and return date when ESPN gives them', () => {
+    const g = summary([
+      { team: { id: '25' }, injuries: [
+        { status: 'Out', athlete: { id: '10' }, details: { type: 'Ankle', returnDate: '2026-10-11' } },
+        { status: 'Questionable', athlete: { id: '11' }, details: { type: 'Not Specified' } },
+        { status: 'Doubtful', athlete: { id: '12' } },
+      ] },
+    ]);
+    expect(g.injuries).toEqual({
+      '10': { status: 'Out', type: 'Ankle', returnDate: '2026-10-11' },
+      '11': { status: 'Questionable' },
+      '12': { status: 'Doubtful' },
+    });
+  });
+
+  it('is empty for a game with no report, and ignores entries without a status or athlete', () => {
+    expect(summary(undefined).injuries).toEqual({});
+    expect(summary([{ injuries: [{ status: '', athlete: { id: '1' } }, { status: 'Out' }] }]).injuries).toEqual({});
+  });
+});
+
+describe('highlight clips', () => {
+  const summary = (videos: unknown) => normalizeSummary({
+    header: { id: '1', competitions: [{ competitors: [] }] }, boxscore: { players: [] }, videos,
+  } as unknown as EspnSummary);
+  const clip = (id: number, published: string, links: unknown) => ({ id, headline: `Clip ${id}`, originalPublishDate: published, duration: 24, thumbnail: 'https://img.example/t.jpg', links });
+
+  it('keeps clips newest first, with the video file when there is one and the page otherwise', () => {
+    const g = summary([
+      clip(1, '2026-10-04T21:00:00Z', { source: { href: 'https://cdn.example/a.mp4' }, web: { href: 'https://www.espn.com/video/clip/_/id/1' } }),
+      clip(2, '2026-10-04T22:00:00Z', { web: { href: 'https://www.espn.com/video/clip/_/id/2' } }),
+    ]);
+    expect(g.highlights?.map((h) => h.id)).toEqual(['2', '1']);
+    expect(g.highlights![1]).toMatchObject({ mp4: 'https://cdn.example/a.mp4', page: 'https://www.espn.com/video/clip/_/id/1', duration: 24 });
+    expect(g.highlights![0]).not.toHaveProperty('mp4');
+  });
+
+  it('drops clips with no usable link, and never trusts a non-https or non-mp4 file', () => {
+    const g = summary([
+      clip(1, '2026-10-04T21:00:00Z', {}),
+      clip(2, '2026-10-04T21:00:00Z', { source: { href: 'http://cdn.example/a.mp4' } }),
+      clip(3, '2026-10-04T21:00:00Z', { source: { href: 'https://cdn.example/stream.m3u8' }, web: { href: 'javascript:alert(1)' } }),
+    ]);
+    expect(g.highlights).toEqual([]);
+  });
+
+  it('is empty when the game has no clips', () => expect(summary(undefined).highlights).toEqual([]));
 });

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { MainPage } from './ui/MainPage';
 import { SettingsPage } from './ui/SettingsPage';
+import { VsPage } from './ui/VsPage';
 
 // networkMode 'always': while the browser is offline, react-query would otherwise pause fetches
 // silently and the retry note would never show.
@@ -27,6 +28,7 @@ export function AppRoutes() {
     <>
       <Routes>
         <Route path="/" element={<MainPage />} />
+        <Route path="/vs" element={<VsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
