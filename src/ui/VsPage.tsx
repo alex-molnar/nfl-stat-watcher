@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useMatchup } from '../hooks/useMatchup';
+import { ALL_LEAGUES, useMatchup } from '../hooks/useMatchup';
 import { entryKey, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
@@ -32,7 +32,7 @@ export function VsPage() {
   const profiles = useStore(profilesStore);
   const [pickedId, setPickedId] = useState(profiles[0]!.id); // memory only, never stored
   const paused = usePaused();
-  const { profile, mine, opponent, totals, scoreboard, settled } = useMatchup(pickedId, paused);
+  const { profile, all, mine, opponent, totals, scoreboard, settled } = useMatchup(pickedId, paused);
   const rows = { mine, opponent };
   const liveOrder = useLiveOrder([...mine, ...opponent], paused);
   const [adding, setAdding] = useState(false);
@@ -46,7 +46,8 @@ export function VsPage() {
   // Latched per league: once a league's matchup has settled it stays settled, so adding a card with an
   // uncached summary never blanks the phrase and re-announces it. Switching league starts over.
   const latch = useRef({ id: '', done: false });
-  if (latch.current.id !== profile.id) latch.current = { id: profile.id, done: false };
+  const leagueKey = all ? ALL_LEAGUES : profile.id;
+  if (latch.current.id !== leagueKey) latch.current = { id: leagueKey, done: false };
   if (settled) latch.current.done = true;
   const announced = latch.current.done;
   const phrase = announced && mine.length + opponent.length > 0 ? LEADER_TEXT[leader] : '';
@@ -96,10 +97,12 @@ export function VsPage() {
     <section className="vs-col" aria-labelledby={`vs-${side}`}>
       <div className="vs-col-head">
         <h2 className="section-title" id={`vs-${side}`}>{COLUMNS[side].title}</h2>
-        <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
-          Add player
-        </button>
-        {profile.source && (
+        {!all && (
+          <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
+            Add player
+          </button>
+        )}
+        {!all && profile.source && (
           <button type="button" className="btn press" aria-label={`Sync ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
             Sync starters
           </button>
@@ -145,11 +148,12 @@ export function VsPage() {
         <div className="vs-league-row">
           <label className="field-label vs-league">
             Matchup league
-            <select value={profile.id} onChange={(e) => setPickedId(e.target.value)}>
+            <select value={all ? ALL_LEAGUES : profile.id} onChange={(e) => setPickedId(e.target.value)}>
+              {profiles.length > 1 && <option value={ALL_LEAGUES}>All</option>}
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
-          {profile.source && (
+          {!all && profile.source && (
             <button type="button" className="btn press" onClick={(e) => { opener.current = e.currentTarget; setImportSide('both'); }}>
               Sync all starters
             </button>
@@ -161,7 +165,7 @@ export function VsPage() {
           <span className="sr">{phrase ? `${!note ? '' : note.endsWith('.') ? ' ' : '. '}${phrase}` : ''}</span>
         </p>
         <ScoreBar ref={barRef} settled={announced} mine={totals.mine} opponent={totals.opponent} />
-        {profile.source?.issues.length ? (
+        {!all && profile.source?.issues.length ? (
           <details className="compat-warning matchup-warning">
             <summary>{`${profile.name} has ${profile.source.issues.length} imported scoring limits`}</summary>
             <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>

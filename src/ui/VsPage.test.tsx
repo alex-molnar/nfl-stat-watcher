@@ -356,6 +356,27 @@ describe('vs page', () => {
     expect(statusLine()).toHaveTextContent(/^Opponent leads$/);
   });
 
+  it('shows both sides of every league under "All", each card scored with its own league, without add or sync buttons', async () => {
+    seed([warren, opponent(pitDefense), { ...warren, profileId: 'p2' }], profilesFixture);
+    mockFetch(routes);
+    renderAt('/vs');
+    await within(mineCol()).findAllByText('Jaylen Warren');
+    expect(within(mineCol()).getAllByText('Jaylen Warren')).toHaveLength(1); // league p1 only
+    await userEvent.selectOptions(picker(), 'All');
+    expect(within(mineCol()).getAllByText('Jaylen Warren')).toHaveLength(2); // both leagues
+    expect(within(oppCol()).getByText('Pittsburgh Steelers')).toBeInTheDocument();
+    const points = within(mineCol()).getAllByRole('button', { name: /fantasy pts/ }).map((b) => b.textContent);
+    expect(new Set(points).size).toBe(2); // PPR and standard score the same game differently
+    expect(screen.queryByRole('button', { name: /Add player/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Sync/ })).not.toBeInTheDocument();
+  });
+
+  it('only offers "All" when there is more than one league', () => {
+    seed([], [profilesFixture[0]!]);
+    renderAt('/vs');
+    expect(within(picker()).queryByRole('option', { name: 'All' })).not.toBeInTheDocument();
+  });
+
   it('puts my column first, after the score bar', () => {
     seed([], profilesFixture);
     renderAt('/vs');

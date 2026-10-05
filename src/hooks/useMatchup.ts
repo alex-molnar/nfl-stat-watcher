@@ -8,10 +8,15 @@ import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
 import { summaryQuery, useScoreboard } from './queries';
 
+/** The league picker's "All" choice: every imported league's cards, each scored with its own league. */
+export const ALL_LEAGUES = 'all';
+
 export interface MatchupRow { entry: FollowedEntry; game: GameInfo | null; points: number }
 
 export interface Matchup {
+  /** The chosen league; with ALL_LEAGUES it is only the first league, kept for display fallbacks. */
   profile: Profile;
+  all: boolean;
   mine: MatchupRow[];
   opponent: MatchupRow[];
   totals: { mine: number; opponent: number };
@@ -26,13 +31,15 @@ const rank = (game: GameInfo | null) => ORDER.indexOf(game?.state ?? 'none');
 const sum = (rows: MatchupRow[]) => Math.round(rows.reduce((t, r) => t + r.points, 0) * 100) / 100;
 
 /**
- * Both sides of one league's matchup, scored with that league's profile. Summaries come from the
+ * Both sides of one league's matchup, scored with that league's profile (or of every league, each
+ * card with its own). Summaries come from the
  * same ['summary', eventId] cache entries the cards subscribe to, one query per game.
  */
 export function useMatchup(profileId: string, paused: boolean): Matchup {
   const profiles = useStore(profilesStore);
+  const all = profileId === ALL_LEAGUES;
   const profile = profiles.find((p) => p.id === profileId) ?? profiles[0]!;
-  const entries = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id)).filter((e) => e.profileId === profile.id);
+  const entries = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id)).filter((e) => all || e.profileId === profile.id);
   const scoreboard = useScoreboard(paused);
   const games = scoreboard.data ?? [];
   const placed = entries
@@ -45,9 +52,9 @@ export function useMatchup(profileId: string, paused: boolean): Matchup {
   const rows = placed.map(({ entry, game }) => ({
     entry,
     game,
-    points: scoreEntry(entry, game ? stats.get(game.eventId) : undefined, profile.values).total,
+    points: scoreEntry(entry, game ? stats.get(game.eventId) : undefined, (profiles.find((p) => p.id === entry.profileId) ?? profile).values).total,
   }));
   const mine = rows.filter((r) => sideOf(r.entry) === 'mine');
   const opponent = rows.filter((r) => sideOf(r.entry) === 'opponent');
-  return { profile, mine, opponent, totals: { mine: sum(mine), opponent: sum(opponent) }, scoreboard, settled: rows.length === 0 || (!scoreboard.isLoading && !summaries.some((q) => q.isLoading)) };
+  return { profile, all, mine, opponent, totals: { mine: sum(mine), opponent: sum(opponent) }, scoreboard, settled: rows.length === 0 || (!scoreboard.isLoading && !summaries.some((q) => q.isLoading)) };
 }
