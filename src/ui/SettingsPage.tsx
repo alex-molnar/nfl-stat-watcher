@@ -3,10 +3,11 @@ import { FIELD_GROUPS, STEP_LABELS, isRuleOn, type FieldDef } from '../scoring/f
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
 import { followedStore, sideOf } from '../storage/followed';
-import { addProfile, applyPreset, clearPointsAllowedBands, deleteProfile, profilesStore, renameProfile, setPointsAllowedBand, setRuleEnabled, setStepPoints, setTier, setValue } from '../storage/profiles';
+import { addProfile, setProfileColor, applyPreset, clearPointsAllowedBands, deleteProfile, profilesStore, renameProfile, setPointsAllowedBand, setRuleEnabled, setStepPoints, setTier, setValue } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { Header } from './Header';
 import { usePageTitle } from './usePageTitle';
+import { textOn } from './format';
 import { ImportLeaguesDialog } from './ImportLeaguesDialog';
 import { disconnectLeagueSource, isLocallyModified } from '../leagues/import';
 import { ESPN_SCORING_MAP_VERSION } from '../leagues/espn/statMap';
@@ -58,6 +59,19 @@ function NumberField({ label, value, step, onChange, enabled = true, onToggle, n
       </label>
       {note && <span id={`${msgId}-note`} className="field-note">{note}</span>}
       <span id={msgId} className="field-msg" role="status">{msg}</span>
+    </div>
+  );
+}
+
+/** The league's colour: the tag on its player cards. A native colour input, so it is keyboard and screen reader friendly. */
+function ColorField({ profile }: { profile: Profile }) {
+  return (
+    <div className="color-row">
+      <label className="field-label color-field">
+        Color
+        <input type="color" value={profile.color ?? '#2563eb'} onChange={(e) => setProfileColor(profile.id, e.target.value)} />
+      </label>
+      <span className="chip" aria-hidden="true" style={{ background: profile.color, color: profile.color ? textOn(profile.color) : undefined }}>{profile.name}</span>
     </div>
   );
 }
@@ -133,6 +147,7 @@ function ProfileForm({ profile, profiles, usedBy, opponents, onDeleted, onRefres
   return (
     <section className="profile-form" aria-label={`Edit ${profile.name}`}>
       <NameField profile={profile} others={others} />
+      <ColorField profile={profile} />
       <div className="preset-row">
         <label className="field-label">
           Preset
@@ -323,7 +338,7 @@ export function SettingsPage() {
               {profiles.map((p) => (
                 <li key={p.id}>
                   <button type="button" data-profile={p.id} aria-current={p.id === profile.id ? 'true' : undefined} onClick={() => setSelectedId(p.id)}>
-                    {p.name}
+                    {p.color && <i className="profile-dot" style={{ background: p.color }} aria-hidden="true" />}{p.name}
                   </button>
                 </li>
               ))}

@@ -118,7 +118,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
           {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
         </div>
-        <span className="chip league-chip">{profile.name}</span>
+        <span className="chip league-chip" style={profile.color ? { background: profile.color, color: textOn(profile.color) } : undefined}>{profile.name}</span>
         {injury && <div className="inj-row"><span className={`inj inj-${injuryTone(injury)}`}>{injuryLabel(injury)}</span></div>}
       </div>
 

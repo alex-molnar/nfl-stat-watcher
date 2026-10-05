@@ -348,3 +348,9 @@ dialog[open] { animation: dlg 180ms ease-out; }
 [data-theme="dark"] .plan-removed { --plan: #FF8A80; }
 .plan-removed li { text-decoration: line-through; text-decoration-thickness: 1px; }
 @media (forced-colors: active) { .plan-list { border-color: CanvasText; } }
+
+/* League colour: the picker in settings, the dot in the profile list, and the tag on cards. */
+.color-row { display: flex; align-items: flex-end; gap: 12px; }
+.color-row input[type="color"] { width: 48px; height: 36px; padding: 2px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); cursor: pointer; }
+.profile-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
+@media (forced-colors: active) { .chip, .profile-dot { forced-color-adjust: none; } }

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -317,5 +317,18 @@ describe('settings page', () => {
     await userEvent.clear(forced);
     await userEvent.type(forced, '2');
     expect(within(fieldset('IDP')).getByText(/may be inaccurate/)).toBeInTheDocument();
+  });
+
+  it('edits the league colour and shows it on the list dot, the preview and the tag on a card', async () => {
+    seed([warren], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/settings');
+    const picker = screen.getByLabelText('Color') as HTMLInputElement;
+    expect(picker.value).toMatch(/^#[0-9a-f]{6}$/);
+    fireEvent.input(picker, { target: { value: '#ff0000' } });
+    fireEvent.change(picker, { target: { value: '#ff0000' } });
+    expect(profiles()[0].color).toBe('#ff0000');
+    expect(document.querySelector('.color-row .chip')).toHaveStyle({ background: '#ff0000' });
+    expect(document.querySelector('[data-profile="p1"] .profile-dot')).toHaveStyle({ background: '#ff0000' });
   });
 });

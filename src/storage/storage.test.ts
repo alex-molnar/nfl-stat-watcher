@@ -4,7 +4,7 @@ import type { Profile } from '../scoring/types';
 import type { FollowedEntry } from './types';
 import { addEntry, entryKey, followedStore, moveEntry, removeEntry, sideOf, updateEntryTeam, withValidProfiles } from './followed';
 import { opponent } from '../test/data';
-import { addProfile, applyPreset, deleteProfile, profilesStore, setPointsAllowedBand, setRuleEnabled, setTier, setValue } from './profiles';
+import { addProfile, applyPreset, deleteProfile, profilesStore, setPointsAllowedBand, setProfileColor, setRuleEnabled, setTier, setValue } from './profiles';
 import { followSystemTheme, setTheme, themeStore } from './theme';
 import { reloadAllStores } from './store';
 
@@ -81,6 +81,37 @@ describe('store loading', () => {
     localStorage.setItem('nflsw:v1:profiles', JSON.stringify([{ id: 'p1', name: 'Old', preset: 'custom', values: partial }]));
     reloadAllStores();
     expect(profilesStore.get()[0]?.values.dstTd).toBe(6);
+  });
+});
+
+describe('league colours', () => {
+  it('gives the first league a colour and every new league the next unused one', () => {
+    const first = profilesStore.get()[0]!.color;
+    expect(first).toMatch(/^#[0-9a-f]{6}$/i);
+    const id = addProfile('Second');
+    const second = profilesStore.get().find((p) => p.id === id)!.color;
+    expect(second).not.toBe(first);
+    const id3 = addProfile('Third');
+    expect(new Set([first, second, profilesStore.get().find((p) => p.id === id3)!.color]).size).toBe(3);
+  });
+
+  it('gives profiles saved before colours existed different colours, and keeps ones they chose', () => {
+    const { color: _c, ...plain } = profile('a', 'A');
+    seedProfiles(plain as Profile, { ...plain, id: 'b', name: 'B' } as Profile, { ...plain, id: 'c', name: 'C', color: '#123456' } as Profile);
+    const colors = profilesStore.get().map((p) => p.color);
+    expect(colors[2]).toBe('#123456');
+    expect(new Set(colors).size).toBe(3);
+    reloadAllStores();
+    expect(profilesStore.get().map((p) => p.color)).toEqual(colors); // stable across reloads
+  });
+
+  it('changes the colour, and ignores anything that is not #rrggbb', () => {
+    const id = profilesStore.get()[0]!.id;
+    setProfileColor(id, '#AABBCC');
+    expect(profilesStore.get()[0]!.color).toBe('#aabbcc');
+    setProfileColor(id, 'red');
+    setProfileColor(id, '#fff');
+    expect(profilesStore.get()[0]!.color).toBe('#aabbcc');
   });
 });
 

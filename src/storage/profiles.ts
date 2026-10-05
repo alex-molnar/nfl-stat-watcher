@@ -2,10 +2,11 @@ import { PRESETS, copyValues } from '../scoring/presets';
 import { VALUE_KEYS, isValidSteps, type PresetId, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
 import { followedStore, reassignProfile, withValidProfiles } from './followed';
 import { createStore } from './store';
+import { isHexColor, nextLeagueColor } from '../scoring/leagueColor';
 import { isLeagueSource } from '../leagues/types';
 import { isValidPointsAllowedBands } from '../scoring/types';
 
-const newProfile = (name: string): Profile => ({ id: crypto.randomUUID(), name, preset: 'ppr', values: copyValues(PRESETS.ppr) });
+const newProfile = (name: string, existing: Profile[] = []): Profile => ({ id: crypto.randomUUID(), name, preset: 'ppr', values: copyValues(PRESETS.ppr), color: nextLeagueColor(existing.map((p) => p.color)) });
 
 function isProfile(v: unknown): v is Profile {
   if (typeof v !== 'object' || v === null) return false;
@@ -38,15 +39,17 @@ export const profilesStore = createStore<Profile[]>({
   key: 'nflsw:v1:profiles',
   fallback: () => [newProfile('My league')],
   isValid: (v): v is Profile[] => Array.isArray(v) && v.length > 0 && v.every(isProfile),
-  repair: (ps) => ps.map((p) => {
+  repair: (ps) => ps.reduce<Profile[]>((done, p) => {
     const values = repairValues(p.values);
     const rawSource = p.source as (Record<string, unknown> & { baselineValues?: Partial<ScoringValues> }) | undefined;
     const migrated = rawSource && typeof rawSource === 'object' && rawSource.baselineValues && typeof rawSource.baselineValues === 'object'
       ? { ...rawSource, baselineValues: repairValues(rawSource.baselineValues) }
       : rawSource;
     const source = isLeagueSource(migrated) ? migrated : undefined;
-    return { ...p, values, ...(source ? { source } : { source: undefined }) };
-  }),
+    // Profiles saved before colours existed get the next unused one, in list order, so each looks different.
+    const color = isHexColor(p.color) ? p.color : nextLeagueColor([...done, ...ps.slice(done.length + 1)].map((other) => other.color));
+    return [...done, { ...p, values, color, ...(source ? { source } : { source: undefined }) }];
+  }, []),
 });
 
 /** Persists the repair of entries that point at a missing profile (spec section 7), once at startup and after every reload. */
@@ -63,9 +66,13 @@ function update(id: string, change: (p: Profile) => Profile) {
 }
 
 export function addProfile(name: string): string {
-  const p = newProfile(name);
+  const p = newProfile(name, profilesStore.get());
   profilesStore.set([...profilesStore.get(), p]);
   return p.id;
+}
+
+export function setProfileColor(id: string, color: string) {
+  if (isHexColor(color)) update(id, (p) => ({ ...p, color: color.toLowerCase() }));
 }
 
 export function renameProfile(id: string, name: string) {

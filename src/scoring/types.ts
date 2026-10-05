@@ -45,6 +45,8 @@ export interface Profile {
   name: string;
   preset: PresetId | 'custom';
   values: ScoringValues;
+  /** The league's colour as #rrggbb, used for its tag on cards. */
+  color?: string;
   source?: import('../leagues/types').LeagueSource;
 }
 

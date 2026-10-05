@@ -1,4 +1,5 @@
 import { copyValues } from '../scoring/presets';
+import { nextLeagueColor } from '../scoring/leagueColor';
 import { isValidScoringValues, type Profile, type ScoringValues } from '../scoring/types';
 import { profilesStore } from '../storage/profiles';
 import type { EspnLeagueSettings, LeagueImportDraft, LeagueImportResult, LeagueSource } from './types';
@@ -93,6 +94,8 @@ export function commitLeagueImports(
     const profile: Profile = {
       id: profileId,
       name: availableName(draft.name, next, profileId),
+      // A refresh keeps the league's colour; a new league gets the next unused one.
+      color: target?.color ?? nextLeagueColor(next.map((candidate) => candidate.color)),
       preset: 'custom',
       values: copyValues(targetModified && targets.find((candidate) => candidate.sourceIdentity === key)?.localEditDecision === 'preserve' ? target!.values : draft.values),
       // A refresh keeps the user's team choice for the same league and season.

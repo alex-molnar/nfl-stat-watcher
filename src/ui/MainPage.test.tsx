@@ -405,3 +405,14 @@ describe('injury designations from the league report', () => {
     expect(await screen.findByText('Out · Toe')).toHaveClass('inj-out');
   });
 });
+
+describe('league tag colour', () => {
+  it('shows the tag in the league colour with readable text, and uncoloured when a league has none', async () => {
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary, standings: teams });
+    seed([warren, mahomes], [{ ...profilesFixture[0]!, color: '#ffeb3b' }, { ...profilesFixture[1]!, color: '#0b1d51' }]);
+    renderAt('/');
+    const tag = async (name: string) => (await screen.findByText(name)).closest('.card')!.querySelector('.league-chip') as HTMLElement;
+    expect(await tag('Jaylen Warren')).toHaveStyle({ background: '#ffeb3b', color: '#000000' }); // dark text on a light colour
+    expect(await tag('Patrick Mahomes')).toHaveStyle({ background: '#0b1d51', color: '#ffffff' }); // light text on a dark one
+  });
+});
