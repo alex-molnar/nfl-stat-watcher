@@ -6,7 +6,9 @@ import type { EspnTeamRef } from '../espn/types';
 import { useDebounced, usePlayerSearch, useTeams } from '../hooks/queries';
 import { addEntry, followedStore, sameEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
+import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
+import { displayName } from './format';
 import type { FollowedEntry } from '../storage/types';
 
 interface Props {
@@ -23,6 +25,7 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
   const inputRef = useRef<HTMLInputElement>(null);
   const profiles = useStore(profilesStore);
   const followed = useStore(followedStore);
+  const nameMode = useStore(nameDisplayStore);
   const [query, setQuery] = useState('');
   const [chosenId, setChosenId] = useState(profiles[0]?.id ?? '');
   const profileId = fixedProfileId ?? chosenId;
@@ -69,6 +72,8 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
   function addDefense(t: EspnTeamRef) {
     addEntry({ kind: 'defense', espnId: t.id, name: t.displayName, teamId: t.id, teamAbbr: t.abbreviation, position: 'D/ST', profileId, ...sideField });
   }
+
+  const shown = (name: string) => displayName({ kind: 'player', name }, nameMode);
 
   // aria-disabled, not disabled, so focus stays on the button after it is pressed.
   const addButton = (name: string, meta: string, done: boolean, disabled: boolean, onClick: () => void) => (
@@ -137,8 +142,8 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
                   : 'Free agent';
             return (
               <li key={`p${h.id}`}>
-                <span className="r"><b>{h.displayName}</b><small>{meta}</small></span>
-                {addButton(h.displayName, meta, isFollowed('player', h.id), !a?.team, () => addPlayer(i))}
+                <span className="r"><b>{shown(h.displayName)}</b><small>{meta}</small></span>
+                {addButton(shown(h.displayName), meta, isFollowed('player', h.id), !a?.team, () => addPlayer(i))}
               </li>
             );
           })}

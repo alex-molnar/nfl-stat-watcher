@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react';
 import { opponent, profilesFixture, warren } from '../test/data';
 import { renderWithClient } from '../test/render';
 import type { FollowedEntry } from '../storage/types';
+import { nameDisplayStore } from '../storage/nameDisplay';
 import { EntryCard } from './EntryCard';
 
 const renderCard = (entry: FollowedEntry) =>
@@ -37,5 +38,20 @@ describe('entry card sides', () => {
     expect(screen.queryByLabelText('League')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove Jaylen Warren from opponent side, Office league' })).toBeInTheDocument();
     expect(screen.getByText('Bye week')).toBeInTheDocument();
+  });
+});
+
+describe('entry card name display', () => {
+  it.each([['initial', 'J. Warren'], ['formal', 'Warren, Jaylen']] as const)('shows the %s name', (mode, shown) => {
+    nameDisplayStore.set(mode);
+    renderCard(warren);
+    expect(screen.getByRole('heading', { name: shown })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `Remove ${shown} from Office league` })).toBeInTheDocument();
+  });
+
+  it('never changes a team defense', () => {
+    nameDisplayStore.set('formal');
+    renderCard({ ...warren, kind: 'defense', name: 'Pittsburgh Steelers' });
+    expect(screen.getByRole('heading', { name: 'Pittsburgh Steelers' })).toBeInTheDocument();
   });
 });

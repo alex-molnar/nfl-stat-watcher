@@ -13,7 +13,9 @@ import { Bump } from './Bump';
 import { MiniField } from './MiniField';
 import { injuryLabel, injuryOf, injuryTone, isOut } from '../stats/injury';
 import { onRightSide } from '../stats/liveOrder';
-import { isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
+import { nameDisplayStore } from '../storage/nameDisplay';
+import { useStore } from '../storage/useStore';
+import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
 
 interface Props {
   entry: FollowedEntry;
@@ -35,6 +37,7 @@ const SPARKS: CSSProperties[] = Array.from({ length: 18 }, (_, i) => ({ '--a': `
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
 export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, movable = true, onMove, onRemove }: Props) {
+  const name = displayName(entry, useStore(nameDisplayStore));
   const summary = useGameSummary(game, paused);
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
   const [open, setOpen] = useState(false);
@@ -100,9 +103,9 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}${celebration.event.tone === 'bad' ? ' tone-bad' : ''}`} aria-hidden="true">{celebration.event.label}</span>
         </>
       ))}
-      <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${entry.name}: ${celebration.event.label.toLowerCase()}` : ''}</span>
+      <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${name}: ${celebration.event.label.toLowerCase()}` : ''}</span>
       <div className="hd">
-        <h3 className="nm">{entry.name}</h3>
+        <h3 className="nm">{name}</h3>
         <button
           type="button"
           className="pts press"
@@ -174,14 +177,14 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
 
       <div className="ft">
         {clips.length > 0 && (
-          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${entry.name}, ${clips.length}`}>
+          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${name}, ${clips.length}`}>
             <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> Highlights</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
           </button>
         )}
         {movable && !opposing && (
           <label>
             League
-            <select aria-label={`League for ${entry.name}`} value={profile.id} onChange={(e) => onMove?.(entry, e.target.value)}>
+            <select aria-label={`League for ${name}`} value={profile.id} onChange={(e) => onMove?.(entry, e.target.value)}>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
@@ -190,12 +193,12 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           type="button"
           className="rm"
           onClick={(e) => onRemove(entry, e.currentTarget)}
-          aria-label={`Remove ${entry.name} from ${opposing ? 'opponent side, ' : ''}${profile.name}`}
+          aria-label={`Remove ${name} from ${opposing ? 'opponent side, ' : ''}${profile.name}`}
         >
           Remove
         </button>
       </div>
-      {clips.length > 0 && <HighlightsDialog open={watching} onClose={() => setWatching(false)} playerName={entry.name} clips={clips} onWatched={markSeen} />}
+      {clips.length > 0 && <HighlightsDialog open={watching} onClose={() => setWatching(false)} playerName={name} clips={clips} onWatched={markSeen} />}
     </li>
   );
 }

@@ -3,7 +3,7 @@ import type { EspnSummary } from '../espn/types';
 import { normalizeSummary } from '../stats/normalize';
 import type { GameInfo } from '../stats/scoreboard';
 import type { FollowedEntry } from '../storage/types';
-import { isRedZone, resultText, statLine, textOn } from './format';
+import { displayName, isRedZone, resultText, statLine, textOn } from './format';
 
 const stats = normalizeSummary(summaryJson as unknown as EspnSummary);
 const entry = (over: Partial<FollowedEntry>): FollowedEntry => ({
@@ -58,5 +58,32 @@ describe('resultText', () => {
     const final = { ...live, state: 'post' as const, home: { ...live.home, score: 24 }, away: { ...live.away, score: 27 } };
     expect(resultText(final, '23')).toBe('Lost 24-27 vs CLE');
     expect(resultText(final, '5')).toBe('Won 27-24 at PIT');
+  });
+});
+
+describe('displayName', () => {
+  const as = (name: string, mode: 'full' | 'initial' | 'formal', kind: FollowedEntry['kind'] = 'player') => displayName({ kind, name }, mode);
+
+  it('keeps the full name, and shortens or reorders it for the other modes', () => {
+    expect(as('David Montgomery', 'full')).toBe('David Montgomery');
+    expect(as('David Montgomery', 'initial')).toBe('D. Montgomery');
+    expect(as('David Montgomery', 'formal')).toBe('Montgomery, David');
+  });
+
+  it('keeps suffixes with the last name', () => {
+    expect(as('Patrick Mahomes II', 'initial')).toBe('P. Mahomes II');
+    expect(as('Patrick Mahomes II', 'formal')).toBe('Mahomes II, Patrick');
+    expect(as('Odell Beckham Jr.', 'formal')).toBe('Beckham Jr., Odell');
+  });
+
+  it('keeps name particles with the last name and existing initials as they are', () => {
+    expect(as('Amon-Ra St. Brown', 'formal')).toBe('St. Brown, Amon-Ra');
+    expect(as('Amon-Ra St. Brown', 'initial')).toBe('A. St. Brown');
+    expect(as('D.J. Moore', 'initial')).toBe('D.J. Moore');
+  });
+
+  it('leaves one-word names and team defenses alone', () => {
+    expect(as('Cher', 'formal')).toBe('Cher');
+    expect(as('Pittsburgh Steelers', 'formal', 'defense')).toBe('Pittsburgh Steelers');
   });
 });
