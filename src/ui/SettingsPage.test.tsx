@@ -28,6 +28,14 @@ describe('settings page', () => {
     for (const b of screen.getAllByRole('button', { name: 'My league' })) expect(b).not.toHaveAttribute('aria-current');
   });
 
+  it('keeps the title with the left menu, and the header with the tabs always visible', () => {
+    renderAt('/settings');
+    const menu = screen.getByRole('complementary', { name: 'Profile actions' });
+    expect(within(menu).getByRole('heading', { level: 2, name: 'Scoring profiles' })).toBeInTheDocument(); // sticks with the list, not above it
+    expect(screen.getByRole('banner')).toHaveClass('sticky-top');
+    expect(within(screen.getByRole('banner')).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+  });
+
   it('shows the form and a Delete profile button in the left menu once a league is selected', async () => {
     seed([], profilesFixture);
     await open('Office league');

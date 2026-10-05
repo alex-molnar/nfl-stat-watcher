@@ -393,12 +393,12 @@ export function SettingsPage() {
 
   return (
     <>
-      <Header />
+      <Header sticky />
       <main className="wrap">
-        <h2 className="section-title" tabIndex={-1} data-page-title>Scoring profiles</h2>
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}
           <aside className="settings-side" aria-label="Profile actions">
+            <h2 className="section-title" tabIndex={-1} data-page-title>Scoring profiles</h2>
             <h3 className="sr" id="profiles-heading">Profiles</h3>
             <ul className="profile-list" aria-labelledby="profiles-heading">
               {profiles.map((p) => (

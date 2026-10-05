@@ -154,7 +154,8 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
-.settings-side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; align-self: start; }
+.settings-side { position: sticky; top: calc(var(--header-h, 0px) + 16px); max-height: calc(100vh - var(--header-h, 0px) - 32px); overflow-y: auto; align-self: start; }
+.settings-side .section-title { margin-top: 6px; }
 .settings-side > .btn, .settings-side .delete-control .btn, .settings-side .save-actions .btn { width: 100%; margin-bottom: 8px; }
 .save-actions { display: grid; gap: 0; padding-top: 4px; }
 .save-note { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
@@ -199,6 +200,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .import-issues label { display: flex; gap: 8px; align-items: start; }
 .error { color: var(--danger); }
 @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } .settings-side { position: static; max-height: none; overflow: visible; } }
+
 
 /* Forced colors: gradients and shadows drop out, so state is carried by borders and system colors. */
 @media (forced-colors: active) {
@@ -365,3 +367,9 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .bm-help { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
 .bm-help p { margin: 0; }
 .bm-link { display: inline-block; text-decoration: none; cursor: grab; border-color: var(--accent); font-weight: 800; }
+
+/* A sticky header (settings page): always visible on screens wide enough to spare the room. On a phone it wraps to several rows, so it scrolls away like any page. */
+@media (min-width: 761px) {
+  .top-bar.sticky-top { position: sticky; top: 0; z-index: 20; background: var(--bg); box-shadow: 0 1px 0 var(--rule); }
+  html:has(.top-bar.sticky-top) { scroll-padding-top: calc(var(--header-h, 0px) + 8px); }
+}

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -19,18 +19,35 @@ function Football() {
  * Brand on the left, then the page's own buttons, then the tabs and theme switch pinned to the right edge, so
  * they stay put however many page buttons there are.
  */
-export function Header({ actions }: { actions?: ReactNode }) {
+export function Header({ actions, sticky = false }: { actions?: ReactNode; sticky?: boolean }) {
+  const bar = useRef<HTMLElement>(null);
+  // A sticky header publishes its height, so other sticky parts and focus scrolling can sit below it (WCAG 2.4.11).
+  useLayoutEffect(() => {
+    const el = bar.current;
+    if (!sticky || !el || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty('--header-h', `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--header-h');
+    };
+  }, [sticky]);
   return (
-    <header className="wrap top">
-      <h1 className="brand"><Football />Stat Watch</h1>
-      {actions}
-      <div className="top-end">
-        <nav className="nav" aria-label="Main">
-          <NavLink to="/" end>Players</NavLink>
-          <NavLink to="/vs">Vs Mode</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
-        </nav>
-        <ThemeToggle />
+    <header ref={bar} className={`top-bar${sticky ? ' sticky-top' : ''}`}>
+      <div className="wrap top">
+        <h1 className="brand"><Football />Stat Watch</h1>
+        {actions}
+        <div className="top-end">
+          <nav className="nav" aria-label="Main">
+            <NavLink to="/" end>Players</NavLink>
+            <NavLink to="/vs">Vs Mode</NavLink>
+            <NavLink to="/settings">Settings</NavLink>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
