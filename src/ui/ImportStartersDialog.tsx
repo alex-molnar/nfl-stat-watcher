@@ -1,42 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
 import { backdropClose } from './backdropClose';
 import { useTeams } from '../hooks/queries';
+import { ALL_LEAGUES } from '../hooks/useMatchup';
 import { setLeagueRemoveNonStarters, setLeagueTeam } from '../leagues/import';
 import { EspnLoadError } from '../leagues/espn/client';
 import { rosterBookmarklet } from '../leagues/espn/bookmarklet';
 import { LineupError, fetchLeagueLineups, lineupsUrl, readLineups, type LeagueLineups, type Starter } from '../leagues/espn/lineup';
-import { planStarterImport } from '../leagues/starterPlan';
+import type { Profile } from '../scoring/types';
+import { planStarterImport, type StarterPlan } from '../leagues/starterPlan';
 import { addEntry, followedStore, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
+import { textOn } from './format';
 import { PrivateLeagueHelp } from './PrivateLeagueHelp';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** Whose starters to bring in: mine, or the opponent's in the current matchup. */
-  side?: Side;
-  /** A fixed league (vs mode). Without it the dialog offers every imported league. */
+  /** Whose starters to bring in: mine, the opponent's in the current matchup, or both sides in one go. */
+  side?: Side | 'both';
+  /** A fixed league (vs mode), or ALL_LEAGUES to go through every imported league in turn. Without it the dialog offers every imported league. */
   profileId?: string;
 }
 
-type Load = { state: 'idle' | 'loading' } | { state: 'ready'; lineups: LeagueLineups } | { state: 'error'; message: string; needsAccess: boolean };
+/** The league an entry belongs to, in the league's colour: the colour guides the eye, the name carries the meaning. */
+function LeagueChip({ profile }: { profile?: Profile }) {
+  if (!profile) return null;
+  return <> <span className="chip" style={profile.color ? { background: profile.color, color: textOn(profile.color) } : undefined}>{profile.name}</span></>;
+}
 
 /** One of the three preview lists. The sign and the word carry the meaning; the colour (green, red, none) reinforces it. */
-function PlanList({ tone, title, entries }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[] }) {
+function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[]; leagueOf?: (entry: FollowedEntry) => Profile | undefined }) {
   const sign = tone === 'added' ? '+' : tone === 'removed' ? '−' : '';
   return (
     <div className={`plan-list plan-${tone}`}>
       <h4>{title} ({entries.length})</h4>
       {entries.length === 0 ? <p className="muted">None</p> : (
         <ul className="starter-list">
-          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{entry.name}{entry.position ? ` · ${entry.position}` : ''}</li>)}
+          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{entry.name}{entry.position ? ` · ${entry.position}` : ''}{leagueOf && <LeagueChip profile={leagueOf(entry)} />}</li>)}
         </ul>
       )}
     </div>
   );
 }
+
+type Failure = { id: string; message: string; needsAccess: boolean };
 
 export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: fixedId }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -45,59 +54,68 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const teams = useTeams();
   const imported = profiles.filter((profile) => profile.source);
   const [chosenId, setChosenId] = useState('');
+  const everyLeague = (fixedId ?? chosenId) === ALL_LEAGUES;
   const profile = imported.find((candidate) => candidate.id === (fixedId ?? chosenId)) ?? imported[0];
-  const source = profile?.source;
-  const [load, setLoad] = useState<Load>({ state: 'idle' });
+  // The leagues being synced: one, or all of them in turn. Each is loaded (or pasted) before the preview shows.
+  const targets = everyLeague ? imported : profile ? [profile] : [];
+  const [lineupsBy, setLineupsBy] = useState<Record<string, LeagueLineups>>({});
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const [failure, setFailure] = useState<Failure | null>(null);
   const [status, setStatus] = useState('');
+  const pending = open ? targets.find((target) => !lineupsBy[target.id] && !skipped.includes(target.id)) : undefined;
+  const failed = pending && failure?.id === pending.id ? failure : null;
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
       setStatus('');
+      setLineupsBy({}); // every opening reads the rosters afresh
+      setSkipped([]);
+      setFailure(null);
       dialog.showModal();
     }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  // The choice is remembered per league on its profile; the default is to only add.
-  const removeOthers = !!source?.removeNonStarters;
-  const leagueId = source?.leagueId;
-  const season = source?.season;
+  const pendingId = pending?.id;
+  const leagueId = pending?.source?.leagueId;
+  const season = pending?.source?.season;
   useEffect(() => {
-    if (!open || !leagueId || !season) return; // closing keeps the last result, which is announced outside the dialog
+    if (!pendingId || !leagueId || !season) return; // closing keeps the last result, which is announced outside the dialog
     const controller = new AbortController();
-    setLoad({ state: 'loading' });
     fetchLeagueLineups(leagueId, season, controller.signal).then(
-      (lineups) => setLoad({ state: 'ready', lineups }),
+      (lineups) => setLineupsBy((current) => ({ ...current, [pendingId]: lineups })),
       (cause: unknown) => {
         if (controller.signal.aborted) return;
         const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
-        setLoad({ state: 'error', needsAccess, message: needsAccess ? 'This league is private. Copy its rosters from your signed-in ESPN tab to continue.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
+        setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private. Copy its rosters from your signed-in ESPN tab to continue.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
       },
     );
     return () => controller.abort();
-  }, [open, leagueId, season]);
+  }, [pendingId, leagueId, season]);
 
+  // A pasted roster counts like a fetched one, so the loop moves on to the next league by itself.
   function pasted(text: string): string | null {
     try {
-      setLoad({ state: 'ready', lineups: readLineups(text, leagueId!, season!) });
+      const lineups = readLineups(text, leagueId!, season!);
+      setLineupsBy((current) => ({ ...current, [pendingId!]: lineups }));
       return null;
     } catch (cause) {
       return cause instanceof LineupError || cause instanceof Error ? cause.message : 'Could not read those rosters.';
     }
   }
 
-  const lineups = load.state === 'ready' ? load.lineups : null;
-  const myTeam = lineups && source?.teamId && lineups.teams.some((team) => team.id === source.teamId) ? source.teamId : '';
-  const targetTeam = side === 'mine' ? myTeam : myTeam ? lineups?.opponentOf[myTeam] ?? '' : '';
-  const targetName = lineups?.teams.find((team) => team.id === targetTeam)?.name;
-  const starters = lineups && targetTeam ? lineups.starters[targetTeam] ?? [] : [];
-  const sideField = side === 'opponent' ? { side: 'opponent' as const } : {};
+  const both = side === 'both';
+  const sides: Side[] = both ? ['mine', 'opponent'] : [side];
+  const loaded = targets.flatMap((target) => (lineupsBy[target.id] ? [{ profile: target, lineups: lineupsBy[target.id]! }] : []));
+  const removeOthers = targets.length > 0 && targets.every((target) => target.source?.removeNonStarters);
+  const leagueOf = (entry: FollowedEntry) => profiles.find((candidate) => candidate.id === entry.profileId);
+  const myTeamIn = (target: Profile, lineups: LeagueLineups) => (target.source?.teamId && lineups.teams.some((team) => team.id === target.source?.teamId) ? target.source.teamId : '');
 
-  function toEntry(starter: Starter): FollowedEntry | null {
+  function toEntry(starter: Starter, forSide: Side, target: Profile): FollowedEntry | null {
     const nfl = teams.data?.find((team) => team.id === starter.nflTeamId);
-    if (!nfl || !profile) return null;
+    if (!nfl) return null;
     return {
       kind: starter.kind,
       espnId: starter.espnId,
@@ -105,88 +123,128 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       teamId: nfl.id,
       teamAbbr: nfl.abbreviation,
       position: starter.position,
-      profileId: profile.id,
-      ...sideField,
+      profileId: target.id,
+      ...(forSide === 'opponent' ? { side: 'opponent' as const } : {}),
     };
   }
 
-  // Null until the NFL teams are known: without them no starter can become a card, and everything would look removed.
-  const incoming = teams.data ? starters.map(toEntry).filter((entry): entry is FollowedEntry => entry !== null) : null;
-  const plan = incoming && profile ? planStarterImport(incoming, followed, profile.id, side, removeOthers) : null;
+  // One panel per side being synced. Each gathers every loaded league: whose team it is there, their starters
+  // and what the import would do to that side. With several leagues the lists are the leagues' plans put together.
+  const panels = sides.map((forSide) => {
+    const parts = loaded.map(({ profile: target, lineups }) => {
+      const mine = myTeamIn(target, lineups);
+      const team = forSide === 'mine' ? mine : mine ? lineups.opponentOf[mine] ?? '' : '';
+      const starters = team ? lineups.starters[team] ?? [] : [];
+      // Null until the NFL teams are known: without them no starter can become a card, and everything would look removed.
+      const incoming = teams.data ? starters.map((starter) => toEntry(starter, forSide, target)).filter((entry): entry is FollowedEntry => entry !== null) : null;
+      const plan = incoming ? planStarterImport(incoming, followed, target.id, forSide, !!target.source?.removeNonStarters) : null;
+      return { team, name: lineups.teams.find((candidate) => candidate.id === team)?.name, starters, plan };
+    });
+    const plans = parts.map((part) => part.plan);
+    const plan: StarterPlan | null = teams.data && plans.every((p) => p) ? {
+      added: plans.flatMap((p) => p!.added),
+      removed: plans.flatMap((p) => p!.removed),
+      unchanged: plans.flatMap((p) => p!.unchanged),
+    } : null;
+    return { side: forSide, has: parts.some((part) => part.team), name: parts[0]?.name, starterCount: parts.reduce((total, part) => total + part.starters.length, 0), plan };
+  });
+  const hasTeam = panels.some((panel) => panel.has);
+  const canSync = !!teams.data && panels.some((panel) => panel.starterCount > 0);
+  const sideLabel = (forSide: Side) => (forSide === 'mine' ? 'Your side' : 'Opponent side');
 
-  function add() {
-    if (!plan) return;
-    plan.removed.forEach(removeEntry);
-    plan.added.forEach(addEntry);
+  /** What one side's plan does, in words: "Added 3 starters, 2 already followed" or "Added 3 starters, removed 1". */
+  function describe(plan: StarterPlan) {
     const parts = [`Added ${plan.added.length} ${plan.added.length === 1 ? 'starter' : 'starters'}`];
     if (plan.unchanged.length && !removeOthers) parts.push(`${plan.unchanged.length} already followed`);
-    if (removeOthers) parts.push(`removed ${plan.removed.length}`);
-    setStatus(`${parts.join(', ')}.`);
+    if (removeOthers || plan.removed.length) parts.push(`removed ${plan.removed.length}`);
+    return parts.join(', ');
+  }
+
+  function add() {
+    const applicable = panels.filter((panel) => panel.plan);
+    if (applicable.length === 0) return;
+    // Every side and league is applied in this one go, removals before additions.
+    for (const panel of applicable) {
+      panel.plan!.removed.forEach(removeEntry);
+      panel.plan!.added.forEach(addEntry);
+    }
+    setStatus(both
+      ? applicable.map((panel) => `${sideLabel(panel.side)}: ${describe(panel.plan!)}.`).join(' ')
+      : `${describe(applicable[0]!.plan!)}.`);
     ref.current?.close(); // the native close runs onClose and returns focus to the button that opened the dialog
   }
 
-  const label = profile ? `${profile.name}${source ? `, league ${source.leagueId}` : ''}` : '';
-  const heading = side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
+  const label = everyLeague ? `all ${imported.length} leagues` : profile ? `${profile.name}${profile.source ? `, league ${profile.source.leagueId}` : ''}` : '';
+  const heading = both ? 'Sync all starters' : side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
+  const mineHere = panels.find((panel) => panel.side === 'mine');
+  const opponentHere = panels.find((panel) => panel.side === 'opponent');
 
   return (
     <>
-    <dialog ref={ref} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
+    <dialog ref={ref} className={both ? 'sync-all' : undefined} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="starters-title">{heading}</h2>
           <button type="button" className="close" aria-label="Close sync starters dialog" onClick={onClose}>×</button>
         </div>
-        {!profile && <p className="muted">Import an ESPN league in Settings first. Starters come from its current matchup.</p>}
+        {targets.length === 0 && <p className="muted">Import an ESPN league in Settings first. Starters come from its current matchup.</p>}
         {profile && fixedId === undefined && imported.length > 1 && (
           <label className="field-label">
             League
-            <select value={profile.id} onChange={(event) => setChosenId(event.target.value)}>
+            <select value={everyLeague ? ALL_LEAGUES : profile.id} onChange={(event) => setChosenId(event.target.value)}>
+              <option value={ALL_LEAGUES}>All</option>
               {imported.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
             </select>
           </label>
         )}
-        {profile && <p className="muted">Starters in the current matchup of {label}, season {season}. Players already followed are skipped. Nothing is removed unless you tick the box below.</p>}
-        {load.state === 'loading' && <p role="status">Loading rosters…</p>}
-        {load.state === 'error' && (
+        {targets.length > 0 && <p className="muted">Starters in the current matchup of {label}, season {profile?.source?.season}{both ? ', for both sides' : ''}. Players already followed are skipped. Nothing is removed unless you tick the box below.</p>}
+        {pending && everyLeague && <p className="muted" role="status">League {targets.indexOf(pending) + 1} of {targets.length}: {pending.name}</p>}
+        {pending && !failed && <p role="status">Loading rosters…</p>}
+        {failed && pending && (
           <>
-            <p className="error" role="alert">{load.message}</p>
-            {load.needsAccess && leagueId && season && <PrivateLeagueHelp url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
+            <p className="error" role="alert">{failed.message}</p>
+            {failed.needsAccess && leagueId && season && <PrivateLeagueHelp key={pending.id} url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
+            {everyLeague && <button type="button" className="btn" onClick={() => setSkipped((current) => [...current, pending.id])}>Skip {pending.name}</button>}
           </>
         )}
-        {lineups && (
-          <label className="field-label">
-            Your team in this league
-            <select value={myTeam} onChange={(event) => { setStatus(''); if (profile && event.target.value) setLeagueTeam(profile.id, event.target.value); }}>
+        {!pending && loaded.map(({ profile: target, lineups }) => (
+          <label key={target.id} className="field-label">
+            {everyLeague ? `Your team in ${target.name}` : 'Your team in this league'}
+            <select value={myTeamIn(target, lineups)} onChange={(event) => { setStatus(''); if (event.target.value) setLeagueTeam(target.id, event.target.value); }}>
               <option value="">Choose your team</option>
               {lineups.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
             </select>
           </label>
+        ))}
+        {!pending && !everyLeague && mineHere?.has && opponentHere && !opponentHere.has && (
+          <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>
         )}
-        {lineups && myTeam && side === 'opponent' && !targetTeam && <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>}
-        {lineups && targetTeam && (
+        {!pending && hasTeam && (
           <label className="check-row">
-            <input type="checkbox" checked={removeOthers} onChange={(event) => { if (profile) setLeagueRemoveNonStarters(profile.id, event.target.checked); }} />
+            <input type="checkbox" checked={removeOthers} onChange={(event) => targets.forEach((target) => setLeagueRemoveNonStarters(target.id, event.target.checked))} />
             Remove every non starter player
           </label>
         )}
-        {lineups && targetTeam && (
-          <section aria-label={`Starters for ${targetName}`} className="plan">
-            <h3>{targetName} ({starters.length} {starters.length === 1 ? 'starter' : 'starters'})</h3>
-            {starters.length === 0 && <p className="muted">No starters are set for this team.</p>}
-            {plan && (
-              <>
-                <PlanList tone="added" title="To be added" entries={plan.added} />
-                <PlanList tone="removed" title="To be removed" entries={plan.removed} />
-                <PlanList tone="unchanged" title="Unchanged" entries={plan.unchanged} />
-              </>
-            )}
-          </section>
-        )}
+        <div className={both ? 'plan-sides' : undefined}>
+          {!pending && panels.filter((panel) => panel.has).map((panel) => (
+            <section key={panel.side} aria-label={`Starters for ${everyLeague ? sideLabel(panel.side).toLowerCase() : panel.name}`} className="plan">
+              <h3>{everyLeague ? sideLabel(panel.side) : `${both ? `${sideLabel(panel.side)}: ` : ''}${panel.name}`} ({panel.starterCount} {panel.starterCount === 1 ? 'starter' : 'starters'})</h3>
+              {panel.starterCount === 0 && <p className="muted">No starters are set for this team.</p>}
+              {panel.plan && (
+                <>
+                  <PlanList tone="added" title="To be added" entries={panel.plan.added} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="removed" title="To be removed" entries={panel.plan.removed} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="unchanged" title="Unchanged" entries={panel.plan.unchanged} leagueOf={everyLeague ? leagueOf : undefined} />
+                </>
+              )}
+            </section>
+          ))}
+        </div>
         {teams.isError && <p className="error" role="alert">NFL team data is unavailable, so starters cannot be added right now.</p>}
         <div className="dlg-actions">
-          <button type="button" className="btn" onClick={onClose}>Close</button>
-          <button type="button" className="btn btn-primary" disabled={starters.length === 0 || !teams.data} onClick={add}>
-            Sync starters
+          <button type="button" className="btn" onClick={onClose}>{both ? 'Cancel' : 'Close'}</button>
+          <button type="button" className="btn btn-primary" disabled={!!pending || !canSync} onClick={add}>
+            {both ? 'Sync all starters' : 'Sync starters'}
           </button>
         </div>
       </div>

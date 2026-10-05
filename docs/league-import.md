@@ -4,7 +4,7 @@ Stat Watch can import ESPN fantasy football scoring settings into a local scorin
 
 ## Import a league
 
-In **Settings**, choose **Import leagues**, paste one ESPN football league URL or decimal league ID per line, and enter the fantasy season. Stat Watch tries the public settings endpoint first. It previews each league independently, so a private league failure does not discard successful public results. Select the profiles to save and acknowledge any compatibility notes before importing.
+In **Settings**, choose **Import leagues**, paste one ESPN football league URL or decimal league ID per line, and check the fantasy season, which starts as the current year. Stat Watch tries the public settings endpoint first. It previews each league independently, so a private league failure does not discard successful public results. Select the profiles to save and acknowledge any compatibility notes before importing.
 
 Each profile keeps its ESPN league ID, season, import time, settings snapshot and scoring-map version. Refreshing an imported profile shows source changes; when the profile's scoring values were edited locally, choose whether to preserve those values or replace them with ESPN's current settings. Disconnect removes the source link and keeps the current values. If browser storage is full, imported profiles stay available for the current session and the UI says they were not saved.
 
@@ -24,6 +24,10 @@ The optional Chrome companion in `extensions/espn-connector/` still exists for a
 ## Sync starters from the matchup
 
 Once a league is imported, **Sync starters** appears on the Players screen (your team) and in each column of the Vs screen (your team or the opponent). It loads the league's current rosters from ESPN, asks which fantasy team is yours (remembered on the profile, kept across refreshes), and adds that team's starting lineup, or its opponent's for the current matchup period, as followed cards in that league. Starters are every non-bench, non-injured-reserve slot, including FLEX and K and D/ST. Cards already followed are skipped. The dialog previews what will happen in three lists (to be added, to be removed, unchanged); a checkbox, "Remove every non starter player", also removes followed players in that league and on that side who are not starters. The choice is saved per league on its profile and is the default next time (and survives a refresh of the league). **Sync starters** in the dialog applies the plan and closes it; the result is announced. A D/ST is followed as the NFL team's defense.
+
+Under **All** on the Vs screen both sync buttons go through every imported league in turn: public leagues load by themselves, a private league shows the copy-the-JSON guide and moves on to the next league as soon as the JSON is pasted (or skip it), and then one preview shows everything added, removed and unchanged as NAME · POSITION plus the league as a chip in its colour.
+
+On the Vs screen, **Sync all starters** (next to the Matchup league select) does both sides at once: the dialog previews each side's three lists side by side, the removal checkbox is shown once and holds for both, and **Sync all starters** in the dialog updates both sides in one go (**Cancel** changes nothing).
 
 ESPN's roster view is large (about 3 MB for ten teams) because it carries all player stats, so loading takes a moment. A private league uses the same paste guide as settings, with the roster link; only starting lineups and matchup pairings are kept. The lineup is the one ESPN holds right now, so change it in ESPN and import again to pick up swaps.
 

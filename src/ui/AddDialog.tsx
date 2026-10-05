@@ -12,13 +12,13 @@ import type { FollowedEntry } from '../storage/types';
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** Which side new entries join. Defaults to mine. */
+  /** Which side new entries join. Without it (Players page) cards join your side and the title says nothing about sides. */
   side?: Side;
   /** A fixed league (vs mode): hides the league select and names the side and league in the title. */
   profileId?: string;
 }
 
-export function AddDialog({ open, onClose, side = 'mine', profileId: fixedProfileId }: Props) {
+export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const profiles = useStore(profilesStore);
@@ -28,9 +28,9 @@ export function AddDialog({ open, onClose, side = 'mine', profileId: fixedProfil
   const profileId = fixedProfileId ?? chosenId;
   const sideField = side === 'opponent' ? { side: 'opponent' as const } : {}; // mine stays without the key
   const title =
-    fixedProfileId === undefined
-      ? 'Add a player or defense'
-      : `Add to ${side === 'opponent' ? 'opponent side' : 'your side'}, ${profiles.find((p) => p.id === fixedProfileId)?.name ?? ''}`;
+    fixedProfileId !== undefined
+      ? `Add to ${side === 'opponent' ? 'opponent side' : 'your side'}, ${profiles.find((p) => p.id === fixedProfileId)?.name ?? ''}`
+      : side ? `Add to ${side === 'opponent' ? 'opponent side' : 'your side'}, choose a league` : 'Add a player or defense';
   const term = useDebounced(query.trim(), 300);
   const search = usePlayerSearch(term);
   const teams = useTeams();

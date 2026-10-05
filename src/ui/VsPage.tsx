@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { useMatchup } from '../hooks/useMatchup';
+import { ALL_LEAGUES, useMatchup } from '../hooks/useMatchup';
 import { entryKey, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
@@ -32,12 +32,13 @@ export function VsPage() {
   const profiles = useStore(profilesStore);
   const [pickedId, setPickedId] = useState(profiles[0]!.id); // memory only, never stored
   const paused = usePaused();
-  const { profile, mine, opponent, totals, scoreboard, settled } = useMatchup(pickedId, paused);
+  const { profile, all, mine, opponent, totals, scoreboard, settled } = useMatchup(pickedId, paused);
   const rows = { mine, opponent };
   const liveOrder = useLiveOrder([...mine, ...opponent], paused);
   const [adding, setAdding] = useState(false);
   const [dialogSide, setDialogSide] = useState<Side>('mine');
-  const [importSide, setImportSide] = useState<Side | null>(null);
+  const [importSide, setImportSide] = useState<Side | 'both' | null>(null);
+  const canSync = all ? profiles.some((p) => p.source) : !!profile.source; // sync needs an imported league to read
   const opener = useRef<HTMLElement | null>(null);
   const hasSchedule = scoreboard.data !== undefined;
   const loading = mine.length + opponent.length > 0 && scoreboard.isPending;
@@ -46,7 +47,8 @@ export function VsPage() {
   // Latched per league: once a league's matchup has settled it stays settled, so adding a card with an
   // uncached summary never blanks the phrase and re-announces it. Switching league starts over.
   const latch = useRef({ id: '', done: false });
-  if (latch.current.id !== profile.id) latch.current = { id: profile.id, done: false };
+  const leagueKey = all ? ALL_LEAGUES : profile.id;
+  if (latch.current.id !== leagueKey) latch.current = { id: leagueKey, done: false };
   if (settled) latch.current.done = true;
   const announced = latch.current.done;
   const phrase = announced && mine.length + opponent.length > 0 ? LEADER_TEXT[leader] : '';
@@ -99,7 +101,7 @@ export function VsPage() {
         <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
           Add player
         </button>
-        {profile.source && (
+        {canSync && (
           <button type="button" className="btn press" aria-label={`Sync ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
             Sync starters
           </button>
@@ -142,19 +144,27 @@ export function VsPage() {
       <Header actions={<PauseButton />} />
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
-        <label className="field-label vs-league">
-          Matchup league
-          <select value={profile.id} onChange={(e) => setPickedId(e.target.value)}>
-            {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+        <div className="vs-league-row">
+          <label className="field-label vs-league">
+            Matchup league
+            <select value={all ? ALL_LEAGUES : profile.id} onChange={(e) => setPickedId(e.target.value)}>
+              {profiles.length > 1 && <option value={ALL_LEAGUES}>All</option>}
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          {canSync && (
+            <button type="button" className="btn press" onClick={(e) => { opener.current = e.currentTarget; setImportSide('both'); }}>
+              Sync all starters
+            </button>
+          )}
+        </div>
         {/* The one status line: the page note, plus the leader, which changes only when the lead changes hands. */}
         <p className="page-note" role="status">
           {note}
           <span className="sr">{phrase ? `${!note ? '' : note.endsWith('.') ? ' ' : '. '}${phrase}` : ''}</span>
         </p>
         <ScoreBar ref={barRef} settled={announced} mine={totals.mine} opponent={totals.opponent} />
-        {profile.source?.issues.length ? (
+        {!all && profile.source?.issues.length ? (
           <details className="compat-warning matchup-warning">
             <summary>{`${profile.name} has ${profile.source.issues.length} imported scoring limits`}</summary>
             <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
@@ -165,8 +175,8 @@ export function VsPage() {
           {column('opponent')}
         </div>
       </main>
-      <ImportStartersDialog open={importSide !== null} side={importSide ?? 'mine'} profileId={profile.id} onClose={() => { setImportSide(null); focusVisible(opener.current); }} />
-      <AddDialog open={adding} side={dialogSide} profileId={profile.id} onClose={closeDialog} />
+      <ImportStartersDialog open={importSide !== null} side={importSide ?? 'mine'} profileId={all ? ALL_LEAGUES : profile.id} onClose={() => { setImportSide(null); focusVisible(opener.current); }} />
+      <AddDialog open={adding} side={dialogSide} profileId={all ? undefined : profile.id} onClose={closeDialog} />
     </>
   );
 }
