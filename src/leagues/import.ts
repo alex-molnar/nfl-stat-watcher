@@ -96,7 +96,11 @@ export function commitLeagueImports(
       preset: 'custom',
       values: copyValues(targetModified && targets.find((candidate) => candidate.sourceIdentity === key)?.localEditDecision === 'preserve' ? target!.values : draft.values),
       // A refresh keeps the user's team choice for the same league and season.
-      source: { ...structuredClone(draft.source), ...(target?.source?.teamId ? { teamId: target.source.teamId } : {}) },
+      source: {
+        ...structuredClone(draft.source),
+        ...(target?.source?.teamId ? { teamId: target.source.teamId } : {}),
+        ...(target?.source?.removeNonStarters ? { removeNonStarters: true } : {}),
+      },
     };
     if (target) next = next.map((candidate) => candidate.id === target.id ? profile : candidate);
     else next.push(profile);
@@ -109,6 +113,14 @@ export function commitLeagueImports(
 
 export function setLeagueTeam(profileId: string, teamId: string): void {
   profilesStore.set(profilesStore.get().map((profile) => (profile.id === profileId && profile.source ? { ...profile, source: { ...profile.source, teamId } } : profile)));
+}
+
+export function setLeagueRemoveNonStarters(profileId: string, removeNonStarters: boolean): void {
+  profilesStore.set(profilesStore.get().map((profile) => {
+    if (profile.id !== profileId || !profile.source) return profile;
+    const { removeNonStarters: _old, ...rest } = profile.source;
+    return { ...profile, source: removeNonStarters ? { ...rest, removeNonStarters: true } : rest };
+  }));
 }
 
 export function disconnectLeagueSource(profileId: string): void {

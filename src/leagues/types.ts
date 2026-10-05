@@ -47,6 +47,8 @@ export interface LeagueSource {
   issues: ImportIssue[];
   /** The user's fantasy team in this league, chosen when importing starters. */
   teamId?: string;
+  /** Whether syncing starters also removes followed players who are not starters; remembered per league. */
+  removeNonStarters?: boolean;
 }
 
 export interface LeagueImportDraft {
@@ -83,6 +85,7 @@ export function isLeagueSource(value: unknown): value is LeagueSource {
     && validRawSettings(source.rawSettings)
     && validLineupSlots(source.lineupSlotCounts)
     && (source.teamId === undefined || (typeof source.teamId === 'string' && /^\d{1,4}$/.test(source.teamId)))
+    && (source.removeNonStarters === undefined || typeof source.removeNonStarters === 'boolean')
     && Array.isArray(source.issues)
     && source.issues.length <= 500
     && source.issues.every((issue) => validImportIssue(issue))

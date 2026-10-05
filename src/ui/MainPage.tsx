@@ -73,7 +73,7 @@ export function MainPage() {
         actions={
           <>
             <PauseButton />
-            {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Import starters</button>}
+            {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Sync starters</button>}
             {addButton(headerAdd)}
           </>
         }

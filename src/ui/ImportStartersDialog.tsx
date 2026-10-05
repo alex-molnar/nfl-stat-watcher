@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { backdropClose } from './backdropClose';
 import { useTeams } from '../hooks/queries';
-import { setLeagueTeam } from '../leagues/import';
+import { setLeagueRemoveNonStarters, setLeagueTeam } from '../leagues/import';
 import { EspnLoadError } from '../leagues/espn/client';
 import { LineupError, fetchLeagueLineups, lineupsUrl, readLineups, type LeagueLineups, type Starter } from '../leagues/espn/lineup';
 import { planStarterImport } from '../leagues/starterPlan';
@@ -48,23 +48,23 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const source = profile?.source;
   const [load, setLoad] = useState<Load>({ state: 'idle' });
   const [status, setStatus] = useState('');
-  const [removeOthers, setRemoveOthers] = useState(false);
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
-      setRemoveOthers(false); // each opening starts with the default: only add
+      setStatus('');
       dialog.showModal();
     }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  // The choice is remembered per league on its profile; the default is to only add.
+  const removeOthers = !!source?.removeNonStarters;
   const leagueId = source?.leagueId;
   const season = source?.season;
   useEffect(() => {
-    setStatus('');
-    if (!open || !leagueId || !season) return;
+    if (!open || !leagueId || !season) return; // closing keeps the last result, which is announced outside the dialog
     const controller = new AbortController();
     setLoad({ state: 'loading' });
     fetchLeagueLineups(leagueId, season, controller.signal).then(
@@ -93,7 +93,6 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const targetName = lineups?.teams.find((team) => team.id === targetTeam)?.name;
   const starters = lineups && targetTeam ? lineups.starters[targetTeam] ?? [] : [];
   const sideField = side === 'opponent' ? { side: 'opponent' as const } : {};
-  const sideLabel = side === 'opponent' ? 'opponent' : 'your';
 
   function toEntry(starter: Starter): FollowedEntry | null {
     const nfl = teams.data?.find((team) => team.id === starter.nflTeamId);
@@ -122,17 +121,19 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
     if (plan.unchanged.length && !removeOthers) parts.push(`${plan.unchanged.length} already followed`);
     if (removeOthers) parts.push(`removed ${plan.removed.length}`);
     setStatus(`${parts.join(', ')}.`);
+    ref.current?.close(); // the native close runs onClose and returns focus to the button that opened the dialog
   }
 
   const label = profile ? `${profile.name}${source ? `, league ${source.leagueId}` : ''}` : '';
-  const heading = side === 'opponent' ? 'Import opponent starters' : 'Import your starters';
+  const heading = side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
 
   return (
+    <>
     <dialog ref={ref} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="starters-title">{heading}</h2>
-          <button type="button" className="close" aria-label="Close import starters dialog" onClick={onClose}>×</button>
+          <button type="button" className="close" aria-label="Close sync starters dialog" onClick={onClose}>×</button>
         </div>
         {!profile && <p className="muted">Import an ESPN league in Settings first. Starters come from its current matchup.</p>}
         {profile && fixedId === undefined && imported.length > 1 && (
@@ -163,7 +164,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         {lineups && myTeam && side === 'opponent' && !targetTeam && <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>}
         {lineups && targetTeam && (
           <label className="check-row">
-            <input type="checkbox" checked={removeOthers} onChange={(event) => { setRemoveOthers(event.target.checked); setStatus(''); }} />
+            <input type="checkbox" checked={removeOthers} onChange={(event) => { if (profile) setLeagueRemoveNonStarters(profile.id, event.target.checked); }} />
             Remove every non starter player
           </label>
         )}
@@ -181,14 +182,16 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
           </section>
         )}
         {teams.isError && <p className="error" role="alert">NFL team data is unavailable, so starters cannot be added right now.</p>}
-        <p className="muted msg" role="status" aria-live="polite">{status}</p>
         <div className="dlg-actions">
           <button type="button" className="btn" onClick={onClose}>Close</button>
           <button type="button" className="btn btn-primary" disabled={starters.length === 0 || !teams.data} onClick={add}>
-            {plan && removeOthers && plan.removed.length > 0 ? `Add ${plan.added.length} and remove ${plan.removed.length}` : `Add ${starters.length} ${sideLabel} ${starters.length === 1 ? 'starter' : 'starters'}`}
+            Sync starters
           </button>
         </div>
       </div>
     </dialog>
+    {/* Outside the dialog so the result is still announced after it has closed. */}
+    <p className="sr" role="status" aria-live="polite">{status}</p>
+    </>
   );
 }

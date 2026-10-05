@@ -100,8 +100,8 @@ export function VsPage() {
           Add player
         </button>
         {profile.source && (
-          <button type="button" className="btn press" aria-label={`Import ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
-            Import starters
+          <button type="button" className="btn press" aria-label={`Sync ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
+            Sync starters
           </button>
         )}
       </div>
