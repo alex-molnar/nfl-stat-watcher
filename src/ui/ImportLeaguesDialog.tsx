@@ -66,7 +66,8 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [leagueInputs, setLeagueInputs] = useState('');
-  const [season, setSeason] = useState('');
+  // Starts as the current year, the season most people import; it can still be changed or cleared.
+  const [season, setSeason] = useState(() => String(new Date().getFullYear()));
   const [entries, setEntries] = useState<ImportEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');

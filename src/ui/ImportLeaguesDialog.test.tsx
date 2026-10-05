@@ -15,6 +15,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     expect(await screen.findByText(/League 1900128084 · Season 2026/)).toBeInTheDocument();
@@ -31,10 +32,33 @@ describe('ImportLeaguesDialog', () => {
     expect(imported.source.transport).toBe('public-api');
   });
 
-  it('does not infer a season from the current date or accept an empty league batch', async () => {
+  it('starts with the current year in the season box', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2027-03-10T12:00:00Z') });
+    try {
+      renderAt('/settings');
+      await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
+      expect(screen.getByLabelText('Season')).toHaveValue(2027);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('loads with the prefilled season and no typing, using the current year', async () => {
+    const year = new Date().getFullYear();
+    const fetch = mockFetch({ [`seasons/${year}/segments/0/leagues/1900128084?view=mSettings`]: { ...fixture, seasonId: year } });
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
+    await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
+    expect(await screen.findByText(new RegExp(`League 1900128084 · Season ${year}`))).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining(`/seasons/${year}/segments/0/leagues/1900128084?view=mSettings`), expect.anything());
+  });
+
+  it('still asks for a season when it was cleared, and does not accept an empty league batch', async () => {
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
+    await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Choose a season');
     expect(importButton()).toBeDisabled();
@@ -46,6 +70,7 @@ describe('ImportLeaguesDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     const input = screen.getByLabelText('ESPN fantasy football league links or IDs, one per line');
     await userEvent.type(input, '1900128084');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     expect(await screen.findByText(/League 1900128084 · Season 2026/)).toBeInTheDocument();
@@ -59,6 +84,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     expect(await screen.findByText(/League 1900128084 · Season 2026/)).toBeInTheDocument();
@@ -81,6 +107,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084\n409479118');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     expect(await screen.findByText(/League 1900128084 · Season 2026/)).toBeInTheDocument();
@@ -102,6 +129,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084\n1900128085');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     expect(await screen.findByText(/League 1900128084 · Season 2026/)).toBeInTheDocument();
@@ -121,6 +149,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '409479118');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
@@ -133,6 +162,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     const link = await screen.findByRole('link', { name: /open this league’s settings data/ });
@@ -151,6 +181,7 @@ describe('ImportLeaguesDialog', () => {
     renderAt('/settings');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '555');
+    await userEvent.clear(screen.getByLabelText('Season'));
     await userEvent.type(screen.getByLabelText('Season'), '2026');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     await userEvent.click(await screen.findByLabelText('Settings JSON for league 555, season 2026'));

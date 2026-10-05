@@ -4,7 +4,7 @@ Stat Watch can import ESPN fantasy football scoring settings into a local scorin
 
 ## Import a league
 
-In **Settings**, choose **Import leagues**, paste one ESPN football league URL or decimal league ID per line, and enter the fantasy season. Stat Watch tries the public settings endpoint first. It previews each league independently, so a private league failure does not discard successful public results. Select the profiles to save and acknowledge any compatibility notes before importing.
+In **Settings**, choose **Import leagues**, paste one ESPN football league URL or decimal league ID per line, and check the fantasy season, which starts as the current year. Stat Watch tries the public settings endpoint first. It previews each league independently, so a private league failure does not discard successful public results. Select the profiles to save and acknowledge any compatibility notes before importing.
 
 Each profile keeps its ESPN league ID, season, import time, settings snapshot and scoring-map version. Refreshing an imported profile shows source changes; when the profile's scoring values were edited locally, choose whether to preserve those values or replace them with ESPN's current settings. Disconnect removes the source link and keeps the current values. If browser storage is full, imported profiles stay available for the current session and the UI says they were not saved.
 
