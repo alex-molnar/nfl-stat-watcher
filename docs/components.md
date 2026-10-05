@@ -2,10 +2,10 @@
 
 ## Header
 Props: `actions?: ReactNode` (extra buttons, for example "Add player").
-Shows the app name, Players, Vs and Settings links (current page marked with `aria-current`), and the theme toggle.
+Shows the football icon (inline, the same drawing as the tab icon) and the app name on the left, then the page's own `actions`, then the Players, Vs Mode and Settings links (current page marked with `aria-current`) and the theme toggle pinned to the right edge (`.top-end`), so the tabs and toggle stay at the same position on every page however many buttons a page adds.
 
 ## ThemeToggle
-No props. Shows "Dark mode" in the light theme and "Light mode" in the dark theme. The label names the action and follows the effective theme (stored choice, else the OS preference, including OS changes while open), so it never goes stale. Stores the choice in `nflsw:v1:theme`.
+No props. A switch with a sun on the left and a crescent on the right and a thumb that slides over the active theme. It has no visible text; its accessible name is "Dark mode" in the light theme and "Light mode" in the dark theme. The name names the action and follows the effective theme (stored choice, else the OS preference, including OS changes while open), so it never goes stale. Stores the choice in `nflsw:v1:theme`.
 
 ## MainPage
 No props. Shows only your own entries; opponent entries (vs mode) never appear here, in cards or in the empty state. States: empty (nothing of yours followed), grouped (Live now, Later, Final, Bye week), schedule unavailable (one "Followed" group, cards say "Game status unavailable"), scoreboard error with older data (note under the header), loading games ("Loading games"). Page-level notes (loading, paused, retry) share one `role="status"` element that stays mounted and only changes its text.
