@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, LANGUAGE_NAMES, languageStore, type LanguageChoice } from '../i18n';
 import { DAZN_REGION, syncDaznLinks } from '../dazn/links';
+import { DaznGameLinks } from './DaznGameLinks';
 import { daznEnabledStore, daznLinksStore } from '../storage/dazn';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
 import { CAMP_KEY } from '../storage/camp';
@@ -46,6 +47,7 @@ export function SettingsPage() {
   const [notice, setNotice] = useState<Notice>(''); // a key, not the text, so a language change at Save words it in the new language
   const [syncing, setSyncing] = useState(false);
   const [daznNotice, setDaznNotice] = useState('');
+  const [gamesOpen, setGamesOpen] = useState(false); // the list loads the week's games only once it is opened
   const confirmRef = useRef<HTMLDialogElement>(null);
   const language = draft?.language ?? storedLanguage;
   const mode = draft?.mode ?? stored;
@@ -163,6 +165,10 @@ export function SettingsPage() {
                 {dazn && <p className="compat-warning" role="note"><strong>Warning:</strong> games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN.</p>}
                 <button type="button" className="btn press" disabled={syncing} onClick={syncNow}>Sync game links with DAZN</button>
                 <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
+                <details className="dazn-games-box" open={gamesOpen} onToggle={(event) => setGamesOpen(event.currentTarget.open)}>
+                  <summary>This week's games and their links</summary>
+                  {gamesOpen && <DaznGameLinks />}
+                </details>
               </fieldset>
             </>}
             {category === 'positionOrder' && <fieldset>

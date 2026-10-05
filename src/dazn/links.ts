@@ -42,6 +42,12 @@ export function mapGames(tiles: DaznTile[], games: GameInfo[], teams: EspnTeamRe
   return links;
 }
 
+/** A pasted DAZN game link (full address, or just the path) as "/home/<id>/<id>"; null when it is not one. */
+export function parseDaznGameLink(text: string): string | null {
+  const match = text.trim().match(/^(?:https:\/\/(?:www\.)?dazn\.com)?(?:\/[a-z]{2}-[A-Z]{2})?(\/home\/[A-Za-z0-9]+\/[A-Za-z0-9]+)\/?(?:[?#].*)?$/);
+  return match ? match[1]! : null;
+}
+
 /** Reads DAZN's schedule through our own origin, maps this week's ESPN games to it and saves the result. */
 export async function syncDaznLinks(): Promise<{ stored: DaznLinks; games: number }> {
   const response = await fetch(SCHEDULE_URL);
@@ -49,7 +55,7 @@ export async function syncDaznLinks(): Promise<{ stored: DaznLinks; games: numbe
   const tiles = parseScheduleTiles(await response.text());
   const [scoreboard, teams] = await Promise.all([getScoreboard(), getTeams()]);
   const games = toGames(scoreboard);
-  const stored = { syncedAt: new Date().toISOString(), links: mapGames(tiles, games, teams) };
+  const stored = { ...daznLinksStore.get(), syncedAt: new Date().toISOString(), links: mapGames(tiles, games, teams) }; // the user's own links stay
   daznLinksStore.set(stored);
   return { stored, games: games.length };
 }
