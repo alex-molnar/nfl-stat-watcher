@@ -40,8 +40,10 @@ jobs:
       packages: write # push the image to GHCR with the built-in token
     env:
       NAMESPACE: ${{ inputs.namespace }}
-      HOST: ${{ vars.HOST }}
-      INGRESS_CLASS: ${{ vars.INGRESS_CLASS }}
+      # Configured as GitHub secrets: HOST per environment, INGRESS_CLASS and KUBE_SERVER for the whole repository.
+      HOST: ${{ secrets.HOST }}
+      INGRESS_CLASS: ${{ secrets.INGRESS_CLASS }}
+      CLUSTER_ISSUER: ${{ secrets.CLUSTER_ISSUER }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,11 +54,11 @@ jobs:
           KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
           missing=""
-          for name in KUBE_SERVER KUBE_CA KUBE_TOKEN HOST INGRESS_CLASS; do
+          for name in KUBE_SERVER KUBE_CA KUBE_TOKEN HOST INGRESS_CLASS CLUSTER_ISSUER; do
             [ -n "${!name:-}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
-            echo "::error::Missing in the '${{ inputs.environment }}' GitHub environment:$missing. See docs/deployment.md."
+            echo "::error::Missing GitHub secrets for the '${{ inputs.environment }}' deployment:$missing. See docs/deployment.md."
             exit 1
           fi
 
@@ -97,7 +99,7 @@ jobs:
         run: |
           # The single quotes are deliberate: envsubst must receive the names, not their (empty) shell values.
           # shellcheck disable=SC2016
-          envsubst '${IMAGE} ${HOST} ${INGRESS_CLASS}' < k8s/app.yaml | kubectl apply --namespace "$NAMESPACE" -f -
+          envsubst '${IMAGE} ${HOST} ${INGRESS_CLASS} ${CLUSTER_ISSUER}' < k8s/app.yaml | kubectl apply --namespace "$NAMESPACE" -f -
 
       - name: Wait for the rollout
         run: |

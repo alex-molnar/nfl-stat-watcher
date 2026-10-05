@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          # The pipeline fills ${IMAGE} (ghcr.io/<owner>/<repo>:<commit>) before applying this file.
+          # The pipeline substitutes the image (ghcr.io/<owner>/<repo>:<commit>) before applying this file.
           image: ${IMAGE}
           ports:
             - name: http
@@ -82,9 +82,16 @@ metadata:
   name: stat-watch
   labels:
     app: stat-watch
+  annotations:
+    # cert-manager sees this, requests a certificate for the host below and stores it in the secret named under tls.
+    cert-manager.io/cluster-issuer: ${CLUSTER_ISSUER}
 spec:
-  # The pipeline fills ${INGRESS_CLASS} and ${HOST} from the GitHub environment's variables.
+  # The pipeline substitutes the class, host and issuer from the GitHub secrets INGRESS_CLASS, HOST and CLUSTER_ISSUER.
   ingressClassName: ${INGRESS_CLASS}
+  tls:
+    - hosts:
+        - ${HOST}
+      secretName: stat-watch-tls
   rules:
     - host: ${HOST}
       http:

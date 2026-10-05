@@ -28,21 +28,37 @@ is a namespace-scoped Role, never a ClusterRole, so the account has no access to
 resources, or to Secrets, and it cannot delete anything or change RBAC. Neither account can use the other's namespace.
 The pipeline never applies `k8s/rbac.yaml`.
 
-## One-time GitHub setup
+## GitHub setup
 
-Create two environments, **test** and **live** (Settings, Environments). For **live**, consider requiring a reviewer.
-In each, set these, taking the values from the matching namespace (replace `NS` with `nfl-stat-watcher` for live and
-`nfl-stat-watcher-test` for test):
+Create two environments, **test** and **live** (Settings, Environments). The pipeline reads everything from GitHub
+secrets, so nothing environment-specific lives in the repository. Taking the values from the matching namespace
+(replace `NS` with `nfl-stat-watcher` for live and `nfl-stat-watcher-test` for test):
 
-| Name | Kind | Value |
+| Secret | Where | Value |
 | --- | --- | --- |
-| `KUBE_SERVER` | secret | `kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'` (must be reachable from GitHub's runners) |
-| `KUBE_CA` | secret | `kubectl -n NS get secret github-deployer-token -o jsonpath='{.data.ca\.crt}'` (keep it base64 as printed) |
-| `KUBE_TOKEN` | secret | `kubectl -n NS get secret github-deployer-token -o jsonpath='{.data.token}' \| base64 -d` |
-| `HOST` | variable | the hostname for the Ingress, for example `stat-watch.example.com` |
-| `INGRESS_CLASS` | variable | your ingress class, for example `nginx` |
+| `KUBE_SERVER` | repository | `kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'` (must be reachable from GitHub's runners) |
+| `INGRESS_CLASS` | repository | your ingress class, for example `nginx` |
+| `CLUSTER_ISSUER` | repository | the cert-manager ClusterIssuer that issues the certificates, for example `letsencrypt-prod` |
+| `HOST` | each environment | the hostname for that environment, for example `stat-watch.example.com` |
+| `KUBE_CA` | each environment | `kubectl -n NS get secret github-deployer-token -o jsonpath='{.data.ca\.crt}'` (keep it base64 as printed) |
+| `KUBE_TOKEN` | each environment | `kubectl -n NS get secret github-deployer-token -o jsonpath='{.data.token}' \| base64 -d` |
 
-The workflow stops early with a message naming anything missing.
+```sh
+gh secret set CLUSTER_ISSUER --body letsencrypt-prod          # repository level
+gh secret set HOST --env test --body test.stat-watch.example.com
+gh secret set HOST --env live --body stat-watch.example.com
+```
+
+The workflow stops early with a message naming any secret that is missing. For **live**, consider requiring a reviewer and
+limiting it to the `main` branch (Settings, Environments, live).
+
+## TLS
+
+The Ingress asks cert-manager for a certificate (`cert-manager.io/cluster-issuer: <CLUSTER_ISSUER>`) for the environment's
+`HOST` and stores it in a secret named `stat-watch-tls` in the same namespace, which the Ingress serves. cert-manager does
+the work, so the pipeline's account needs no access to Secrets or certificates. The first deployment can take a minute
+or two to get a certificate; check with `kubectl -n NS get certificate`. The ClusterIssuer must be able to validate the
+host (for HTTP-01, public DNS pointing at the ingress).
 
 ## Pulling the image
 
@@ -58,7 +74,6 @@ kubectl -n NS create secret docker-registry ghcr-pull \
 
 ## Not covered
 
-- **TLS:** the Ingress has no TLS section. Add `tls` and your issuer annotation to `k8s/app.yaml` if the cluster expects them.
 - **Token rotation:** the service account tokens do not expire. To rotate, delete the token Secret and apply `k8s/rbac.yaml`
   again, then update the GitHub secrets.
 - **Action versions:** the actions are pinned to major versions (`@v4`, `@v3`, `@v6`), not commit SHAs.
