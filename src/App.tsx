@@ -14,6 +14,7 @@ import { PrivacyPage } from './ui/PrivacyPage';
 import { SiteFooter } from './ui/SiteFooter';
 import { SettingsPage } from './ui/SettingsPage';
 import { VsPage } from './ui/VsPage';
+import { DaznAutoSync } from './ui/DaznAutoSync';
 
 // networkMode 'always': while the browser is offline, react-query would otherwise pause fetches
 // silently and the retry note would never show.
@@ -50,6 +51,7 @@ export function AppRoutes() {
       <CampWelcome />
       <CampTour />
       <CampFinish />
+      <DaznAutoSync />
     </>
   );
 }

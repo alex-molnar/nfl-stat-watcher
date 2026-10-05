@@ -1,10 +1,15 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mahomes, profilesFixture, warren } from '../test/data';
 import { reloadAllStores } from '../storage/store';
 import { renderAt, seed, declineCamp } from '../test/render';
 import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
 import { positionOrderStore } from '../storage/positionOrder';
+import { readFileSync } from 'node:fs';
+import standings from '../test/fixtures/standings.json';
+import { scoreboardFixture } from '../test/data';
+import { mockFetch, status } from '../test/mockFetch';
+import { daznEnabledStore } from '../storage/dazn';
 
 beforeEach(declineCamp);
 
@@ -390,6 +395,59 @@ describe('settings page', () => {
       expect(document.querySelector('.brand .mascot')).not.toBeNull(); // still a working copy
       await userEvent.click(saveBtn()!);
       expect(document.querySelector('.brand .mascot')).toBeNull();
+    });
+  });
+
+  describe('DAZN game links', () => {
+    const html = readFileSync('src/test/fixtures/dazn-schedule.html', 'utf8');
+    const routes = () => {
+      const f = mockFetch({ scoreboard: scoreboardFixture, standings });
+      const inner = f.getMockImplementation()!;
+      f.mockImplementation(async (input) => (String(input).startsWith('/dazn/') ? new Response(html) : inner(input)));
+      return f;
+    };
+    const dazn = () => screen.getByRole('checkbox', { name: 'Expose DAZN games' });
+    const syncButton = () => screen.getByRole('button', { name: 'Sync game links with DAZN' });
+    const daznCalls = (f: ReturnType<typeof routes>) => f.mock.calls.filter(([u]) => String(u).startsWith('/dazn/'));
+
+    it('is off by default, requests nothing from DAZN, and is saved with Save', async () => {
+      const f = routes();
+      renderAt('/settings');
+      expect(dazn()).not.toBeChecked();
+      expect(daznCalls(f)).toHaveLength(0);
+      await userEvent.click(dazn());
+      expect(localStorage.getItem('nflsw:v1:daznEnabled')).toBe('false'); // still a working copy
+      await userEvent.click(saveBtn()!);
+      expect(localStorage.getItem('nflsw:v1:daznEnabled')).toBe('true');
+    });
+
+    it('the button syncs through our own origin and says how many games were linked', async () => {
+      const f = routes();
+      renderAt('/settings');
+      expect(screen.getByText('Not synced yet.')).toBeInTheDocument();
+      await userEvent.click(syncButton());
+      expect(await screen.findByText('Linked 1 of 2 games with DAZN.')).toBeInTheDocument();
+      expect(daznCalls(f)).toHaveLength(1);
+      expect(screen.getByText(/Last synced .*: 1 games linked\./)).toBeInTheDocument();
+    });
+
+    it('shows a failed sync in the status line', async () => {
+      mockFetch({ '/dazn/': status(502) });
+      renderAt('/settings');
+      await userEvent.click(syncButton());
+      expect(await screen.findByText('Could not sync with DAZN: DAZN answered 502.')).toBeInTheDocument();
+    });
+
+    it('syncs once when a page loads with the setting on, and never with it off', async () => {
+      const off = routes();
+      renderAt('/settings');
+      expect(daznCalls(off)).toHaveLength(0);
+      cleanup();
+      daznEnabledStore.set(true);
+      const on = routes();
+      renderAt('/settings');
+      await screen.findByText(/Last synced/);
+      expect(daznCalls(on)).toHaveLength(1);
     });
   });
 });
