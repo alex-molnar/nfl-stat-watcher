@@ -112,12 +112,12 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <Bump value={total} />
           <span>fantasy pts</span>
         </button>
+        <div className="badge" aria-hidden="true">{entry.teamAbbr}</div>
         <div className="sub">
-          <i className="team-dot" aria-hidden="true" />
           <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
-          <span className="chip">{profile.name}</span>
           {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
         </div>
+        <span className="chip league-chip">{profile.name}</span>
         {injury && <div className="inj-row"><span className={`inj inj-${injuryTone(injury)}`}>{injuryLabel(injury)}</span></div>}
       </div>
 
@@ -148,11 +148,6 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
         ) : (
           <div className="stat"><span>{game?.state === 'pre' ? 'No stats until kickoff' : 'No stats'}</span></div>
         )}
-        {clips.length > 0 && (
-          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${entry.name}, ${clips.length}`}>
-            <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> Highlights</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
-          </button>
-        )}
       </div>
 
       {open && (
@@ -177,6 +172,11 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       {note && <p className="note">{note}</p>}
 
       <div className="ft">
+        {clips.length > 0 && (
+          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${entry.name}, ${clips.length}`}>
+            <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> Highlights</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
+          </button>
+        )}
         {movable && !opposing && (
           <label>
             League

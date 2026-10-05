@@ -26,6 +26,9 @@ describe('highlights', () => {
     renderAt('/');
     const button = await screen.findByRole('button', { name: /New highlights for Jaylen Warren, 2/ });
     expect(button).toHaveClass('fresh');
+    expect(button.parentElement).toHaveClass('ft'); // the bottom row, with Remove
+    expect(button.nextElementSibling ?? button.parentElement!.lastElementChild).toBeTruthy();
+    expect(button.parentElement!.firstElementChild).toBe(button); // leftmost
   });
 
   it('plays a clip that has a video file inside a native dialog', async () => {
