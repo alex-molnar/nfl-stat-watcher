@@ -62,6 +62,12 @@ describe('sync starters', () => {
     renderAt('/');
     await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
     expect(await screen.findByText(/This league is private/)).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Copy lineups from ESPN' });
+    expect(link.getAttribute('href')).toMatch(/^javascript:/);
+    expect(decodeURIComponent(link.getAttribute('href')!)).toContain('leagues/1900128084?view=mRoster');
+    await userEvent.click(link); // clicking it on our own page must not run it
+    expect(await screen.findByText(/drag it to your bookmarks bar/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'open the league on ESPN' })).toHaveAttribute('href', 'https://fantasy.espn.com/football/league?leagueId=1900128084&seasonId=2026');
     const area = screen.getByLabelText(/Rosters JSON for/);
     await userEvent.click(area);
     await userEvent.paste('oops');

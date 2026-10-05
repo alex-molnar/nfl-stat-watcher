@@ -152,3 +152,8 @@ The header is a three-column grid. Row 1: the name, as wide as it can go (wrappi
 ## League colour
 
 Every profile has a colour (`Profile.color`, `#rrggbb`). A new league, made with Add profile or by importing, gets the next unused colour from `LEAGUE_COLORS` (`src/scoring/leagueColor.ts`; once all ten are used it starts over from the least used). Profiles saved before colours existed are given different ones in list order the first time they load. Settings has a Color field (a native colour input) beside the name with a live preview tag, and the profile list shows the colour as a dot. The league tag on every card uses the colour as its background, with black or white text chosen for contrast (`textOn`). Refreshing a league from ESPN keeps its colour.
+
+
+## Private league lineups bookmark
+
+`PrivateLeagueHelp` can offer a bookmarklet (`bookmarklet` prop) beside the manual copy steps. It is a draggable `a` whose `javascript:` href is set on the element (React refuses that URL in a prop); clicking it on this site only explains to drag it. The code (`rosterBookmarklet`) is generated for one league and season, validates both as plain numbers, and writes a trimmed copy of ESPN's roster response in ESPN's own shape to the clipboard, so the same parser (`readLineups`) reads it.

@@ -3,6 +3,7 @@ import { backdropClose } from './backdropClose';
 import { useTeams } from '../hooks/queries';
 import { setLeagueRemoveNonStarters, setLeagueTeam } from '../leagues/import';
 import { EspnLoadError } from '../leagues/espn/client';
+import { rosterBookmarklet } from '../leagues/espn/bookmarklet';
 import { LineupError, fetchLeagueLineups, lineupsUrl, readLineups, type LeagueLineups, type Starter } from '../leagues/espn/lineup';
 import { planStarterImport } from '../leagues/starterPlan';
 import { addEntry, followedStore, removeEntry, type Side } from '../storage/followed';
@@ -149,7 +150,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         {load.state === 'error' && (
           <>
             <p className="error" role="alert">{load.message}</p>
-            {load.needsAccess && leagueId && season && <PrivateLeagueHelp url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} />}
+            {load.needsAccess && leagueId && season && <PrivateLeagueHelp url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
           </>
         )}
         {lineups && (
