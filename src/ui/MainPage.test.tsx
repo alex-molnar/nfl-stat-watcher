@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import { onlineManager } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -327,6 +327,50 @@ describe('live ordering', () => {
     expect(card('SF runner')).not.toHaveClass('still');
     await userEvent.click(screen.getByRole('button', { name: /Pause live updates/ }));
     expect(card('SF runner')).toHaveClass('still');
+  });
+});
+
+describe('Watch on DAZN', () => {
+  const sf = (espnId: string, name: string, position: string, teamId = '25', teamAbbr = 'SF') =>
+    ({ ...warren, espnId, name, position, teamId, teamAbbr, profileId: 'p1' });
+  const liveBoard = {
+    events: scoreboardFixture.events.map((e) => e.id === '401872975' ? { ...e, status: { ...e.status, type: { ...e.status.type, state: 'in' as const } } } : e),
+  };
+  const liveSummary = {
+    header: { id: '401872975', competitions: [{ competitors: [] }] },
+    boxscore: { players: [] },
+    drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
+  };
+  const watch = (name: string) => screen.queryByRole('button', { name: `Watch ${name} on DAZN` });
+  const setup = async (enabled: boolean, links: Record<string, string>) => {
+    localStorage.setItem('nflsw:v1:daznEnabled', JSON.stringify(enabled));
+    localStorage.setItem('nflsw:v1:daznLinks', JSON.stringify({ syncedAt: 'now', links }));
+    seed([sf('4', 'SF runner', 'RB'), sf('1', 'DEN receiver', 'WR', '7', 'DEN')], profilesFixture); // seed reloads the stores
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(screen.getByText('SF runner').closest('.card')).toHaveClass('is-rz'));
+  };
+
+  it('shows only on a red zone card whose game has a link, with the setting on', async () => {
+    await setup(true, { '401872975': '/home/a/b' });
+    expect(watch('SF runner')).toBeInTheDocument();
+    expect(watch('DEN receiver')).not.toBeInTheDocument(); // not in the red zone
+  });
+
+  it('is hidden with the setting off, or without a link for the game', async () => {
+    await setup(false, { '401872975': '/home/a/b' });
+    expect(watch('SF runner')).not.toBeInTheDocument();
+    cleanup();
+    await setup(true, {});
+    expect(watch('SF runner')).not.toBeInTheDocument();
+  });
+
+  it('opens the game in the named window on click, and says so when the browser blocks it', async () => {
+    await setup(true, { '401872975': '/home/a/b' });
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    await userEvent.click(watch('SF runner')!);
+    expect(open).toHaveBeenCalledWith('', 'stat-watch-dazn', expect.any(String));
+    expect(await screen.findByText('Your browser blocked the DAZN window. Allow pop-ups for this site.')).toBeInTheDocument();
   });
 });
 
