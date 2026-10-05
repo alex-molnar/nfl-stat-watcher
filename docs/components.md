@@ -1,6 +1,8 @@
 # UI components
 
-## Header
+## Header (pinned)
+The header is pinned to the top of every page (Players, Vs Mode, Settings), on screens wider than 760px and taller than 30em. A phone wraps it to several rows and a very short window would lose most of its height to it (WCAG 1.4.10), so there it scrolls away like any content. `Header` publishes its measured height as `--header-h`; the Vs score bar sticks at that offset directly under it, the settings left menu likewise, and `scroll-padding-top` includes it (and the score bar on Vs), so a focused card is never hidden behind either.
+
 Props: `actions?: ReactNode` (extra buttons, for example "Add player").
 Shows the football icon (inline, the same drawing as the tab icon) and the app name on the left, then the page's own `actions`, then the Players, Vs Mode and Settings links (current page marked with `aria-current`) and the theme toggle pinned to the right edge (`.top-end`), so the tabs and toggle stay at the same position on every page however many buttons a page adds.
 
@@ -164,7 +166,7 @@ The box is a paste target: a `paste` event takes the clipboard text, replaces th
 ## Settings page: selecting, editing and saving
 
 - **No league is selected** when the page opens. The right side says to pick one (or add or import one) and shows no form.
-- **Header and left menu stay in view.** On the settings page the header (`<Header sticky />`: title and tabs) is sticky on screens wider than 760px, and publishes its height as `--header-h` so the left menu sticks just below it and focus scrolling clears it. On a phone the header wraps to several rows, so it scrolls away. The "Scoring profiles" title is the first thing in the left menu and sticks with it.
+- **Header and left menu stay in view.** The "Scoring profiles" title is the first thing in the left menu and sticks with it, just below the pinned header (see Header).
 - **Left menu** (`.settings-side`, sticky above the 760px breakpoint so it stays in view while the long form scrolls): the league list, Add profile, Import leagues, then, once a league is selected, **Delete profile** (the same danger button and the same move-the-cards confirmation as before, moved here from the bottom of the form), then, while there are unsaved changes, **Save** and **Cancel**.
 - **Edits go to a working copy**, not to storage. Changing the name, colour, preset, any value, switch, step or points-allowed tier shows Save and Cancel in the left menu and again at the end of the form, with an "Unsaved changes" note. **Save** writes the name, colour, preset and values to the saved profile (a name that is empty or clashes with another league is corrected the same way as on blur) and says "Saved <name>."; **Cancel** puts the saved values back, including in the name box. Apply preset also only changes the working copy.
 - **Leaving with unsaved changes** (choosing another league or adding one) asks "Discard the unsaved changes to <name>?"; closing or reloading the tab triggers the browser's own warning. The working copy starts over when the saved league changes underneath it (an import, a refresh), so it never shows stale values.

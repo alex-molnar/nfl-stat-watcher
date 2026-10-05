@@ -393,7 +393,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <Header sticky />
+      <Header />
       <main className="wrap">
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}

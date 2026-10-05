@@ -19,12 +19,12 @@ function Football() {
  * Brand on the left, then the page's own buttons, then the tabs and theme switch pinned to the right edge, so
  * they stay put however many page buttons there are.
  */
-export function Header({ actions, sticky = false }: { actions?: ReactNode; sticky?: boolean }) {
+export function Header({ actions }: { actions?: ReactNode }) {
   const bar = useRef<HTMLElement>(null);
-  // A sticky header publishes its height, so other sticky parts and focus scrolling can sit below it (WCAG 2.4.11).
+  // The header is pinned to the top, so it publishes its height: other sticky parts and focus scrolling sit below it (WCAG 2.4.11).
   useLayoutEffect(() => {
     const el = bar.current;
-    if (!sticky || !el || typeof ResizeObserver === 'undefined') return;
+    if (!el || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
     const publish = () => root.style.setProperty('--header-h', `${Math.ceil(el.getBoundingClientRect().height)}px`);
     publish();
@@ -34,9 +34,9 @@ export function Header({ actions, sticky = false }: { actions?: ReactNode; stick
       observer.disconnect();
       root.style.removeProperty('--header-h');
     };
-  }, [sticky]);
+  }, []);
   return (
-    <header ref={bar} className={`top-bar${sticky ? ' sticky-top' : ''}`}>
+    <header ref={bar} className="top-bar">
       <div className="wrap top">
         <h1 className="brand"><Football />Stat Watch</h1>
         {actions}

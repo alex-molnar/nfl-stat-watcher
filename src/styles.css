@@ -154,7 +154,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
-.settings-side { position: sticky; top: calc(var(--header-h, 0px) + 16px); max-height: calc(100vh - var(--header-h, 0px) - 32px); overflow-y: auto; align-self: start; }
+.settings-side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; align-self: start; }
 .settings-side .section-title { margin-top: 6px; }
 .settings-side > .btn, .settings-side .delete-control .btn, .settings-side .save-actions .btn { width: 100%; margin-bottom: 8px; }
 .save-actions { display: grid; gap: 0; padding-top: 4px; }
@@ -368,8 +368,12 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .bm-help p { margin: 0; }
 .bm-link { display: inline-block; text-decoration: none; cursor: grab; border-color: var(--accent); font-weight: 800; }
 
-/* A sticky header (settings page): always visible on screens wide enough to spare the room. On a phone it wraps to several rows, so it scrolls away like any page. */
-@media (min-width: 761px) {
-  .top-bar.sticky-top { position: sticky; top: 0; z-index: 20; background: var(--bg); box-shadow: 0 1px 0 var(--rule); }
-  html:has(.top-bar.sticky-top) { scroll-padding-top: calc(var(--header-h, 0px) + 8px); }
+/* The header stays visible on every page, on screens with room for it: wide enough, and tall enough. A phone wraps it to several rows and a very short window would lose most of its height to it (WCAG 1.4.10), so there it scrolls away like any content.
+   Whatever else is sticky sits just below it, and focus scrolling clears both. */
+@media (min-width: 761px) and (min-height: 30.01em) {
+  .top-bar { position: sticky; top: 0; z-index: 20; background: var(--bg); box-shadow: 0 1px 0 var(--rule); }
+  html { scroll-padding-top: calc(var(--header-h, 0px) + 8px); }
+  .settings-side { top: calc(var(--header-h, 0px) + 16px); max-height: calc(100vh - var(--header-h, 0px) - 32px); }
+  .score-bar { top: var(--header-h, 0px); }
+  html:has(.score-bar) { scroll-padding-top: calc(var(--header-h, 0px) + var(--score-bar-h, 72px) + 8px); }
 }

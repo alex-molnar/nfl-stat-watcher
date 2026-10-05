@@ -32,8 +32,16 @@ describe('settings page', () => {
     renderAt('/settings');
     const menu = screen.getByRole('complementary', { name: 'Profile actions' });
     expect(within(menu).getByRole('heading', { level: 2, name: 'Scoring profiles' })).toBeInTheDocument(); // sticks with the list, not above it
-    expect(screen.getByRole('banner')).toHaveClass('sticky-top');
     expect(within(screen.getByRole('banner')).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+  });
+
+  it.each(['/', '/vs', '/settings'])('puts the same pinned header, with the tabs, on %s', (path) => {
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt(path);
+    const banner = screen.getByRole('banner');
+    expect(banner).toHaveClass('top-bar'); // pinned to the top by the .top-bar rule, wherever the page scrolls
+    expect(within(banner).getByRole('heading', { level: 1, name: 'Stat Watch' })).toBeInTheDocument();
+    expect(within(within(banner).getByRole('navigation', { name: 'Main' })).getAllByRole('link').map((l) => l.textContent)).toEqual(['Players', 'Vs Mode', 'Settings']);
   });
 
   it('shows the form and a Delete profile button in the left menu once a league is selected', async () => {
