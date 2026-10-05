@@ -187,7 +187,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
           <h2 id="starters-title">{heading}</h2>
           <button type="button" className="close" aria-label="Close sync starters dialog" onClick={onClose}>×</button>
         </div>
-        {targets.length === 0 && <p className="muted">Import an ESPN league in Settings first. Starters come from its current matchup.</p>}
+        {targets.length === 0 && <p className="muted">Import an ESPN league in Leagues first. Starters come from its current matchup.</p>}
         {profile && fixedId === undefined && imported.length > 1 && (
           <label className="field-label">
             League

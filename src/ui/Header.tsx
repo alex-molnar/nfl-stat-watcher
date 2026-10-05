@@ -44,6 +44,7 @@ export function Header({ actions }: { actions?: ReactNode }) {
           <nav className="nav" aria-label="Main">
             <NavLink to="/" end>Players</NavLink>
             <NavLink to="/vs">Vs Mode</NavLink>
+            <NavLink to="/leagues">Leagues</NavLink>
             <NavLink to="/settings">Settings</NavLink>
           </nav>
           <ThemeToggle />

@@ -21,11 +21,11 @@ Known limits: forced fumbles are not scored (ESPN's box score has no forced fumb
 
 ## ESPN league scoring import
 
-Settings can import public ESPN league scoring from a league ID or link and a selected season. Imports show unsupported or approximate rules before saving; source, season and compatibility notes stay with the profile. Private league access uses an optional Chrome companion and remains unverified until the connector has been installed and tested with an authenticated ESPN account. Setup, supported scoring rules and current limits are in [the league import guide](docs/league-import.md).
+Leagues can import public ESPN league scoring from a league ID or link and a selected season. Imports show unsupported or approximate rules before saving; source, season and compatibility notes stay with the profile. Private league access uses an optional Chrome companion and remains unverified until the connector has been installed and tested with an authenticated ESPN account. Setup, supported scoring rules and current limits are in [the league import guide](docs/league-import.md).
 
 ## Vs mode
 
-Open Vs in the header to see one league as a matchup: your players against your league opponent's players, both scored with that league's scoring profile, and a score bar that says who leads and by how much. Pick the league at the top; each side has its own Add player button. The two sides sit next to each other on wider screens and stack on phones, with the score bar kept in view. Opponent players are stored with your followed players, marked as opponent, and never show on the Players page. Deleting a league in Settings moves your own cards as before and removes that league's opponent cards.
+Open Vs in the header to see one league as a matchup: your players against your league opponent's players, both scored with that league's scoring profile, and a score bar that says who leads and by how much. Pick the league at the top; each side has its own Add player button. The two sides sit next to each other on wider screens and stack on phones, with the score bar kept in view. Opponent players are stored with your followed players, marked as opponent, and never show on the Players page. Deleting a league in Leagues moves your own cards as before and removes that league's opponent cards.
 
 ## Container
 

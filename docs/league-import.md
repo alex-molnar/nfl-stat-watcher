@@ -4,7 +4,7 @@ Stat Watch can import ESPN fantasy football scoring settings into a local scorin
 
 ## Import a league
 
-In **Settings**, choose **Import leagues**, paste one ESPN football league URL or decimal league ID per line, and check the fantasy season, which starts as the current year. Stat Watch tries the public settings endpoint first. It previews each league independently, so a private league failure does not discard successful public results. Select the profiles to save and acknowledge any compatibility notes before importing.
+In **Leagues**, choose **Import leagues**, paste one ESPN football league URL or decimal league ID per line, and check the fantasy season, which starts as the current year. Stat Watch tries the public settings endpoint first. It previews each league independently, so a private league failure does not discard successful public results. Select the profiles to save and acknowledge any compatibility notes before importing.
 
 Each profile keeps its ESPN league ID, season, import time, settings snapshot and scoring-map version. Refreshing an imported profile shows source changes; when the profile's scoring values were edited locally, choose whether to preserve those values or replace them with ESPN's current settings. Disconnect removes the source link and keeps the current values. If browser storage is full, imported profiles stay available for the current session and the UI says they were not saved.
 
@@ -33,7 +33,7 @@ ESPN's roster view is large (about 3 MB for ten teams) because it carries all pl
 
 ## Scoring rules and switches
 
-Every ESPN scoring rule the importer recognizes becomes a rule on the profile with its own weight and an On/Off switch (**Settings**, then the profile's groups). Turning a rule off scores nothing for it but keeps its weight, so turning it back on restores it. An imported profile starts with only the rules that league scores switched on, so a league without long-touchdown bonuses has those off and a league with them has them on.
+Every ESPN scoring rule the importer recognizes becomes a rule on the profile with its own weight and an On/Off switch (**Leagues**, then the profile's groups). Turning a rule off scores nothing for it but keeps its weight, so turning it back on restores it. An imported profile starts with only the rules that league scores switched on, so a league without long-touchdown bonuses has those off and a league with them has them on.
 
 Groups: Offense, Offense bonuses (40+ and 50+ yard touchdowns, 100/200 yard and 300/400 yard games), Offense volume, Kicker (made and missed by 0-39, 40-49, 50-59 and 60+ yards, plus aggregate missed), IDP, Team defense and Team defense yards allowed, alongside the points-allowed ranges.
 

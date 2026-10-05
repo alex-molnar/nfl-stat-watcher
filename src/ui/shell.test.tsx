@@ -3,10 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { renderAt } from '../test/render';
 
 describe('app shell', () => {
-  it('shows the app name and navigates to settings and back', async () => {
+  it('shows the app name and navigates to leagues and back', async () => {
     renderAt('/');
     expect(screen.getByRole('heading', { name: 'Stat Watch', level: 1 })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Leagues' }));
     expect(screen.getByRole('heading', { name: 'Scoring profiles' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: 'Players' }));
     expect(screen.queryByRole('heading', { name: 'Scoring profiles' })).not.toBeInTheDocument();
@@ -15,8 +15,8 @@ describe('app shell', () => {
   it('sets a title per page', async () => {
     renderAt('/');
     expect(document.title).toBe('Players · Stat Watch');
-    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
-    expect(document.title).toBe('Settings · Stat Watch');
+    await userEvent.click(screen.getByRole('link', { name: 'Leagues' }));
+    expect(document.title).toBe('Leagues · Stat Watch');
   });
 
   it('toggles and stores the theme', async () => {
@@ -29,7 +29,7 @@ describe('app shell', () => {
   });
 
   it('does not move focus on first load, including the redirect from an unknown route', () => {
-    renderAt('/settings');
+    renderAt('/leagues');
     expect(document.body).toHaveFocus();
   });
 
@@ -41,7 +41,7 @@ describe('app shell', () => {
   it('moves focus to the page heading after a navigation', async () => {
     renderAt('/');
     expect(document.body).toHaveFocus();
-    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Leagues' }));
     expect(screen.getByRole('heading', { name: 'Scoring profiles' })).toHaveFocus();
     await userEvent.click(screen.getByRole('link', { name: 'Players' }));
     expect(screen.getByRole('heading', { name: 'Players' })).toHaveFocus();
@@ -53,10 +53,10 @@ describe('app shell', () => {
     expect(screen.getByRole('link', { name: 'Players' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('links to the matchup page between Players and Settings, with a title and focus on its heading', async () => {
+  it('links to the matchup page between Players and Leagues, with a title and focus on its heading', async () => {
     renderAt('/');
     const nav = screen.getByRole('navigation', { name: 'Main' });
-    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['Players', 'Vs Mode', 'Settings']);
+    expect(within(nav).getAllByRole('link').map((l) => l.textContent)).toEqual(['Players', 'Vs Mode', 'Leagues', 'Settings']);
     await userEvent.click(within(nav).getByRole('link', { name: 'Vs Mode' }));
     expect(screen.getByRole('heading', { name: 'Matchup' })).toHaveFocus();
     expect(document.title).toBe('Matchup · Stat Watch');

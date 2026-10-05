@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { MainPage } from './ui/MainPage';
+import { LeaguesPage } from './ui/LeaguesPage';
 import { SettingsPage } from './ui/SettingsPage';
 import { VsPage } from './ui/VsPage';
 
@@ -29,6 +30,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<MainPage />} />
         <Route path="/vs" element={<VsPage />} />
+        <Route path="/leagues" element={<LeaguesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

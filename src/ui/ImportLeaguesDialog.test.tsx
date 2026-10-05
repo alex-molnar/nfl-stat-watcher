@@ -12,7 +12,7 @@ function importButton() {
 describe('ImportLeaguesDialog', () => {
   it('loads public settings from an explicit season and imports only after warnings are acknowledged', async () => {
     const fetch = mockFetch({ 'seasons/2026/segments/0/leagues/1900128084?view=mSettings': fixture });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -35,7 +35,7 @@ describe('ImportLeaguesDialog', () => {
   it('starts with the current year in the season box', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2027-03-10T12:00:00Z') });
     try {
-      renderAt('/settings');
+      renderAt('/leagues');
       await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
       expect(screen.getByLabelText('Season')).toHaveValue(2027);
     } finally {
@@ -46,7 +46,7 @@ describe('ImportLeaguesDialog', () => {
   it('loads with the prefilled season and no typing, using the current year', async () => {
     const year = new Date().getFullYear();
     const fetch = mockFetch({ [`seasons/${year}/segments/0/leagues/1900128084?view=mSettings`]: { ...fixture, seasonId: year } });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
@@ -55,7 +55,7 @@ describe('ImportLeaguesDialog', () => {
   });
 
   it('still asks for a season when it was cleared, and does not accept an empty league batch', async () => {
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -66,7 +66,7 @@ describe('ImportLeaguesDialog', () => {
 
   it('clears previously loaded previews when the league input changes', async () => {
     mockFetch({ 'seasons/2026/segments/0/leagues/1900128084?view=mSettings': fixture });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     const input = screen.getByLabelText('ESPN fantasy football league links or IDs, one per line');
     await userEvent.type(input, '1900128084');
@@ -81,7 +81,7 @@ describe('ImportLeaguesDialog', () => {
 
   it('fetches current ESPN settings when explicitly refreshing a linked profile', async () => {
     const fetch = mockFetch({ 'seasons/2026/segments/0/leagues/1900128084?view=mSettings': fixture });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -104,7 +104,7 @@ describe('ImportLeaguesDialog', () => {
       'seasons/2026/segments/0/leagues/1900128084?view=mSettings': fixture,
       'seasons/2026/segments/0/leagues/409479118?view=mSettings': { __status: 401 },
     });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084\n409479118');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -126,7 +126,7 @@ describe('ImportLeaguesDialog', () => {
       'seasons/2026/segments/0/leagues/1900128084?view=mSettings': fixture,
       'seasons/2026/segments/0/leagues/1900128085?view=mSettings': second,
     });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084\n1900128085');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -146,7 +146,7 @@ describe('ImportLeaguesDialog', () => {
       init?.signal?.addEventListener('abort', () => { aborted = true; reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
     }));
     vi.stubGlobal('fetch', fetch);
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '409479118');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -159,7 +159,7 @@ describe('ImportLeaguesDialog', () => {
 
   it('imports a private league from settings pasted out of the signed-in ESPN tab', async () => {
     mockFetch({ 'seasons/2026/segments/0/leagues/1900128084?view=mSettings': { __status: 401 } });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '1900128084');
     await userEvent.clear(screen.getByLabelText('Season'));
@@ -178,7 +178,7 @@ describe('ImportLeaguesDialog', () => {
 
   it('refuses pasted settings that belong to another league', async () => {
     mockFetch({ 'seasons/2026/segments/0/leagues/555?view=mSettings': { __status: 401 } });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     await userEvent.type(screen.getByLabelText('ESPN fantasy football league links or IDs, one per line'), '555');
     await userEvent.clear(screen.getByLabelText('Season'));
