@@ -173,8 +173,8 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
             {starters.length === 0 && <p className="muted">No starters are set for this team.</p>}
             {plan && (
               <>
-                <PlanList tone="added" title="Added" entries={plan.added} />
-                <PlanList tone="removed" title="Removed" entries={plan.removed} />
+                <PlanList tone="added" title="To be added" entries={plan.added} />
+                <PlanList tone="removed" title="To be removed" entries={plan.removed} />
                 <PlanList tone="unchanged" title="Unchanged" entries={plan.unchanged} />
               </>
             )}

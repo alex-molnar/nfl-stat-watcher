@@ -84,8 +84,8 @@ describe('import starters', () => {
       const region = await open();
       const checkbox = screen.getByRole('checkbox', { name: 'Remove every non starter player' });
       expect(checkbox).not.toBeChecked();
-      expect(list(region, /^Added \(10\)/)).toHaveClass('plan-added');
-      expect(list(region, /^Removed \(0\)/)).toHaveClass('plan-removed');
+      expect(list(region, /^To be added \(10\)/)).toHaveClass('plan-added');
+      expect(list(region, /^To be removed \(0\)/)).toHaveClass('plan-removed');
       expect(within(list(region, /^Unchanged \(2\)/)).getByText(/Bench Guy/)).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: /^Add 11 your starters/ }));
       expect(await screen.findByText('Added 10 starters, 2 already followed.')).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('import starters', () => {
     it('moves followed non starters to the red list when ticked, and removes them on import, in this league only', async () => {
       const region = await open();
       await userEvent.click(screen.getByRole('checkbox', { name: 'Remove every non starter player' }));
-      const removed = list(region, /^Removed \(1\)/);
+      const removed = list(region, /^To be removed \(1\)/);
       expect(removed).toHaveClass('plan-removed');
       expect(within(removed).getByText(/Bench Guy/)).toBeInTheDocument();
       expect(within(list(region, /^Unchanged \(1\)/)).getByText(/Christian McCaffrey/)).toBeInTheDocument();
