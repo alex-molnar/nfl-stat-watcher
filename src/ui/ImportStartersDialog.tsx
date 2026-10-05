@@ -12,7 +12,8 @@ import { addEntry, followedStore, removeEntry, type Side } from '../storage/foll
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
-import { textOn } from './format';
+import { nameDisplayStore } from '../storage/nameDisplay';
+import { displayName, textOn } from './format';
 import { PrivateLeagueHelp } from './PrivateLeagueHelp';
 
 interface Props {
@@ -32,13 +33,14 @@ function LeagueChip({ profile }: { profile?: Profile }) {
 
 /** One of the three preview lists. The sign and the word carry the meaning; the colour (green, red, none) reinforces it. */
 function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[]; leagueOf?: (entry: FollowedEntry) => Profile | undefined }) {
+  const nameMode = useStore(nameDisplayStore);
   const sign = tone === 'added' ? '+' : tone === 'removed' ? '−' : '';
   return (
     <div className={`plan-list plan-${tone}`}>
       <h4>{title} ({entries.length})</h4>
       {entries.length === 0 ? <p className="muted">None</p> : (
         <ul className="starter-list">
-          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{entry.name}{entry.position ? ` · ${entry.position}` : ''}{leagueOf && <LeagueChip profile={leagueOf(entry)} />}</li>)}
+          {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{displayName(entry, nameMode)}{entry.position ? ` · ${entry.position}` : ''}{leagueOf && <LeagueChip profile={leagueOf(entry)} />}</li>)}
         </ul>
       )}
     </div>
@@ -187,7 +189,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
           <h2 id="starters-title">{heading}</h2>
           <button type="button" className="close" aria-label="Close sync starters dialog" onClick={onClose}>×</button>
         </div>
-        {targets.length === 0 && <p className="muted">Import an ESPN league in Settings first. Starters come from its current matchup.</p>}
+        {targets.length === 0 && <p className="muted">Import an ESPN league in Leagues first. Starters come from its current matchup.</p>}
         {profile && fixedId === undefined && imported.length > 1 && (
           <label className="field-label">
             League

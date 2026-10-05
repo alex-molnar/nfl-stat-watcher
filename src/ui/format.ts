@@ -1,5 +1,6 @@
 import type { GameStats } from '../stats/types';
 import type { GameInfo } from '../stats/scoreboard';
+import type { NameDisplayMode } from '../storage/nameDisplay';
 import type { FollowedEntry } from '../storage/types';
 
 export type StatItem = { value: string; label: string };
@@ -76,3 +77,22 @@ export function resultText(game: GameInfo, teamId: string): string {
 
 export const kickoffText = (iso: string) =>
   new Date(iso).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+
+const SUFFIXES = new Set(['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv', 'v']);
+// Lower-case words that belong to the last name: "Amon-Ra St. Brown", "Jaylen Van Dyke".
+const PARTICLES = new Set(['st', 'st.', 'van', 'von', 'de', 'del', 'der', 'di', 'da', 'la', 'le']);
+
+/** A player's name as the Name display mode wants it. Names are stored in full; defenses are team names and stay as they are. */
+export function displayName(entry: Pick<FollowedEntry, 'kind' | 'name'>, mode: NameDisplayMode): string {
+  if (entry.kind === 'defense' || mode === 'full') return entry.name;
+  const words = entry.name.trim().split(/\s+/);
+  let end = words.length;
+  while (end > 1 && SUFFIXES.has(words[end - 1]!.toLowerCase())) end--;
+  let start = end - 1;
+  while (start > 1 && PARTICLES.has(words[start - 1]!.toLowerCase())) start--;
+  if (start === 0) return entry.name; // a single word has no first name to shorten or move
+  const first = words.slice(0, start).join(' ');
+  const last = words.slice(start, end).concat(words.slice(end)).join(' ');
+  if (mode === 'formal') return `${last}, ${first}`;
+  return `${first.includes('.') ? first : `${first[0]}.`} ${last}`; // "D.J." is already initials
+}

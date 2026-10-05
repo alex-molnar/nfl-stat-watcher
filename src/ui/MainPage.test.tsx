@@ -229,7 +229,7 @@ describe('pause details', () => {
     renderAt('/');
     await screen.findByText('15.60');
     await userEvent.click(screen.getByRole('button', { name: 'Pause live updates' }));
-    await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Leagues' }));
     await userEvent.click(screen.getByRole('link', { name: 'Players' }));
     expect(screen.getByRole('button', { name: 'Resume live updates' })).toHaveAttribute('aria-pressed', 'true');
   });

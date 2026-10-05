@@ -40,7 +40,7 @@ describe('closing a dialog from the backdrop', () => {
   it('closes the other dialogs the same way', async () => {
     seed([warren], profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture });
-    renderAt('/settings');
+    renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
     const dialog = open(/Import ESPN leagues/);
     fireEvent.mouseDown(dialog);
