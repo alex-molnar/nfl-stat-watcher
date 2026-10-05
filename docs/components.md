@@ -131,7 +131,7 @@ A second play during a hold keeps the original held rank and extends it. The hoo
 
 ## Highlights
 
-A card for a player shows a small play button with a count at the end of its statistics row (the points button stays where it was) when a highlight clip of the game is tagged with that player. On cards at least 400px wide it reads "Highlights 2"; on narrower ones just "▶ 2", so it stays on the stats row. A dot marks clips not opened yet during this page visit (kept in memory only, so a reload shows them as new again). Team defenses have no player tag and show no button.
+A card for a player shows a small play button with a count on the card's bottom row, leftmost, on the same row as Remove (and the league select on the Players screen) when a highlight clip of the game is tagged with that player. On cards at least 400px wide it reads "Highlights 2"; on narrower ones just "▶ 2", so it fits beside Remove. A dot marks clips not opened yet during this page visit (kept in memory only, so a reload shows them as new again). Team defenses have no player tag and show no button.
 
 Clips come from the `videos` list in the game summary the card already polls (every ten seconds while live), so a new clip appears within about ten seconds of ESPN publishing it, with no extra request. The summary lists clips without player tags, so each clip's tags are fetched once from ESPN's per-clip API (`getClipAthletes`) and cached for the session, shared by every card. Clips are shown newest first.
 
@@ -147,4 +147,4 @@ Every dialog (add player, import leagues, import starters, highlights) also clos
 
 ## Card header layout
 
-The header is a two-column grid: the name takes every bit of room beside the points (wrapping only when it must), the points button spans the name row and the line below it, and under the name sit a small team-coloured dot, the team, position and opponent text, and the league chip. An injury designation is its own optional row beneath (absent for healthy players). Compact (non-live) cards use less padding (12px 14px), and cards narrower than 340px a smaller name and statistic type, so names and stat lines fit on one row more often.
+The header is a three-column grid. Row 1: the name, as wide as it can go (wrapping only when it must), and the points button, which also spans the row below. Rows 2 and 3: the full-size team circle with the three-letter code, spanning both rows, beside the team, position and opponent line and, under it, the league label. An injury designation is its own optional row beneath (absent for healthy players). Compact (non-live) cards use less padding (12px 14px), and cards narrower than 340px a smaller name and statistic type, so names and stat lines fit on one row more often.
