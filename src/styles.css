@@ -154,7 +154,14 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .profile-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
 .profile-list button { width: 100%; text-align: left; border: 1px solid transparent; background: none; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: 700; }
 .profile-list button[aria-current="true"] { background: var(--panel); border-color: var(--field-border); box-shadow: inset 4px 0 0 var(--accent); }
-.profile-list + .btn, .profile-list + .btn + .btn { width: 100%; margin-bottom: 8px; }
+.settings-side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; align-self: start; }
+.settings-side > .btn, .settings-side .delete-control .btn, .settings-side .save-actions .btn { width: 100%; margin-bottom: 8px; }
+.save-actions { display: grid; gap: 0; padding-top: 4px; }
+.save-note { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
+.profile-form .save-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.profile-form .save-actions .btn { width: auto; margin: 0; }
+.profile-form .save-note { margin: 0 auto 0 0; }
+.profile-empty { min-height: 140px; align-content: center; justify-items: center; color: var(--muted); text-align: center; }
 .profile-form { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 18px; }
 .profile-form fieldset { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px 16px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; }
 .profile-form legend { font: 800 15px/1 Anybody, sans-serif; font-stretch: 115%; padding: 0 6px; }
@@ -191,7 +198,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .import-issues ul { margin: 0; max-height: 180px; overflow: auto; padding-left: 22px; }
 .import-issues label { display: flex; gap: 8px; align-items: start; }
 .error { color: var(--danger); }
-@media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } .settings-side { position: static; max-height: none; overflow: visible; } }
 
 /* Forced colors: gradients and shadows drop out, so state is carried by borders and system colors. */
 @media (forced-colors: active) {
