@@ -1,0 +1,108 @@
+# Shared by deploy-test.yml and deploy-live.yml: check the code, build and push the image, apply it to one namespace.
+name: Deploy (shared)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment holding this target's secrets and variables (test or live)
+        required: true
+        type: string
+      namespace:
+        description: Kubernetes namespace to deploy into
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Type check and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+
+  deploy:
+    name: Build and deploy to ${{ inputs.namespace }}
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      packages: write # push the image to GHCR with the built-in token
+    env:
+      NAMESPACE: ${{ inputs.namespace }}
+      HOST: ${{ vars.HOST }}
+      INGRESS_CLASS: ${{ vars.INGRESS_CLASS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the environment is configured
+        env:
+          KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
+          KUBE_CA: ${{ secrets.KUBE_CA }}
+          KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
+        run: |
+          missing=""
+          for name in KUBE_SERVER KUBE_CA KUBE_TOKEN HOST INGRESS_CLASS; do
+            [ -n "${!name:-}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing in the '${{ inputs.environment }}' GitHub environment:$missing. See docs/deployment.md."
+            exit 1
+          fi
+
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_ENV" # GHCR names must be lower case
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Connect to the cluster as the namespace's deployer
+        env:
+          KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
+          KUBE_CA: ${{ secrets.KUBE_CA }}
+          KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
+        run: |
+          set -euo pipefail
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          echo "$KUBE_CA" | base64 -d > "$RUNNER_TEMP/ca.crt"
+          kubectl config set-cluster target --server="$KUBE_SERVER" --certificate-authority="$RUNNER_TEMP/ca.crt" --embed-certs=true
+          kubectl config set-credentials deployer --token="$KUBE_TOKEN"
+          kubectl config set-context target --cluster=target --user=deployer --namespace="$NAMESPACE"
+          kubectl config use-context target
+          chmod 600 "$KUBECONFIG"
+
+      - name: Apply
+        run: |
+          # The single quotes are deliberate: envsubst must receive the names, not their (empty) shell values.
+          # shellcheck disable=SC2016
+          envsubst '${IMAGE} ${HOST} ${INGRESS_CLASS}' < k8s/app.yaml | kubectl apply --namespace "$NAMESPACE" -f -
+
+      - name: Wait for the rollout
+        run: |
+          if ! kubectl rollout status deployment/stat-watch --namespace "$NAMESPACE" --timeout=180s; then
+            kubectl get pods --namespace "$NAMESPACE" -l app=stat-watch -o wide || true
+            kubectl describe pods --namespace "$NAMESPACE" -l app=stat-watch | tail -n 40 || true
+            exit 1
+          fi

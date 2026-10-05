@@ -1,0 +1,23 @@
+# Every push to a branch other than main goes to the test namespace.
+name: Deploy test
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+# One test environment: a newer push replaces a deployment still in progress.
+concurrency:
+  group: deploy-test
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write # the shared workflow pushes the image; a called workflow cannot hold more than its caller
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: test
+      namespace: nfl-stat-watcher-test

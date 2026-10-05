@@ -1,0 +1,124 @@
+# One-time setup, applied by a cluster admin (the pipeline cannot and must not apply this file).
+#
+#   kubectl apply -f k8s/rbac.yaml
+#
+# It creates the two namespaces and, in each, a service account for GitHub Actions that can only manage this app's
+# Deployment, Service and Ingress there. Namespace-scoped Roles (never ClusterRoles) mean the account has no access to any
+# other namespace, to cluster-wide resources, or to Secrets. See docs/deployment.md for fetching the tokens.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfl-stat-watcher
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfl-stat-watcher-test
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer
+  namespace: nfl-stat-watcher
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer
+  namespace: nfl-stat-watcher-test
+---
+# A long-lived token for each account, filled in by Kubernetes. Without this a service account has no token Secret.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-deployer-token
+  namespace: nfl-stat-watcher
+  annotations:
+    kubernetes.io/service-account.name: github-deployer
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-deployer-token
+  namespace: nfl-stat-watcher-test
+  annotations:
+    kubernetes.io/service-account.name: github-deployer
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer
+  namespace: nfl-stat-watcher
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Read only, so a failed rollout can be explained in the job log.
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer
+  namespace: nfl-stat-watcher-test
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer
+  namespace: nfl-stat-watcher
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer
+    namespace: nfl-stat-watcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer
+  namespace: nfl-stat-watcher-test
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer
+    namespace: nfl-stat-watcher-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer
