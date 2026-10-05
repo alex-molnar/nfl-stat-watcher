@@ -37,7 +37,7 @@ export function VsPage() {
   const liveOrder = useLiveOrder([...mine, ...opponent], paused);
   const [adding, setAdding] = useState(false);
   const [dialogSide, setDialogSide] = useState<Side>('mine');
-  const [importSide, setImportSide] = useState<Side | null>(null);
+  const [importSide, setImportSide] = useState<Side | 'both' | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const hasSchedule = scoreboard.data !== undefined;
   const loading = mine.length + opponent.length > 0 && scoreboard.isPending;
@@ -142,12 +142,19 @@ export function VsPage() {
       <Header actions={<PauseButton />} />
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
-        <label className="field-label vs-league">
-          Matchup league
-          <select value={profile.id} onChange={(e) => setPickedId(e.target.value)}>
-            {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+        <div className="vs-league-row">
+          <label className="field-label vs-league">
+            Matchup league
+            <select value={profile.id} onChange={(e) => setPickedId(e.target.value)}>
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          {profile.source && (
+            <button type="button" className="btn press" onClick={(e) => { opener.current = e.currentTarget; setImportSide('both'); }}>
+              Sync all starters
+            </button>
+          )}
+        </div>
         {/* The one status line: the page note, plus the leader, which changes only when the lead changes hands. */}
         <p className="page-note" role="status">
           {note}

@@ -15,8 +15,8 @@ import { PrivateLeagueHelp } from './PrivateLeagueHelp';
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** Whose starters to bring in: mine, or the opponent's in the current matchup. */
-  side?: Side;
+  /** Whose starters to bring in: mine, the opponent's in the current matchup, or both sides in one go. */
+  side?: Side | 'both';
   /** A fixed league (vs mode). Without it the dialog offers every imported league. */
   profileId?: string;
 }
@@ -90,12 +90,10 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
 
   const lineups = load.state === 'ready' ? load.lineups : null;
   const myTeam = lineups && source?.teamId && lineups.teams.some((team) => team.id === source.teamId) ? source.teamId : '';
-  const targetTeam = side === 'mine' ? myTeam : myTeam ? lineups?.opponentOf[myTeam] ?? '' : '';
-  const targetName = lineups?.teams.find((team) => team.id === targetTeam)?.name;
-  const starters = lineups && targetTeam ? lineups.starters[targetTeam] ?? [] : [];
-  const sideField = side === 'opponent' ? { side: 'opponent' as const } : {};
+  const both = side === 'both';
+  const sides: Side[] = both ? ['mine', 'opponent'] : [side];
 
-  function toEntry(starter: Starter): FollowedEntry | null {
+  function toEntry(starter: Starter, forSide: Side): FollowedEntry | null {
     const nfl = teams.data?.find((team) => team.id === starter.nflTeamId);
     if (!nfl || !profile) return null;
     return {
@@ -106,31 +104,51 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       teamAbbr: nfl.abbreviation,
       position: starter.position,
       profileId: profile.id,
-      ...sideField,
+      ...(forSide === 'opponent' ? { side: 'opponent' as const } : {}),
     };
   }
 
-  // Null until the NFL teams are known: without them no starter can become a card, and everything would look removed.
-  const incoming = teams.data ? starters.map(toEntry).filter((entry): entry is FollowedEntry => entry !== null) : null;
-  const plan = incoming && profile ? planStarterImport(incoming, followed, profile.id, side, removeOthers) : null;
+  // One panel per side being synced: whose team it is, their starters, and what the import would do to that side.
+  const panels = sides.map((forSide) => {
+    const team = forSide === 'mine' ? myTeam : myTeam ? lineups?.opponentOf[myTeam] ?? '' : '';
+    const name = lineups?.teams.find((candidate) => candidate.id === team)?.name;
+    const starters = lineups && team ? lineups.starters[team] ?? [] : [];
+    // Null until the NFL teams are known: without them no starter can become a card, and everything would look removed.
+    const incoming = teams.data ? starters.map((starter) => toEntry(starter, forSide)).filter((entry): entry is FollowedEntry => entry !== null) : null;
+    const plan = incoming && profile ? planStarterImport(incoming, followed, profile.id, forSide, removeOthers) : null;
+    return { side: forSide, team, name, starters, plan };
+  });
+  const hasTeam = panels.some((panel) => panel.team);
+  const canSync = !!teams.data && panels.some((panel) => panel.starters.length > 0);
 
-  function add() {
-    if (!plan) return;
-    plan.removed.forEach(removeEntry);
-    plan.added.forEach(addEntry);
+  /** What one side's plan does, in words: "Added 3 starters, 2 already followed" or "Added 3 starters, removed 1". */
+  function describe(plan: NonNullable<(typeof panels)[number]['plan']>) {
     const parts = [`Added ${plan.added.length} ${plan.added.length === 1 ? 'starter' : 'starters'}`];
     if (plan.unchanged.length && !removeOthers) parts.push(`${plan.unchanged.length} already followed`);
     if (removeOthers) parts.push(`removed ${plan.removed.length}`);
-    setStatus(`${parts.join(', ')}.`);
+    return parts.join(', ');
+  }
+
+  function add() {
+    const applicable = panels.filter((panel) => panel.plan);
+    if (applicable.length === 0) return;
+    // Both sides are applied in this one go, removals before additions on each side.
+    for (const panel of applicable) {
+      panel.plan!.removed.forEach(removeEntry);
+      panel.plan!.added.forEach(addEntry);
+    }
+    setStatus(both
+      ? applicable.map((panel) => `${panel.side === 'mine' ? 'Your side' : 'Opponent side'}: ${describe(panel.plan!)}.`).join(' ')
+      : `${describe(applicable[0]!.plan!)}.`);
     ref.current?.close(); // the native close runs onClose and returns focus to the button that opened the dialog
   }
 
   const label = profile ? `${profile.name}${source ? `, league ${source.leagueId}` : ''}` : '';
-  const heading = side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
+  const heading = both ? 'Sync all starters' : side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
 
   return (
     <>
-    <dialog ref={ref} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
+    <dialog ref={ref} className={both ? 'sync-all' : undefined} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="starters-title">{heading}</h2>
@@ -145,7 +163,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
             </select>
           </label>
         )}
-        {profile && <p className="muted">Starters in the current matchup of {label}, season {season}. Players already followed are skipped. Nothing is removed unless you tick the box below.</p>}
+        {profile && <p className="muted">Starters in the current matchup of {label}, season {season}{both ? ', for both sides' : ''}. Players already followed are skipped. Nothing is removed unless you tick the box below.</p>}
         {load.state === 'loading' && <p role="status">Loading rosters…</p>}
         {load.state === 'error' && (
           <>
@@ -162,31 +180,35 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
             </select>
           </label>
         )}
-        {lineups && myTeam && side === 'opponent' && !targetTeam && <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>}
-        {lineups && targetTeam && (
+        {lineups && myTeam && sides.includes('opponent') && !panels.find((panel) => panel.side === 'opponent')!.team && (
+          <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>
+        )}
+        {lineups && hasTeam && (
           <label className="check-row">
             <input type="checkbox" checked={removeOthers} onChange={(event) => { if (profile) setLeagueRemoveNonStarters(profile.id, event.target.checked); }} />
             Remove every non starter player
           </label>
         )}
-        {lineups && targetTeam && (
-          <section aria-label={`Starters for ${targetName}`} className="plan">
-            <h3>{targetName} ({starters.length} {starters.length === 1 ? 'starter' : 'starters'})</h3>
-            {starters.length === 0 && <p className="muted">No starters are set for this team.</p>}
-            {plan && (
-              <>
-                <PlanList tone="added" title="To be added" entries={plan.added} />
-                <PlanList tone="removed" title="To be removed" entries={plan.removed} />
-                <PlanList tone="unchanged" title="Unchanged" entries={plan.unchanged} />
-              </>
-            )}
-          </section>
-        )}
+        <div className={both ? 'plan-sides' : undefined}>
+          {lineups && panels.filter((panel) => panel.team).map((panel) => (
+            <section key={panel.side} aria-label={`Starters for ${panel.name}`} className="plan">
+              <h3>{both ? `${panel.side === 'mine' ? 'Your side' : 'Opponent side'}: ` : ''}{panel.name} ({panel.starters.length} {panel.starters.length === 1 ? 'starter' : 'starters'})</h3>
+              {panel.starters.length === 0 && <p className="muted">No starters are set for this team.</p>}
+              {panel.plan && (
+                <>
+                  <PlanList tone="added" title="To be added" entries={panel.plan.added} />
+                  <PlanList tone="removed" title="To be removed" entries={panel.plan.removed} />
+                  <PlanList tone="unchanged" title="Unchanged" entries={panel.plan.unchanged} />
+                </>
+              )}
+            </section>
+          ))}
+        </div>
         {teams.isError && <p className="error" role="alert">NFL team data is unavailable, so starters cannot be added right now.</p>}
         <div className="dlg-actions">
-          <button type="button" className="btn" onClick={onClose}>Close</button>
-          <button type="button" className="btn btn-primary" disabled={starters.length === 0 || !teams.data} onClick={add}>
-            Sync starters
+          <button type="button" className="btn" onClick={onClose}>{both ? 'Cancel' : 'Close'}</button>
+          <button type="button" className="btn btn-primary" disabled={!canSync} onClick={add}>
+            {both ? 'Sync all starters' : 'Sync starters'}
           </button>
         </div>
       </div>

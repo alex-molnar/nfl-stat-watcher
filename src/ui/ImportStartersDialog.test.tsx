@@ -141,6 +141,39 @@ describe('sync starters', () => {
     });
   });
 
+  describe('sync all starters (vs mode)', () => {
+    const extra = (espnId: string, name: string, over: object = {}) => ({ kind: 'player' as const, espnId, name, teamId: '25', teamAbbr: 'SF', position: 'WR', profileId: 'p1', ...over });
+    const openAll = async () => {
+      mockFetch(routes);
+      seed([extra('999', 'My bench'), extra('888', 'Their bench', { side: 'opponent' })], [{ ...league, source: { ...league.source, teamId: '9' } }]);
+      renderAt('/vs');
+      await userEvent.click(screen.getByRole('button', { name: 'Sync all starters' }));
+      return screen.findAllByRole('region', { name: /Starters for/ });
+    };
+
+    it('shows both sides side by side with one shared checkbox and updates both on confirm', async () => {
+      const regions = await openAll();
+      expect(regions).toHaveLength(2);
+      expect(screen.getAllByRole('checkbox', { name: 'Remove every non starter player' })).toHaveLength(1);
+      await userEvent.click(screen.getByRole('checkbox', { name: 'Remove every non starter player' }));
+      expect(within(regions[0]!).getByText(/My bench/)).toBeInTheDocument(); // removed on my side only
+      expect(within(regions[0]!).queryByText(/Their bench/)).not.toBeInTheDocument();
+      expect(within(regions[1]!).getByText(/Their bench/)).toBeInTheDocument();
+      await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Sync all starters' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      const after = followed();
+      expect(after.some((entry) => entry.espnId === '999' || entry.espnId === '888')).toBe(false);
+      expect(after.some((entry) => !entry.side)).toBe(true);
+      expect(after.some((entry) => entry.side === 'opponent')).toBe(true);
+    });
+
+    it('changes nothing on Cancel', async () => {
+      await openAll();
+      await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+      expect(followed().map((entry) => entry.espnId).sort()).toEqual(['888', '999']);
+    });
+  });
+
   it('still imports text that was typed or dropped into the box, with the button', async () => {
     mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
     seed([], [league]);

@@ -384,3 +384,11 @@ dialog[open] { animation: dlg 180ms ease-out; }
   .score-bar { top: var(--header-h, 0px); }
   html:has(.score-bar) { scroll-padding-top: calc(var(--header-h, 0px) + var(--score-bar-h, 72px) + 8px); }
 }
+
+/* Vs mode: the league picker and the button that syncs both sides share a line. */
+.vs-league-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.vs-league-row .vs-league { margin-top: 0; flex: 1 1 220px; }
+/* Sync all starters: the two sides' previews sit next to each other, one below the other on a narrow screen. */
+dialog.sync-all { width: min(1000px, calc(100vw - 32px)); }
+.plan-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 760px) { .plan-sides { grid-template-columns: 1fr; } }
