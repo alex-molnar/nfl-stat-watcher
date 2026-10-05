@@ -157,3 +157,5 @@ Every profile has a colour (`Profile.color`, `#rrggbb`). A new league, made with
 ## Private league lineups bookmark
 
 `PrivateLeagueHelp` can offer a bookmarklet (`bookmarklet` prop) beside the manual copy steps. It is a draggable `a` whose `javascript:` href is set on the element (React refuses that URL in a prop); clicking it on this site only explains to drag it. The code (`rosterBookmarklet`) is generated for one league and season, validates both as plain numbers, and writes a trimmed copy of ESPN's roster response in ESPN's own shape to the clipboard, so the same parser (`readLineups`) reads it.
+
+The box is a paste target: a `paste` event takes the clipboard text, replaces the box's content with it and runs the import at once, showing any problem (`role="alert"`) under the box and leaving the pasted text visible. Text typed or dropped in instead is imported with the "Import these ..." button, which stays disabled while the box is empty. This applies to both the roster and the settings copy flows.

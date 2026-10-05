@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { parseEspnLeagueSettings } from '../leagues/espn/parse';
@@ -70,13 +70,11 @@ describe('sync starters', () => {
     expect(screen.getByRole('link', { name: 'open the league on ESPN' })).toHaveAttribute('href', 'https://fantasy.espn.com/football/league?leagueId=1900128084&seasonId=2026');
     const area = screen.getByLabelText(/Rosters JSON for/);
     await userEvent.click(area);
-    await userEvent.paste('oops');
-    await userEvent.click(screen.getByRole('button', { name: /Use pasted rosters/ }));
+    await userEvent.paste('oops'); // pasting alone checks it: no button to press
     expect(await screen.findByText(/not valid JSON/)).toBeInTheDocument();
-    await userEvent.clear(area);
+    expect(screen.getByLabelText(/Rosters JSON for/)).toHaveValue('oops'); // what was pasted stays visible beside the error
     await userEvent.click(area);
-    await userEvent.paste(JSON.stringify(lineups));
-    await userEvent.click(screen.getByRole('button', { name: /Use pasted rosters/ }));
+    await userEvent.paste(JSON.stringify(lineups)); // a valid paste goes straight on, replacing the bad text
     expect(await screen.findByLabelText('Your team in this league')).toBeInTheDocument();
   });
 
@@ -141,5 +139,17 @@ describe('sync starters', () => {
       expect(refreshed.source.removeNonStarters).toBe(true);
       expect(refreshed.source.teamId).toBe('1');
     });
+  });
+
+  it('still imports text that was typed or dropped into the box, with the button', async () => {
+    mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
+    seed([], [league]);
+    renderAt('/');
+    await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+    const area = await screen.findByLabelText(/Rosters JSON for/);
+    expect(screen.getByRole('button', { name: 'Import these rosters' })).toBeDisabled(); // nothing to import yet
+    fireEvent.change(area, { target: { value: JSON.stringify(lineups) } }); // typing or dropping fires change, not paste
+    await userEvent.click(screen.getByRole('button', { name: 'Import these rosters' }));
+    expect(await screen.findByLabelText('Your team in this league')).toBeInTheDocument();
   });
 });

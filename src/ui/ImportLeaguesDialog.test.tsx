@@ -138,15 +138,11 @@ describe('ImportLeaguesDialog', () => {
     const link = await screen.findByRole('link', { name: /open this league’s settings data/ });
     expect(link).toHaveAttribute('href', 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/2026/segments/0/leagues/1900128084?view=mSettings');
     const area = screen.getByLabelText('Settings JSON for league 1900128084, season 2026');
-    await userEvent.click(screen.getByRole('button', { name: /Use pasted settings/ }).closest('details')!.querySelector('summary')!);
     await userEvent.click(area);
     await userEvent.paste('not json');
-    await userEvent.click(screen.getByRole('button', { name: /Use pasted settings/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('not valid JSON');
-    await userEvent.clear(area);
     await userEvent.click(area);
     await userEvent.paste(JSON.stringify(fixture));
-    await userEvent.click(screen.getByRole('button', { name: /Use pasted settings/ }));
     expect(await screen.findByText(/League 1900128084 · Season 2026 · Settings file/)).toBeInTheDocument();
   });
 
@@ -159,7 +155,6 @@ describe('ImportLeaguesDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Load leagues' }));
     await userEvent.click(await screen.findByLabelText('Settings JSON for league 555, season 2026'));
     await userEvent.paste(JSON.stringify(fixture));
-    await userEvent.click(screen.getByRole('button', { name: /Use pasted settings/ }));
     expect(await screen.findByRole('alert')).toHaveTextContent('different league');
   });
 });

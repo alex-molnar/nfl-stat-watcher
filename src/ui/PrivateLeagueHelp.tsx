@@ -19,6 +19,12 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   const [note, setNote] = useState('');
   const kept = what === 'settings' ? 'Only scoring and lineup settings are kept' : 'Only starting lineups and matchup pairings are kept';
 
+  /** Pasting is the whole action: the text is checked and imported at once, and a problem is shown right under the box. */
+  function submit(value: string) {
+    setText(value);
+    setProblem(value.trim() ? onImport(value) ?? '' : '');
+  }
+
   async function copyCode() {
     try {
       await navigator.clipboard.writeText(bookmarklet!);
@@ -58,10 +64,21 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
       </ol>
       <label className="field-label">
         {what === 'settings' ? 'Settings' : 'Rosters'} JSON for {leagueLabel}
-        <textarea rows={4} value={text} onChange={(event) => { setText(event.target.value); setProblem(''); }} placeholder="Paste the copied ESPN data here" />
+        <textarea
+          rows={4}
+          value={text}
+          onChange={(event) => { setText(event.target.value); setProblem(''); }}
+          onPaste={(event) => {
+            const pasted = event.clipboardData.getData('text');
+            if (!pasted.trim()) return;
+            event.preventDefault(); // the pasted text replaces the box's content: it is one blob of JSON
+            submit(pasted);
+          }}
+          placeholder="Paste the copied ESPN data here and it is imported straight away"
+        />
       </label>
       {problem && <p className="error" role="alert">{problem}</p>}
-      <button type="button" className="btn" disabled={!text.trim()} onClick={() => setProblem(onImport(text) ?? '')}>Use pasted {what} for {leagueLabel}</button>
+      <button type="button" className="btn" disabled={!text.trim()} onClick={() => submit(text)}>Import these {what}</button>
     </details>
   );
 }
