@@ -107,24 +107,24 @@ export function SettingsPage() {
               Expose DAZN games
             </label>
             <p id="dazn-help" className="muted">Looks up this week's games on DAZN's NFL Game Pass schedule (region {DAZN_REGION}), through this site's own server, and matches them to the NFL games. Off by default: nothing is requested from DAZN while it is off. When on, it syncs once every time the site loads. Cards of players in the red zone then get a "Watch on DAZN" button, which opens that game in one DAZN window and brings it to the front.</p>
-            <div role="radiogroup" aria-label="DAZN window mode" className="choice-list dazn-modes">
+            {dazn && <p className="compat-warning" role="note"><strong>Warning:</strong> games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN.</p>}
+            <button type="button" className="btn press" disabled={syncing || !dazn} onClick={syncNow}>Sync game links with DAZN</button>
+            <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
+            <details className="dazn-games-box" open={gamesOpen} onToggle={(event) => setGamesOpen(event.currentTarget.open)}>
+              <summary>This week's games and their links</summary>
+              {gamesOpen && <DaznGameLinks />}
+            </details>
+            <div role="radiogroup" aria-label="DAZN window mode" className={`choice-list dazn-modes${dazn ? '' : ' off'}`} aria-disabled={!dazn || undefined}>
               {DAZN_MODES.map((m) => (
                 <div key={m} className="choice-row">
                   <label className="choice">
-                    <input type="radio" name="dazn-mode" value={m} checked={daznMode === m} aria-describedby={`dazn-mode-${m}`} onChange={() => setDraft({ mode, dazn, daznMode: m })} />
+                    <input type="radio" name="dazn-mode" value={m} checked={daznMode === m} disabled={!dazn} aria-describedby={`dazn-mode-${m}`} onChange={() => setDraft({ mode, dazn, daznMode: m })} />
                     {DAZN_MODE_LABELS[m]}
                   </label>
                   <span id={`dazn-mode-${m}`} className="muted">{DAZN_MODE_HELP[m]}</span>
                 </div>
               ))}
             </div>
-            {dazn && <p className="compat-warning" role="note"><strong>Warning:</strong> games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN.</p>}
-            <button type="button" className="btn press" disabled={syncing} onClick={syncNow}>Sync game links with DAZN</button>
-            <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
-            <details className="dazn-games-box" open={gamesOpen} onToggle={(event) => setGamesOpen(event.currentTarget.open)}>
-              <summary>This week's games and their links</summary>
-              {gamesOpen && <DaznGameLinks />}
-            </details>
           </fieldset>
           <fieldset>
             <legend>Your data</legend>

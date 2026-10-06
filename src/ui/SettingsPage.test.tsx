@@ -189,9 +189,25 @@ describe('settings page', () => {
       });
     });
 
+    it('greys out the sync button and the window mode until the box is ticked, and shows the mode after the games list', async () => {
+      routes();
+      renderAt('/settings');
+      expect(syncButton()).toBeDisabled();
+      expect(screen.getByRole('radio', { name: 'Default' })).toBeDisabled();
+      expect(screen.getByRole('radio', { name: 'Power mode' })).toBeDisabled();
+      expect(screen.getByRole('radiogroup', { name: 'DAZN window mode' })).toHaveClass('off');
+      const games = screen.getByText("This week's games and their links");
+      expect(games.compareDocumentPosition(screen.getByRole('radiogroup', { name: 'DAZN window mode' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      await userEvent.click(dazn());
+      expect(syncButton()).toBeEnabled();
+      expect(screen.getByRole('radio', { name: 'Power mode' })).toBeEnabled();
+      expect(screen.getByRole('radiogroup', { name: 'DAZN window mode' })).not.toHaveClass('off');
+    });
+
     it('offers Default and Power mode, saved with Save', async () => {
       routes();
       renderAt('/settings');
+      await userEvent.click(dazn());
       expect(screen.getByRole('radio', { name: 'Default' })).toBeChecked();
       expect(screen.getByRole('radio', { name: 'Power mode' })).toHaveAccessibleDescription(/One window per live game/);
       await userEvent.click(screen.getByRole('radio', { name: 'Power mode' }));
@@ -204,6 +220,7 @@ describe('settings page', () => {
       const f = routes();
       renderAt('/settings');
       expect(screen.getByText('Not synced yet.')).toBeInTheDocument();
+      await userEvent.click(dazn());
       await userEvent.click(syncButton());
       expect(await screen.findByText('Linked 1 of 2 games with DAZN.')).toBeInTheDocument();
       expect(daznCalls(f)).toHaveLength(1);
@@ -213,6 +230,7 @@ describe('settings page', () => {
     it('shows a failed sync in the status line', async () => {
       mockFetch({ '/dazn/': status(502) });
       renderAt('/settings');
+      await userEvent.click(dazn());
       await userEvent.click(syncButton());
       expect(await screen.findByText('Could not sync with DAZN: DAZN answered 502.')).toBeInTheDocument();
     });
