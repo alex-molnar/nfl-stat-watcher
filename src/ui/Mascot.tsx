@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { registerPageMascot } from './mascotPresence';
 import { TypedText } from './TypedText';
 
 const INK = '#14231A';
@@ -37,6 +38,8 @@ interface Props {
   className?: string;
   /** Points one arm at the menu on that side (on narrow screens, where the menu is above, it points up) and looks the same way. */
   pointAt?: 'left';
+  /** Rises into place when it appears (the default). The header's mascot turns it off: it is rebuilt on every page. */
+  entrance?: boolean;
 }
 
 /**
@@ -44,7 +47,7 @@ interface Props {
  * hidden from assistive technology; whatever it "says" is real text next to it. Its eyes follow the pointer, and it blinks,
  * glances and bobs on its own. Every motion is CSS transform and opacity, and all of it stops under reduced motion.
  */
-export function Mascot({ size = 160, className, pointAt }: Props) {
+export function Mascot({ size = 160, className, pointAt, entrance = true }: Props) {
   const uid = useId().replace(/:/g, ''); // gradient and clip ids must be unique per instance, and colons break url(#...)
   const ref = useRef<SVGSVGElement>(null);
 
@@ -75,7 +78,7 @@ export function Mascot({ size = 160, className, pointAt }: Props) {
   );
 
   return (
-    <svg ref={ref} className={`mascot${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+    <svg ref={ref} className={`mascot${size <= 48 ? ' sm' : ''}${entrance ? '' : ' no-entrance'}${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id={`${uid}-leather`} cx="38%" cy="30%" r="80%">
           <stop offset="0" stopColor="#D98A4E" /><stop offset=".55" stopColor="#A9582B" /><stop offset="1" stopColor="#6A3114" />
@@ -114,6 +117,7 @@ export function Mascot({ size = 160, className, pointAt }: Props) {
 
 /** The mascot telling the user something in a speech bubble. The text types itself out, while assistive technology reads it whole; `minLines` keeps room for a longer text that may replace it. */
 export function MascotSays({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
+  useLayoutEffect(() => registerPageMascot(), []); // before paint, so the header's mascot never shows beside this one
   return (
     <div className="empty mascot-says">
       <Mascot size={168} pointAt={pointAt} />

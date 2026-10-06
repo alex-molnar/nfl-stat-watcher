@@ -24,7 +24,7 @@ main.wrap { padding-bottom: 48px; }
 /* Header */
 .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 14px; } /* equal, so the items sit in the middle of the bar; 28px in total as before */
 .brand { font: 900 30px/1 Anybody, sans-serif; font-stretch: 140%; margin: 0; flex: 1; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
-.brand-ball { width: 38px; height: 38px; flex: none; }
+.brand-mascot { margin-top: 2px; }
 /* Tabs and theme switch: always the last thing in the header, so they never shift when a page adds buttons. */
 .top-end { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .nav { display: flex; gap: 14px; }
@@ -453,3 +453,9 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .typed { display: grid; }
 .typed > span { grid-area: 1 / 1; }
 .typed-ghost { visibility: hidden; }
+
+/* Small sizes drop the fine detail (mouth, brows, stripes, shading) so the shape still reads. */
+.mascot.sm .detail { display: none; }
+/* The header's mascot is rebuilt on every page, so it does not make an entrance each time. */
+.mascot.no-entrance .m-root { animation: mascot-bob 3.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .mascot.no-entrance .m-root { animation: none !important; } }
