@@ -1,5 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { isMascotFlying, mascotAppeared, mascotLeft, subscribeMascotFlight } from './mascotFlight';
+import { mascotEnabledStore } from '../storage/mascot';
+import { useStore } from '../storage/useStore';
 import { TypedText } from './TypedText';
 
 const INK = '#14231A';
@@ -143,8 +145,24 @@ export function Mascot({ size = 160, className, pointAt, entrance = true, seated
   );
 }
 
-/** The mascot telling the user something in a speech bubble. The text types itself out, while assistive technology reads it whole; `minLines` keeps room for a longer text that may replace it. */
-export function MascotSays({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
+/**
+ * The mascot telling the user something in a speech bubble. The text types itself out, while assistive technology reads it whole; `minLines` keeps
+ * room for a longer text that may replace it. With the mascot switched off in Settings it is the same sentence and the same buttons as plain text.
+ */
+export function MascotSays(props: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
+  return useStore(mascotEnabledStore) ? <Talking {...props} /> : <PlainSays {...props} />;
+}
+
+function PlainSays({ text, children }: { text: string; children?: ReactNode }) {
+  return (
+    <div className="empty">
+      <p>{text}</p>
+      {children}
+    </div>
+  );
+}
+
+function Talking({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
   // The jump into this place is part of arriving on the page, so the bubble waits for it and only then appears and starts to talk.
   const flying = useSyncExternalStore(subscribeMascotFlight, isMascotFlying, () => false);
   return (
