@@ -224,7 +224,7 @@ describe('profiles', () => {
 
   it('refuses to delete the last profile', () => {
     const id = profilesStore.get()[0]!.id;
-    expect(deleteProfile(id, id)).toBe(false);
+    expect(deleteProfile(id, { moveTo: id, opponents: false })).toBe(false);
     expect(profilesStore.get()).toHaveLength(1);
   });
 
@@ -232,7 +232,7 @@ describe('profiles', () => {
     seedProfiles(profile('p1', 'Office'), profile('p2', 'Friends'));
     addEntry(purdy('p1'));
     addEntry(purdy('p2'));
-    expect(deleteProfile('p1', 'p2')).toBe(true);
+    expect(deleteProfile('p1', { moveTo: 'p2', opponents: false })).toBe(true);
     expect(profilesStore.get().map((p) => p.id)).toEqual(['p2']);
     expect(followedStore.get()).toEqual([purdy('p2')]);
   });
@@ -367,7 +367,7 @@ describe('opponent entries', () => {
     addEntry(purdy('p1'));
     addEntry(opponent(purdy('p1')));
     addEntry(opponent(kelce('p2')));
-    expect(deleteProfile('p1', 'p2')).toBe(true);
+    expect(deleteProfile('p1', { moveTo: 'p2', opponents: false })).toBe(true);
     expect(followedStore.get()).toEqual([purdy('p2'), opponent(kelce('p2'))]);
     expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([purdy('p2'), opponent(kelce('p2'))]);
   });

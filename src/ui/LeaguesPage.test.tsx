@@ -23,7 +23,7 @@ describe('leagues page', () => {
     renderAt('/leagues');
     expect(screen.getByText(/Select a league on the left to edit its scoring/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Delete profile' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete league' })).not.toBeInTheDocument();
     expect(saveButtons()).toEqual([]);
     for (const b of screen.getAllByRole('button', { name: 'My league' })) expect(b).not.toHaveAttribute('aria-current');
   });
@@ -94,15 +94,15 @@ describe('leagues page', () => {
     });
   });
 
-  it('shows the form and a Delete profile button in the left menu once a league is selected', async () => {
+  it('shows the form and a Delete league button in the left menu once a league is selected', async () => {
     seed([], profilesFixture);
     await open('Office league');
     expect(screen.getByRole('button', { name: 'Office league' })).toHaveAttribute('aria-current', 'true');
     expect(screen.queryByText(/Select a league on the left/)).not.toBeInTheDocument();
     const menu = screen.getByRole('complementary', { name: 'Profile actions' });
-    expect(within(menu).getByRole('button', { name: 'Delete profile' })).toHaveClass('btn-danger');
-    expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add profile', 'Import leagues', 'Import StatWatch profile', 'Export profile', 'Delete profile']);
-    expect(screen.getAllByRole('button', { name: 'Delete profile' })).toHaveLength(1); // moved from the bottom of the form, not repeated
+    expect(within(menu).getByRole('button', { name: 'Delete league' })).toHaveClass('btn-danger');
+    expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add profile', 'Import leagues', 'Import StatWatch profile', 'Export profile', 'Delete league']);
+    expect(screen.getAllByRole('button', { name: 'Delete league' })).toHaveLength(1); // moved from the bottom of the form, not repeated
   });
 
   it('keeps edits in a working copy and shows Save and Cancel in the menu and at the end of the form', async () => {
@@ -207,16 +207,7 @@ describe('leagues page', () => {
     expect(passTd).toHaveValue(4);
   });
 
-  it('moves focus into the delete confirmation and back on cancel', async () => {
-    seed([warren], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByLabelText('Move 1 followed card to')).toHaveFocus();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveFocus();
-  });
-
-  it('does not steal focus on mount and still moves it correctly in StrictMode', async () => {
+  it('does not steal focus on mount in StrictMode', async () => {
     seed([warren], profilesFixture);
     render(
       <StrictMode>
@@ -229,19 +220,7 @@ describe('leagues page', () => {
     );
     expect(document.body).toHaveFocus();
     await pick('Office league');
-    const del = screen.getByRole('button', { name: 'Delete profile' });
-    expect(del).not.toHaveFocus();
-    await userEvent.click(del);
-    expect(screen.getByLabelText('Move 1 followed card to')).toHaveFocus();
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveFocus();
-  });
-
-  it('focuses Cancel when no followed cards use the profile', async () => {
-    seed([], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Delete league' })).not.toHaveFocus();
   });
 
   it('trims a name on blur and falls back when empty, saving it only on Save', async () => {
@@ -286,7 +265,7 @@ describe('leagues page', () => {
 
   it('describes the disabled delete button', async () => {
     await open();
-    expect(screen.getByRole('button', { name: 'Delete profile' })).toHaveAccessibleDescription('You need at least one profile.');
+    expect(screen.getByRole('button', { name: 'Delete league' })).toHaveAccessibleDescription('You need at least one league.');
   });
 
   it('adds a profile, selects it, and shows a rename only after Save', async () => {
@@ -393,22 +372,6 @@ describe('leagues page', () => {
     expect(name).not.toHaveAccessibleDescription();
   });
 
-  it('describes the delete question on the focused Cancel button', async () => {
-    seed([], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription('Delete Office league? None of your cards use it.');
-  });
-
-  it('describes the destructive Delete button with the question and the opponent count', async () => {
-    seed([opponent(warren)], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByRole('button', { name: 'Delete Office league' })).toHaveAccessibleDescription(
-      'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
-    );
-  });
-
   it('lists profiles in a plain list under a heading, not a nav', () => {
     renderAt('/leagues');
     expect(screen.queryByRole('navigation', { name: 'Profiles' })).not.toBeInTheDocument();
@@ -418,19 +381,7 @@ describe('leagues page', () => {
 
   it('does not allow deleting the last profile', async () => {
     await open();
-    expect(screen.getByRole('button', { name: 'Delete profile' })).toBeDisabled();
-  });
-
-  it('moves followed cards when deleting a profile', async () => {
-    seed([warren], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByLabelText('Move 1 followed card to')).toHaveValue('p2');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Office league' }));
-    expect(profiles().map((p: { id: string }) => p.id)).toEqual(['p2']);
-    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)[0].profileId).toBe('p2');
-    expect(screen.getByRole('button', { name: 'Friends league' })).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByRole('button', { name: 'Friends league' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Delete league' })).toBeDisabled();
   });
 
   it('changes card points on the main screen once the change is saved', async () => {
@@ -445,27 +396,6 @@ describe('leagues page', () => {
     unmount();
     renderAt('/');
     expect(await screen.findByText('12.60')).toBeInTheDocument();
-  });
-
-  it('says how many opponent cards a delete removes and counts only my cards to move', async () => {
-    seed([warren, opponent(pitDefense), opponent({ ...mahomes, profileId: 'p1' })], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    const select = screen.getByLabelText('Move 1 followed card to');
-    expect(select).toHaveFocus();
-    expect(screen.getByText('Also removes 2 opponent cards.')).toBeInTheDocument();
-    expect(select).toHaveAccessibleDescription('Also removes 2 opponent cards.');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete Office league' }));
-    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([{ ...warren, profileId: 'p2' }]);
-  });
-
-  it('describes Cancel with the opponent count when no cards of mine use the profile', async () => {
-    seed([opponent(warren)], profilesFixture);
-    await open('Office league');
-    await userEvent.click(screen.getByRole('button', { name: 'Delete profile' }));
-    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAccessibleDescription(
-      'Delete Office league? None of your cards use it. Also removes 1 opponent card.',
-    );
   });
 
   it('switches a rule off, keeps its weight and scores nothing for it, once saved', async () => {
@@ -537,5 +467,74 @@ describe('leagues page', () => {
     act(() => profilesStore.set(profilesStore.get().map((p) => ({ ...p, values: { ...p.values, passTd: 5 } }))));
     expect(passTd()).toHaveValue(5); // never a stale draft over fresher saved values
     expect(saveButtons()).toEqual([]);
+  });
+});
+
+describe('delete league dialog', () => {
+  const dialog = () => screen.getByRole('dialog');
+  const launch = async (followed: Parameters<typeof seed>[0]) => {
+    seed(followed, profilesFixture);
+    await open('Office league');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete league' }));
+  };
+  const remaining = () => JSON.parse(localStorage.getItem('nflsw:v1:followed')!) as { espnId: string; profileId: string; side?: string }[];
+
+  it('opens a proper dialog instead of an inline box, with Delete league and Cancel', async () => {
+    await launch([warren]);
+    expect(within(dialog()).getByRole('heading', { name: 'Delete Office league?' })).toBeInTheDocument();
+    expect(within(dialog()).getByRole('button', { name: 'Delete league' })).toHaveClass('btn-danger');
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(profiles()).toHaveLength(2); // nothing deleted
+  });
+
+  it('asks nothing when no players follow the league', async () => {
+    await launch([]);
+    expect(within(dialog()).getByText('No players follow this league.')).toBeInTheDocument();
+    expect(within(dialog()).queryByRole('radio')).not.toBeInTheDocument();
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
+    expect(profiles().map((p: { id: string }) => p.id)).toEqual(['p2']);
+  });
+
+  it('moves my players to the chosen league by default, and deletes the opponent players', async () => {
+    await launch([warren, opponent(pitDefense), opponent({ ...mahomes, profileId: 'p1' })]);
+    expect(within(dialog()).getByRole('radio', { name: 'Move 1 player to' })).toBeChecked();
+    expect(within(dialog()).getByText('The 2 opponent players are deleted.')).toBeInTheDocument();
+    expect(within(dialog()).getByLabelText('League to move your players to')).toHaveValue('p2');
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
+    expect(remaining()).toEqual([{ ...warren, profileId: 'p2' }]);
+    expect(screen.getByRole('button', { name: 'Friends league' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: 'Friends league' })).toHaveFocus();
+  });
+
+  it('can move the opponent players along with mine', async () => {
+    await launch([warren, opponent(pitDefense)]);
+    await userEvent.click(within(dialog()).getByRole('radio', { name: 'Move 1 player and 1 opponent player to' }));
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
+    expect(remaining().map((e) => [e.espnId, e.profileId, e.side])).toEqual([[warren.espnId, 'p2', undefined], [pitDefense.espnId, 'p2', 'opponent']]);
+  });
+
+  it('can delete the players with the league', async () => {
+    await launch([warren, opponent(pitDefense), { ...mahomes, profileId: 'p2' }]);
+    await userEvent.click(within(dialog()).getByRole('radio', { name: 'Delete existing players' }));
+    expect(within(dialog()).getByLabelText('League to move your players to')).toBeDisabled();
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
+    expect(remaining().map((e) => e.espnId)).toEqual([mahomes.espnId]); // the other league's player stays
+    expect(profiles().map((p: { id: string }) => p.id)).toEqual(['p2']);
+  });
+
+  it('offers only the opponent choice when just opponent players follow it', async () => {
+    await launch([opponent(pitDefense)]);
+    expect(within(dialog()).queryByRole('radio', { name: /^Move 1 player to/ })).not.toBeInTheDocument();
+    expect(within(dialog()).getByRole('radio', { name: 'Move 1 opponent player to' })).toBeChecked();
+  });
+
+  it('moves to the league picked in the selector', async () => {
+    seed([warren], [...profilesFixture, { ...profilesFixture[1]!, id: 'p3', name: 'Third league' }]);
+    await open('Office league');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete league' }));
+    await userEvent.selectOptions(within(dialog()).getByLabelText('League to move your players to'), 'Third league');
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
+    expect(remaining()[0]!.profileId).toBe('p3');
   });
 });

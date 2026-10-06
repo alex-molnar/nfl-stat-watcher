@@ -1,6 +1,6 @@
 import { PRESETS, copyValues } from '../scoring/presets';
 import { VALUE_KEYS, isValidSteps, type PresetId, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
-import { followedStore, reassignProfile, withValidProfiles } from './followed';
+import { followedStore, reassignProfile, removeProfileEntries, withValidProfiles, type PlayersHandling } from './followed';
 import { createStore } from './store';
 import { isHexColor, nextLeagueColor } from '../scoring/leagueColor';
 import { withBand, withColor, withName, withPreset, withRuleEnabled, withStepPoints, withTier, withValue, withoutBands } from '../scoring/edit';
@@ -80,10 +80,15 @@ export function renameProfile(id: string, name: string) {
   update(id, (p) => withName(p, name));
 }
 
-export function deleteProfile(id: string, moveTo: string): boolean {
+export function deleteProfile(id: string, players: PlayersHandling): boolean {
   const list = profilesStore.get();
-  if (list.length <= 1 || id === moveTo || !list.some((p) => p.id === moveTo)) return false;
-  reassignProfile(id, moveTo);
+  if (list.length <= 1 || !list.some((p) => p.id === id)) return false;
+  if (players === 'delete') {
+    removeProfileEntries(id);
+  } else {
+    if (id === players.moveTo || !list.some((p) => p.id === players.moveTo)) return false;
+    reassignProfile(id, players.moveTo, players.opponents);
+  }
   profilesStore.set(list.filter((p) => p.id !== id));
   return true;
 }

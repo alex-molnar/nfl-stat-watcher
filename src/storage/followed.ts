@@ -58,16 +58,24 @@ export function updateEntryTeam(
   followedStore.set(followedStore.get().map((e) => (e.kind === 'player' && e.espnId === espnId ? { ...e, ...patch } : e)));
 }
 
-/** Profile delete: my entries move to `toId`; the deleted league's opponent entries are removed, never merged into another league. */
-export function reassignProfile(fromId: string, toId: string) {
+/** What happens to the players of a league that is deleted: moved to another league (the opponent side too, or dropped), or deleted. */
+export type PlayersHandling = { moveTo: string; opponents: boolean } | 'delete';
+
+/** My entries of `fromId` move to `toId`; its opponent entries move along when `opponents` is set, and are removed otherwise, never merged by accident. */
+export function reassignProfile(fromId: string, toId: string, opponents = false) {
   followedStore.set(
     dedupe(
       followedStore
         .get()
-        .filter((e) => !(e.profileId === fromId && sideOf(e) === 'opponent'))
+        .filter((e) => opponents || !(e.profileId === fromId && sideOf(e) === 'opponent'))
         .map((e) => (e.profileId === fromId ? { ...e, profileId: toId } : e)),
     ),
   );
+}
+
+/** Removes every entry of a league, on both sides. */
+export function removeProfileEntries(profileId: string) {
+  followedStore.set(followedStore.get().filter((e) => e.profileId !== profileId));
 }
 
 /** Orphan repair: my entries of a missing profile move to the first profile; opponent entries of a missing profile are dropped. */
