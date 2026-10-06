@@ -63,7 +63,7 @@ export function MainPage() {
   const opener = useRef<HTMLElement | null>(null);
   const headerAdd = useRef<HTMLButtonElement>(null);
   const addButton = (ref?: React.Ref<HTMLButtonElement>) => (
-    <button type="button" ref={ref} className="btn btn-primary press" aria-disabled={noLeagues || undefined} title={needLeague} onClick={(e) => { if (noLeagues) return; opener.current = e.currentTarget; setAdding(true); }}>
+    <button type="button" ref={ref} className="btn btn-primary press" data-camp="add-player" aria-disabled={noLeagues || undefined} title={needLeague} onClick={(e) => { if (noLeagues) return; opener.current = e.currentTarget; setAdding(true); }}>
       Add player
     </button>
   );
