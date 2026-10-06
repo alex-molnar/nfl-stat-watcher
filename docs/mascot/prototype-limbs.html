@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stat Watch mascot, Studious with limbs (throwaway prototype)</title>
+<!--
+  Throwaway design exploration. Not part of the app: it lives in docs/, outside src/ and public/, so it is never built or deployed.
+  Open this file directly in a browser. Keys: 1-3 or arrows switch the riff, R replays the entrance, E reacts, W toggles walking, P points. Click the big mascot to react.
+-->
+<style>
+  :root {
+    --bg: #0B1810; --panel: #122319; --ink: #E5EFE6; --muted: #9CB3A1; --rule: #21382A; --accent: #86EFAC; --accent-ink: #0B1810;
+    --light-bg: #E8F0E4; --light-panel: #FFFFFF; --light-ink: #132016; --light-accent: #14532D;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 'Hanken Grotesk', system-ui, sans-serif; padding-bottom: 96px; }
+  h1, h2, h3 { font-family: Anybody, 'Hanken Grotesk', system-ui, sans-serif; font-stretch: 115%; font-weight: 800; margin: 0; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  .variant-title { padding: 24px 0 4px; display: grid; gap: 4px; }
+  .variant-title h2 { font-size: 22px; }
+  .variant-title p { margin: 0; color: var(--muted); max-width: 70ch; }
+
+  /* A faithful sketch of the app header, with the mascot where the logo is. */
+  .mock-header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--bg); border: 1px solid var(--rule); border-radius: 14px; margin-top: 12px; }
+  .mock-header .word { font: 800 22px/1 Anybody, system-ui, sans-serif; font-stretch: 125%; }
+  .mock-header nav { margin-left: auto; display: flex; gap: 18px; color: var(--muted); font-weight: 600; }
+  .mock-header nav .on { color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+
+  .hero { display: grid; grid-template-columns: 260px 1fr; gap: 28px; align-items: center; margin-top: 16px; padding: 28px; background: var(--panel); border-radius: 18px; }
+  .hero p { margin: 0 0 14px; font-size: 18px; max-width: 34ch; }
+  .btn { font: inherit; font-weight: 700; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--rule); background: transparent; color: var(--ink); cursor: pointer; transition: transform 160ms var(--ease-out); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  .ladders { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .ladder { border-radius: 18px; padding: 18px 20px; display: grid; gap: 12px; }
+  .ladder.dark { background: var(--panel); color: var(--ink); }
+  .ladder.light { background: var(--light-bg); color: var(--light-ink); --panel: var(--light-panel); --bg: var(--light-bg); --muted: #4F6555; }
+  .ladder h3 { font-size: 14px; color: var(--muted); font-weight: 700; font-stretch: 100%; }
+  .sizes { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+  .sizes figure { margin: 0; display: grid; gap: 4px; justify-items: center; font-size: 11px; color: var(--muted); }
+
+  .in-context { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .card { background: var(--panel); border-radius: 18px; padding: 16px 18px; display: grid; gap: 10px; }
+  .card h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .toast { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--rule); }
+  .toast span { color: var(--muted); }
+
+  /* The one monoline mark takes its colour from the surface it sits on. */
+  .mono { color: var(--accent); }
+  .ladder.light .mono { color: var(--light-accent); }
+  .mascot { display: block; overflow: visible; flex: none; }
+  .mascot.d { --mono-bg: var(--panel); }
+  .mock-header .mascot.d { --mono-bg: var(--bg); }
+
+  /* The sticker keeps its white edge and offset shadow with a filter that follows the whole silhouette, limbs included. */
+  .mascot.c { filter: drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff) drop-shadow(3px 5px 0 rgba(0, 0, 0, .35)); }
+
+  /* Small sizes drop the fine detail (mouth, brows, stripes, shading) so the shape still reads. */
+  .mascot.sm .detail { display: none; }
+
+  /* ---------- Motion: transform and opacity only, CSS only ---------- */
+  .mascot .m-root { transform-box: view-box; transform-origin: 100px 190px; animation: pop 420ms var(--ease-out) both, bob 3.4s ease-in-out 420ms infinite; }
+  @keyframes pop { from { transform: translateY(8px) scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+  .mascot .m-lid { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); animation: blink-lid 5.2s ease-in-out 1.2s infinite; }
+  .mascot .m-eye, .mascot .m-pupil-d { transform-box: fill-box; transform-origin: 50% 50%; animation: blink-eye 5.2s ease-in-out 1.2s infinite; }
+  @keyframes blink-lid { 0%, 94%, 100% { transform: scaleY(0); } 96.5% { transform: scaleY(1); } }
+  @keyframes blink-eye { 0%, 94%, 100% { transform: scaleY(1); } 96.5% { transform: scaleY(.1); } }
+
+  /* Pupils: the outer group follows the pointer (set from script), the inner one glances around when nothing moves. */
+  .mascot .m-look { transition: transform 140ms var(--ease-out); transform: translate(calc(var(--lx, 0) * 1px), calc(var(--ly, 0) * 1px)); }
+  .mascot .m-glance { animation: glance 8s ease-in-out 2s infinite; }
+  @keyframes glance { 0%, 12%, 100% { transform: none; } 18%, 30% { transform: translateX(-4px); } 38%, 52% { transform: translateX(4px) translateY(-1px); } 60% { transform: none; } }
+
+  /* The red-zone reaction: brows up, pupils wide, a quick wiggle, a wave. */
+  .mascot.excited .m-root { animation: wiggle 700ms var(--ease-out) both; }
+  @keyframes wiggle { 0% { transform: none; } 20% { transform: rotate(-6deg) scale(1.04); } 45% { transform: rotate(5deg) scale(1.04); } 70% { transform: rotate(-3deg); } 100% { transform: none; } }
+  .mascot .m-brow { transition: transform 160ms var(--ease-out); }
+  .mascot.excited .m-brow { transform: translateY(-6px); }
+  .mascot .m-pupil { transition: transform 160ms var(--ease-out); transform-box: fill-box; transform-origin: 50% 50%; }
+  .mascot.excited .m-pupil { transform: scale(1.25); }
+  .mascot.excited .m-arm-r { animation: wave 700ms ease-in-out both; transform-box: view-box; transform-origin: 144px 114px; }
+  @keyframes wave { 0%, 100% { transform: none; } 25% { transform: rotate(-24deg); } 60% { transform: rotate(12deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mascot .m-root, .mascot .m-lid, .mascot .m-eye, .mascot .m-pupil-d, .mascot .m-glance, .mascot.excited .m-arm-r, .mascot.excited .m-root { animation: none !important; }
+  }
+
+  /* ---------- Limb rig: every limb is a group that turns about its own joint (hip or shoulder) ---------- */
+  .mascot .rig { transform-box: view-box; transition: transform 260ms var(--ease-out); }
+  .mascot.walking .m-root { animation: walk-bob 340ms ease-in-out infinite alternate; }
+  @keyframes walk-bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+  .mascot.walking .m-leg-l { animation: step 680ms ease-in-out infinite alternate; }
+  .mascot.walking .m-leg-r { animation: step 680ms ease-in-out infinite alternate-reverse; }
+  .mascot.walking .m-arm-l { animation: swing 680ms ease-in-out infinite alternate-reverse; }
+  .mascot.walking:not(.pointing) .m-arm-r { animation: swing 680ms ease-in-out infinite alternate; }
+  @keyframes step { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+  @keyframes swing { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
+  /* Pointing: the right arm lifts to a level line, and the eyes (script) look the same way. */
+  .mascot.pointing .m-arm-r { transform: rotate(var(--point, -78deg)); animation: none; }
+  .mascot.excited .m-arm-r { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .mascot.walking .m-root, .mascot.walking .m-leg-l, .mascot.walking .m-leg-r, .mascot.walking .m-arm-l, .mascot.walking .m-arm-r { animation: none !important; }
+    .mascot .rig { transition: none; }
+  }
+  @media (max-width: 760px) { .hero, .ladders, .in-context { grid-template-columns: 1fr; } }
+
+  /* ---------- Picker: verbatim from the prototype skill ---------- */
+  .proto-picker { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2147483647; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(10, 10, 10, 0.82); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 8px 24px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; line-height: 1; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+  .proto-picker-highlight { position: absolute; top: 4px; left: 0; height: 28px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); will-change: transform; }
+  .proto-picker[data-ready] .proto-picker-highlight { transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1), width 250ms cubic-bezier(0.23, 1, 0.32, 1); }
+  @media (prefers-reduced-motion: reduce) { .proto-picker[data-ready] .proto-picker-highlight { transition: none; } }
+  .proto-picker-item { position: relative; display: flex; align-items: center; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, 0.55); font: inherit; cursor: pointer; transition: color 150ms ease-out; }
+  .proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); }
+  .proto-picker-item:active { transform: scale(0.97); }
+  .proto-picker-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.4); outline-offset: 2px; }
+  .proto-picker-item[data-active] { color: #fff; }
+  .proto-picker-divider { width: 1px; height: 16px; margin: 0 4px; background: rgba(255, 255, 255, 0.12); }
+  .proto-picker-replay { padding: 0 10px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- Shared paint servers, defined once so every instance of a mascot can use them. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="gA" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#D98A4E"/><stop offset=".55" stop-color="#A9582B"/><stop offset="1" stop-color="#6A3114"/></radialGradient>
+    <clipPath id="cLA"><circle cx="76" cy="104" r="19"/></clipPath>
+    <clipPath id="cLB"><circle cx="124" cy="104" r="19"/></clipPath>
+  </defs>
+</svg>
+
+<main class="wrap">
+  <div id="stage"></div>
+</main>
+
+<nav class="proto-picker" aria-label="Prototype variants">
+  <span class="proto-picker-highlight" aria-hidden="true"></span>
+  <button class="proto-picker-item" data-active aria-current="true">Stubby</button>
+  <button class="proto-picker-item">Upright</button>
+  <button class="proto-picker-item">Gridiron</button>
+  <span class="proto-picker-divider" aria-hidden="true"></span>
+  <button class="proto-picker-item proto-picker-replay" aria-label="Replay animation (R)">↻</button>
+</nav>
+
+<script>
+/* ============ Studious, with limbs. Hooks: m-root, m-look, m-glance, m-lid, m-pupil, m-brow, and rigged limbs m-leg-l, m-leg-r, m-arm-l, m-arm-r (each turns about its joint, set inline). ============ */
+const label = 'Stat Watch mascot, a football wearing glasses';
+const lens = 'M10 100C38 36 162 36 190 100C162 164 38 164 10 100Z';
+const INK = '#14231A', CREAM = '#F6EBDD';
+
+// The ball: leather, stripes, laces. Drawn on the 200 box and placed by the caller.
+const ball = () => `
+  <path d="${lens}" fill="url(#gA)" stroke="#E9A66B" stroke-opacity=".5" stroke-width="3"/>
+  <g class="detail" fill="none" stroke="${CREAM}" stroke-width="8" stroke-linecap="round"><path d="M44 66Q55 100 44 134"/><path d="M156 66Q145 100 156 134"/></g>
+  <g fill="none" stroke="${CREAM}" stroke-width="5" stroke-linecap="round"><path d="M78 61H122"/><path d="M88 55V67M100 54V68M112 55V67"/></g>`;
+
+// The face: brows, glasses, eyes, blink lids, cheeks and smile. `temples` are the arms of the glasses.
+const face = (temples = true) => `
+  <g class="detail" fill="none" stroke="#3A1B0A" stroke-width="5" stroke-linecap="round"><path class="m-brow" d="M58 77Q73 69 90 75"/><path class="m-brow" d="M110 75Q127 69 142 77"/></g>
+  <g fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round">
+    ${temples ? '<path d="M55 101L33 96M145 101L167 96"/>' : ''}
+    <circle cx="76" cy="104" r="21" fill="#fff" fill-opacity=".96"/><circle cx="124" cy="104" r="21" fill="#fff" fill-opacity=".96"/>
+    <path d="M97 101Q100 95 103 101"/>
+  </g>
+  <g class="m-look"><g class="m-glance">
+    <g class="m-pupil"><circle cx="78" cy="106" r="8.5" fill="${INK}"/><circle cx="81" cy="103" r="2.6" fill="#fff"/></g>
+    <g class="m-pupil"><circle cx="126" cy="106" r="8.5" fill="${INK}"/><circle cx="129" cy="103" r="2.6" fill="#fff"/></g>
+  </g></g>
+  <g clip-path="url(#cLA)"><rect class="m-lid" x="55" y="83" width="42" height="42" fill="#A85A2E"/></g>
+  <g clip-path="url(#cLB)"><rect class="m-lid" x="103" y="83" width="42" height="42" fill="#A85A2E"/></g>
+  <g class="detail"><circle cx="64" cy="132" r="6" fill="#E58A5A" opacity=".45"/><circle cx="136" cy="132" r="6" fill="#E58A5A" opacity=".45"/>
+    <path d="M90 138Q100 148 110 138" fill="none" stroke="#3A1B0A" stroke-width="4.5" stroke-linecap="round"/></g>`;
+
+// A limb is ink underneath and cream on top, so it reads on the dark theme and on the light one.
+const limb = (d, w = 7) => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${w + 5}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${CREAM}" stroke-width="${w}" stroke-linecap="round"/>`;
+const joint = (x, y) => `style="transform-origin:${x}px ${y}px"`;
+const sneaker = (cx, cy, dir = 1) => `<path d="M${cx - 13 * dir} ${cy + 7}Q${cx - 14 * dir} ${cy - 5} ${cx - 2 * dir} ${cy - 5}H${cx + 4 * dir}Q${cx + 16 * dir} ${cy - 3} ${cx + 16 * dir} ${cy + 4}Q${cx + 16 * dir} ${cy + 7} ${cx + 12 * dir} ${cy + 7}Z" fill="${CREAM}" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>`;
+const mitt = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="8" fill="${CREAM}" stroke="${INK}" stroke-width="4.5"/>`;
+
+// 1. Stubby: the Studious ball, small, on short legs with noodle arms and round mitts.
+const stubby = (px, cls = '') => `
+<svg class="mascot a ${cls}" width="${px}" height="${px}" viewBox="0 0 200 200" role="img" aria-label="${label}">
+  <g class="m-root">
+    <ellipse class="detail" cx="100" cy="191" rx="52" ry="5" fill="#000" opacity=".25"/>
+    <g transform="translate(0 14)">
+      <g class="rig m-leg-l" ${joint(86, 124)}>${limb('M86 122V150', 9)}${sneaker(82, 156)}</g>
+      <g class="rig m-leg-r" ${joint(114, 124)}>${limb('M114 122V150', 9)}${sneaker(118, 156, -1)}</g>
+      <g class="rig m-arm-l" ${joint(36, 98)}>${limb('M36 98Q14 106 18 128')}${mitt(18, 134)}</g>
+      <g transform="translate(20 4) scale(.8)"><g transform="rotate(-12 100 100)">${ball()}${face()}</g></g>
+      <g class="rig m-arm-r" ${joint(162, 88)}>${limb('M162 88Q186 96 183 120')}${mitt(183, 126)}</g>
+    </g>
+  </g>
+</svg>`;
+
+// 2. Upright: the ball stands on end and leans; the face stays level. Long legs, a pointing hand.
+const upright = (px, cls = '') => `
+<svg class="mascot b ${cls}" width="${px}" height="${px}" viewBox="0 0 200 200" role="img" aria-label="${label}">
+  <g class="m-root">
+    <ellipse class="detail" cx="100" cy="192" rx="46" ry="5" fill="#000" opacity=".25"/>
+    <g transform="translate(0 12)">
+    <g class="rig m-leg-l" ${joint(88, 138)}>${limb('M88 136V160', 9)}${sneaker(84, 166)}</g>
+    <g class="rig m-leg-r" ${joint(114, 138)}>${limb('M114 136V160', 9)}${sneaker(118, 166, -1)}</g>
+    <g class="rig m-arm-l" ${joint(60, 96)}>${limb('M60 96Q38 104 40 128')}${mitt(40, 134)}</g>
+    <g transform="translate(100 82) rotate(-72) scale(.66) translate(-100 -100)">${ball()}</g>
+    <g transform="translate(100 82) scale(.66) translate(-100 -100)">${face(false)}</g>
+    <g class="rig m-arm-r" ${joint(140, 96)}>${limb('M140 96Q164 104 162 130')}${mitt(162, 136)}<path d="M162 144V152" stroke="${INK}" stroke-width="8" stroke-linecap="round"/><path d="M162 144V152" stroke="${CREAM}" stroke-width="4" stroke-linecap="round"/></g>
+    </g>
+  </g>
+</svg>`;
+
+// 3. Gridiron: the Stubby proportions in kit. Striped socks, cleats, mint gloves, a pointing finger on the right glove.
+const glove = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="9" fill="#86EFAC" stroke="${INK}" stroke-width="4.5"/>`;
+const sock = (x) => `${limb(`M${x} 122V148`, 10)}<path class="detail" d="M${x - 5} 136H${x + 5}M${x - 5} 142H${x + 5}" stroke="#86EFAC" stroke-width="3.5" stroke-linecap="round"/>`;
+const cleat = (cx, dir) => `<path d="M${cx - 12 * dir} 160Q${cx - 13 * dir} 150 ${cx} 150H${cx + 4 * dir}Q${cx + 17 * dir} 152 ${cx + 17 * dir} 158Q${cx + 17 * dir} 162 ${cx + 13 * dir} 162H${cx - 10 * dir}Z" fill="${INK}" stroke="${CREAM}" stroke-width="3" stroke-linejoin="round"/><path class="detail" d="M${cx - 2 * dir} 154h6M${cx + 2 * dir} 157h6" stroke="${CREAM}" stroke-width="2" stroke-linecap="round" transform="translate(${-3 * dir} 0)"/>`;
+const gridiron = (px, cls = '') => `
+<svg class="mascot g ${cls}" width="${px}" height="${px}" viewBox="0 0 200 200" role="img" aria-label="${label}">
+  <g class="m-root">
+    <ellipse class="detail" cx="100" cy="191" rx="52" ry="5" fill="#000" opacity=".25"/>
+    <g transform="translate(0 14)">
+    <g class="rig m-leg-l" ${joint(86, 124)}>${sock(86)}${cleat(82, 1)}</g>
+    <g class="rig m-leg-r" ${joint(114, 124)}>${sock(114)}${cleat(118, -1)}</g>
+    <g class="rig m-arm-l" ${joint(36, 98)}>${limb('M36 98Q14 106 18 128', 9)}${glove(18, 134)}</g>
+    <g transform="translate(20 4) scale(.8)"><g transform="rotate(-12 100 100)">${ball()}${face()}</g></g>
+    <g class="rig m-arm-r" ${joint(162, 88)}>${limb('M162 88Q186 96 183 120', 9)}${glove(183, 128)}
+      <path d="M183 136V148" stroke="${INK}" stroke-width="9" stroke-linecap="round"/><path d="M183 136V148" stroke="#86EFAC" stroke-width="4.5" stroke-linecap="round"/></g>
+    </g>
+  </g>
+</svg>`;
+
+const variants = [
+  { name: 'Stubby', draw: stubby, note: 'Axis: proportion. The Studious ball, small and round on short legs, noodle arms with round mitts. The cutest, the fewest parts, and the easiest to keep readable when small.' },
+  { name: 'Upright', draw: upright, note: 'Axis: posture. The ball stands on end and leans, the face stays level. Longer legs and arms give it room to walk and point; the cost is that it reads a little less like a football at a glance.' },
+  { name: 'Gridiron', draw: gridiron, note: 'Axis: styling. The Stubby proportions in kit: striped socks, cleats, mint gloves and a pointing finger on the right glove. The most sporty and the most to draw.' },
+];
+
+/* ============ One scene per direction, the same layout for each so only the mascot changes ============ */
+const SIZES = [16, 24, 32, 48, 72, 112];
+const small = (px) => (px <= 32 ? 'sm' : '');
+const ladder = (v, theme) => `
+  <section class="ladder ${theme}" aria-label="${v.name} at every size, on ${theme}">
+    <h3>${theme === 'dark' ? 'On the dark theme' : 'On the light theme'}, 16 to 112 px</h3>
+    <div class="sizes">${SIZES.map((px) => `<figure>${v.draw(px, small(px))}<figcaption>${px}</figcaption></figure>`).join('')}</div>
+  </section>`;
+
+function scene(v) {
+  return `
+  <header class="variant-title"><h2>${v.name}</h2><p>${v.note}</p></header>
+  <div class="mock-header" aria-label="The header, with the mascot where the logo is">
+    ${v.draw(38, 'sm')}<span class="word">Stat Watch</span>
+    <nav aria-hidden="true"><span class="on">Players</span><span>Vs Mode</span><span>Leagues</span><span>Settings</span></nav>
+  </div>
+  <section class="hero" aria-label="Empty state with the large mascot">
+    <div id="big" tabindex="0" role="button" aria-label="Make the mascot react">${v.draw(260)}</div>
+    <div>
+      <p>Add a scoring league first to start following players.</p>
+      <div class="row"><button class="btn primary" type="button">Go to Leagues</button><button class="btn" type="button" id="react">Red zone!</button><button class="btn" type="button" id="walk" aria-pressed="false">Walk</button><button class="btn" type="button" id="point">Point at the button</button></div>
+    </div>
+  </section>
+  <div class="ladders">${ladder(v, 'dark')}${ladder(v, 'light')}</div>
+  <div class="in-context">
+    <section class="card"><h3>${v.draw(26, 'sm')} Live now</h3>
+      <div class="toast">${v.draw(28, 'sm')}<div><strong>Saquon Barkley is in the red zone</strong><br><span>PHI at DAL, 8 yards to go</span></div></div></section>
+    <section class="card"><h3>Where it can live</h3><p style="margin:0;color:var(--muted)">Header logo, empty states, the red-zone alert, loading and error pages, a corner of the dialogs, the browser tab icon.</p>
+      <div class="row">${v.draw(20, 'sm')}${v.draw(24, 'sm')}${v.draw(32, 'sm')}${v.draw(44)}</div></section>
+  </div>`;
+}
+
+/* ============ Picker wiring: verbatim from the skill, plus the pointer tracking and the reaction ============ */
+const stage = document.getElementById('stage');
+const picker = document.querySelector('.proto-picker');
+const highlight = picker.querySelector('.proto-picker-highlight');
+const items = [...picker.querySelectorAll('.proto-picker-item:not(.proto-picker-replay)')];
+const replay = picker.querySelector('.proto-picker-replay');
+let current = 0;
+
+function moveHighlight() {
+  const el = items[current];
+  highlight.style.width = el.offsetWidth + 'px';
+  highlight.style.transform = `translateX(${el.offsetLeft}px)`;
+}
+
+function react() {
+  document.querySelectorAll('#big .mascot').forEach((m) => {
+    m.classList.remove('excited'); void m.getBoundingClientRect(); m.classList.add('excited');
+    setTimeout(() => m.classList.remove('excited'), 1400);
+  });
+}
+
+function bigMascot() { return document.querySelector('#big .mascot'); }
+function toggleWalk() {
+  const m = bigMascot(); if (!m) return;
+  const on = m.classList.toggle('walking');
+  document.getElementById('walk')?.setAttribute('aria-pressed', String(on));
+}
+let pointTimer;
+function point() {
+  const m = bigMascot(); if (!m) return;
+  const target = document.querySelector('.hero .btn.primary').getBoundingClientRect(), r = m.getBoundingClientRect();
+  const dx = target.left + target.width / 2 - (r.left + r.width / 2), dy = target.top + target.height / 2 - (r.top + r.height / 2);
+  // The arm turns from hanging down (the neutral pose) towards the target; the eyes turn the same way.
+  const aim = Math.atan2(dy, dx) * 180 / Math.PI;           // 0 = right, 90 = down
+  m.style.setProperty('--point', (-90 + aim).toFixed(0) + 'deg');   // from hanging (down) to the target direction
+  m.style.setProperty('--lx', 6); m.style.setProperty('--ly', (Math.sin(aim * Math.PI / 180) * 4).toFixed(1));
+  m.classList.add('pointing');
+  clearTimeout(pointTimer);
+  pointTimer = setTimeout(() => { m.classList.remove('pointing'); m.style.removeProperty('--point'); }, 1800);
+}
+
+function mount(i) {
+  stage.innerHTML = '';
+  requestAnimationFrame(() => {
+    stage.innerHTML = scene(variants[i]);
+    document.getElementById('react').addEventListener('click', react);
+    document.getElementById('big').addEventListener('click', react);
+    document.getElementById('walk').addEventListener('click', toggleWalk);
+    document.getElementById('point').addEventListener('click', point);
+  });
+}
+
+function setActive(i) {
+  if (i < 0 || i >= variants.length) return;
+  current = i;
+  items.forEach((el, j) => {
+    el.toggleAttribute('data-active', j === i);
+    if (j === i) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current');
+  });
+  moveHighlight();
+  const url = new URL(location); url.searchParams.set('v', i + 1); history.replaceState(null, '', url);
+  mount(i);
+}
+
+items.forEach((el, i) => el.addEventListener('click', () => setActive(i)));
+replay?.addEventListener('click', () => mount(current));
+window.addEventListener('resize', moveHighlight);
+
+document.addEventListener('keydown', (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= variants.length) setActive(num - 1);
+  else if (e.key === 'ArrowRight') setActive((current + 1) % variants.length);
+  else if (e.key === 'ArrowLeft') setActive((current - 1 + variants.length) % variants.length);
+  else if (e.key === 'r' || e.key === 'R') mount(current);
+  else if (e.key === 'e' || e.key === 'E') react();
+  else if (e.key === 'w' || e.key === 'W') toggleWalk();
+  else if (e.key === 'p' || e.key === 'P') point();
+});
+
+// The big mascot's pupils follow the pointer (decorative; it stops when the reader prefers less motion).
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+document.addEventListener('pointermove', (e) => {
+  if (calm.matches) return;
+  const big = document.querySelector('#big .mascot'); if (!big || big.classList.contains('pointing')) return;
+  const r = big.getBoundingClientRect();
+  const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const d = Math.hypot(dx, dy) || 1, reach = Math.min(1, d / 260) * 6;
+  big.style.setProperty('--lx', (dx / d * reach).toFixed(2));
+  big.style.setProperty('--ly', (dy / d * reach * .7).toFixed(2));
+});
+
+setActive((parseInt(new URLSearchParams(location.search).get('v'), 10) || 1) - 1);
+requestAnimationFrame(() => requestAnimationFrame(() => picker.setAttribute('data-ready', '')));
+</script>
+</body>
+</html>

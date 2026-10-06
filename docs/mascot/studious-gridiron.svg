@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mascot g " width="240" height="240" viewBox="0 0 200 200" role="img" aria-label="Stat Watch mascot, a football wearing glasses"><defs><radialGradient id="gA" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#D98A4E"/><stop offset=".55" stop-color="#A9582B"/><stop offset="1" stop-color="#6A3114"/></radialGradient></defs>
+<g class="m-root">
+<ellipse class="detail" cx="100" cy="191" rx="52" ry="5" fill="#000" opacity=".25"/>
+<g transform="translate(0 14)">
+<g class="rig m-leg-l" style="transform-origin:86px 124px"><path d="M86 122V148" fill="none" stroke="#14231A" stroke-width="15" stroke-linecap="round"/><path d="M86 122V148" fill="none" stroke="#F6EBDD" stroke-width="10" stroke-linecap="round"/><path class="detail" d="M81 136H91M81 142H91" stroke="#86EFAC" stroke-width="3.5" stroke-linecap="round"/><path d="M70 160Q69 150 82 150H86Q99 152 99 158Q99 162 95 162H72Z" fill="#14231A" stroke="#F6EBDD" stroke-width="3" stroke-linejoin="round"/><path class="detail" d="M80 154h6M84 157h6" stroke="#F6EBDD" stroke-width="2" stroke-linecap="round" transform="translate(-3 0)"/></g>
+<g class="rig m-leg-r" style="transform-origin:114px 124px"><path d="M114 122V148" fill="none" stroke="#14231A" stroke-width="15" stroke-linecap="round"/><path d="M114 122V148" fill="none" stroke="#F6EBDD" stroke-width="10" stroke-linecap="round"/><path class="detail" d="M109 136H119M109 142H119" stroke="#86EFAC" stroke-width="3.5" stroke-linecap="round"/><path d="M130 160Q131 150 118 150H114Q101 152 101 158Q101 162 105 162H128Z" fill="#14231A" stroke="#F6EBDD" stroke-width="3" stroke-linejoin="round"/><path class="detail" d="M120 154h6M116 157h6" stroke="#F6EBDD" stroke-width="2" stroke-linecap="round" transform="translate(3 0)"/></g>
+<g class="rig m-arm-l" style="transform-origin:36px 98px"><path d="M36 98Q14 106 18 128" fill="none" stroke="#14231A" stroke-width="14" stroke-linecap="round"/><path d="M36 98Q14 106 18 128" fill="none" stroke="#F6EBDD" stroke-width="9" stroke-linecap="round"/><circle cx="18" cy="134" r="9" fill="#86EFAC" stroke="#14231A" stroke-width="4.5"/></g>
+<g transform="translate(20 4) scale(.8)"><g transform="rotate(-12 100 100)">
+<path d="M10 100C38 36 162 36 190 100C162 164 38 164 10 100Z" fill="url(#gA)" stroke="#E9A66B" stroke-opacity=".5" stroke-width="3"/>
+<g class="detail" fill="none" stroke="#F6EBDD" stroke-width="8" stroke-linecap="round"><path d="M44 66Q55 100 44 134"/><path d="M156 66Q145 100 156 134"/></g>
+<g fill="none" stroke="#F6EBDD" stroke-width="5" stroke-linecap="round"><path d="M78 61H122"/><path d="M88 55V67M100 54V68M112 55V67"/></g>
+<g class="detail" fill="none" stroke="#3A1B0A" stroke-width="5" stroke-linecap="round"><path class="m-brow" d="M58 77Q73 69 90 75"/><path class="m-brow" d="M110 75Q127 69 142 77"/></g>
+<g fill="none" stroke="#14231A" stroke-width="5" stroke-linecap="round">
+<path d="M55 101L33 96M145 101L167 96"/>
+<circle cx="76" cy="104" r="21" fill="#fff" fill-opacity=".96"/><circle cx="124" cy="104" r="21" fill="#fff" fill-opacity=".96"/>
+<path d="M97 101Q100 95 103 101"/>
+</g>
+<g class="m-look"><g class="m-glance">
+<g class="m-pupil"><circle cx="78" cy="106" r="8.5" fill="#14231A"/><circle cx="81" cy="103" r="2.6" fill="#fff"/></g>
+<g class="m-pupil"><circle cx="126" cy="106" r="8.5" fill="#14231A"/><circle cx="129" cy="103" r="2.6" fill="#fff"/></g>
+</g></g>
+<g class="detail"><circle cx="64" cy="132" r="6" fill="#E58A5A" opacity=".45"/><circle cx="136" cy="132" r="6" fill="#E58A5A" opacity=".45"/>
+<path d="M90 138Q100 148 110 138" fill="none" stroke="#3A1B0A" stroke-width="4.5" stroke-linecap="round"/></g></g></g>
+<g class="rig m-arm-r" style="transform-origin:162px 88px"><path d="M162 88Q186 96 183 120" fill="none" stroke="#14231A" stroke-width="14" stroke-linecap="round"/><path d="M162 88Q186 96 183 120" fill="none" stroke="#F6EBDD" stroke-width="9" stroke-linecap="round"/><circle cx="183" cy="128" r="9" fill="#86EFAC" stroke="#14231A" stroke-width="4.5"/>
+<path d="M183 136V148" stroke="#14231A" stroke-width="9" stroke-linecap="round"/><path d="M183 136V148" stroke="#86EFAC" stroke-width="4.5" stroke-linecap="round"/></g>
+</g>
+</g>
+</svg>
