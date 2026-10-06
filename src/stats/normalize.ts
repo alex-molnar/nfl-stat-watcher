@@ -179,8 +179,12 @@ function yardsAllowedOf(s: EspnSummary, opponentId: string | undefined): { yards
   return Number.isFinite(yards) ? { yardsAllowed: yards } : {};
 }
 
+// https, or this site's own address (Rookie camp's practice clip is served from here).
 const httpsUrl = (value: string | undefined): string | undefined => {
-  try { return value && new URL(value).protocol === 'https:' ? value : undefined; } catch { return undefined; }
+  try {
+    const url = value ? new URL(value) : undefined;
+    return url && (url.protocol === 'https:' || url.origin === location.origin) ? value : undefined;
+  } catch { return undefined; }
 };
 
 function highlightsOf(s: EspnSummary): Highlight[] {

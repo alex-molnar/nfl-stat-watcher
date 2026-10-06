@@ -138,6 +138,7 @@ select { max-width: 100%; }
 dialog { border: 0; padding: 0; border-radius: 12px; width: min(560px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0, 0, 0, .35); }
 dialog::backdrop { background: rgba(5, 10, 20, .5); }
 dialog[open] { animation: dlg 180ms ease-out; }
+dialog[open][data-instant] { animation: none; } /* it replaces what the mascot was in a moment ago (a card, another dialog): no scale-in to wait for */
 /* The mascot sits on the dialog's top edge, outside its box, so the dialog does not clip: its content scrolls instead, and leaves room above and below. */
 dialog { overflow: visible; max-height: none; }
 @keyframes dlg { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
@@ -506,4 +507,21 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .mascot.worried .m-brow-l { transform: translateY(-3px) rotate(-17deg); }
 .mascot.worried .m-brow-r { transform: translateY(-3px) rotate(17deg); }
 .mascot.worried .m-mouth { transform: translateY(5px) scaleY(-.8); }
+.mascot.happy .m-brow { transform: translateY(-4px); }
+.mascot.happy .m-mouth { transform: translateY(-1px) scale(1.25, 1.35); }
 @media (prefers-reduced-motion: reduce) { .mascot .m-brow, .mascot .m-mouth { transition: none; } }
+
+/* Rookie camp: a ring around the control the drill is about (it never takes a click), and the mascot's card beside it. */
+.camp-ring { position: fixed; z-index: 29; pointer-events: none; border: 3px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent); }
+.camp-ring::after { content: ""; position: absolute; inset: -3px; border-radius: inherit; border: 3px solid var(--accent); animation: camp-pulse 1.6s ease-out infinite; }
+@keyframes camp-pulse { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.12); } }
+.camp { position: fixed; z-index: 30; box-sizing: border-box; padding: 14px 16px; border-radius: 16px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); box-shadow: 0 10px 28px rgba(0, 0, 0, .35); }
+.camp:not(.waiting) { transition: opacity 180ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
+.camp.waiting { opacity: 0; pointer-events: none; }
+.camp .perch-say { width: auto; }
+@media (prefers-reduced-motion: reduce) { .camp:not(.waiting) { transition: none; } }
+.camp-body { display: grid; gap: 8px; min-width: 0; }
+.camp-body p { margin: 0; }
+.camp-name { font-weight: 800; }
+.camp-text { font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .camp-ring::after { animation: none; } }

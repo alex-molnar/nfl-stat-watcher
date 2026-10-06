@@ -1,3 +1,4 @@
+import { fakeAthlete, fakeClipAthletes, fakeSearch, fakeSummary } from './campSandbox';
 import type {
   EspnAthleteResponse,
   EspnScoreboard,
@@ -26,14 +27,20 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 export async function searchPlayers(query: string): Promise<EspnSearchItem[]> {
-  const res = await getJson<{ items?: EspnSearchItem[] }>(
-    `${WEB}/search?query=${encodeURIComponent(query)}&limit=10&type=player`,
-  );
-  return (res.items ?? []).filter((item) => item.league === 'nfl');
+  const practice = fakeSearch(query); // Rookie camp's practice player, first in the list, when the camp is on its player drill
+  try {
+    const res = await getJson<{ items?: EspnSearchItem[] }>(
+      `${WEB}/search?query=${encodeURIComponent(query)}&limit=10&type=player`,
+    );
+    return [...practice, ...(res.items ?? []).filter((item) => item.league === 'nfl')];
+  } catch (error) {
+    if (practice.length > 0) return practice; // the practice does not need ESPN
+    throw error;
+  }
 }
 
-export const getAthlete = (id: string) =>
-  getJson<EspnAthleteResponse>(`${WEB}/sports/football/nfl/athletes/${id}`);
+export const getAthlete = async (id: string) =>
+  fakeAthlete(id) ?? getJson<EspnAthleteResponse>(`${WEB}/sports/football/nfl/athletes/${id}`);
 
 // ESPN's /teams endpoint sends no CORS headers, so a browser cannot call it. Standings does and lists all 32 teams.
 const STANDINGS = 'https://site.api.espn.com/apis/v2/sports/football/nfl/standings';
@@ -45,6 +52,8 @@ export async function getTeams(): Promise<EspnTeamRef[]> {
 
 /** The athletes a highlight clip is tagged with. The summary lists clips without tags; this per-clip call has them. */
 export async function getClipAthletes(clipId: string): Promise<string[]> {
+  const fake = fakeClipAthletes(clipId); // Rookie camp's practice clip
+  if (fake) return fake;
   const res = await getJson<{ videos?: { categories?: { type?: string; athleteId?: number }[] }[] }>(
     `https://content.core.api.espn.com/v1/video/clips/${encodeURIComponent(clipId)}`,
   );
@@ -56,5 +65,5 @@ export const getLeagueInjuries = () => getJson<unknown>(`${SITE}/injuries`);
 
 export const getScoreboard = () => getJson<EspnScoreboard>(`${SITE}/scoreboard`);
 
-export const getSummary = (eventId: string) =>
-  getJson<EspnSummary>(`${SITE}/summary?event=${eventId}`);
+export const getSummary = async (eventId: string) =>
+  fakeSummary(eventId) ?? getJson<EspnSummary>(`${SITE}/summary?event=${eventId}`);

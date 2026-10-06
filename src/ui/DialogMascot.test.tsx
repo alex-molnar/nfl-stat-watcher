@@ -35,6 +35,14 @@ describe('the mascot in a dialog', () => {
     expect(mascotIn()).toBeNull();
   });
 
+  it('lands at once in a dialog with no opening animation (data-instant), without waiting for it to settle', async () => {
+    render(<Sample />);
+    dlg().setAttribute('data-instant', '');
+    await act(async () => { dlg().showModal(); });
+    act(() => { vi.advanceTimersByTime(0); });
+    expect(mascotIn()).not.toBeNull();
+  });
+
   it('sits on the top edge, seated, once the dialog is open and has settled, and goes when it closes', async () => {
     render(<Sample />);
     await act(async () => { dlg().showModal(); });

@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 import { profilesFixture } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
 import { scoreboardFixture } from '../test/data';
-import { renderAt, seed } from '../test/render';
+import { renderAt, seed, declineCamp } from '../test/render';
 import * as flight from './mascotFlight';
 
 // Every mascot that appears or leaves is reported; a jump needs exactly one of each, in the same moment.
@@ -13,6 +13,8 @@ const appeared = () => vi.mocked(flight.mascotAppeared);
 const left = () => vi.mocked(flight.mascotLeft);
 const goTo = (name: string) => userEvent.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name }));
 import { within } from '@testing-library/react';
+
+beforeEach(declineCamp);
 
 beforeEach(() => { vi.clearAllMocks(); mockFetch({ scoreboard: scoreboardFixture }); });
 

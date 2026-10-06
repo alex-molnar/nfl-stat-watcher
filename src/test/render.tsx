@@ -28,3 +28,9 @@ export function seed(followed: FollowedEntry[], profiles: Profile[]) {
   localStorage.setItem('nflsw:v1:profiles', JSON.stringify(profiles));
   reloadAllStores();
 }
+
+/** For tests about the pages' own mascots: a first-run user is offered Rookie camp, whose mascot would take theirs, so the offer is turned down first. */
+export function declineCamp() {
+  localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'declined', step: 0 }));
+  reloadAllStores();
+}

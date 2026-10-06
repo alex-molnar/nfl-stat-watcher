@@ -2,7 +2,9 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mahomes, profilesFixture, warren } from '../test/data';
 import { reloadAllStores } from '../storage/store';
-import { renderAt, seed } from '../test/render';
+import { renderAt, seed, declineCamp } from '../test/render';
+
+beforeEach(declineCamp);
 
 const stored = () => localStorage.getItem('nflsw:v1:nameDisplay');
 const radio = (name: string) => screen.getByRole('radio', { name });
@@ -81,6 +83,15 @@ describe('settings page', () => {
       const dialog = await openConfirm();
       expect(within(dialog).getByRole('button', { name: 'Keep my data' })).toHaveClass('btn-primary');
       expect(within(dialog).getByRole('button', { name: 'Clear my data' })).toHaveClass('btn-danger');
+    });
+
+    it('Clear my data keeps how far Rookie camp got, so the training camp is not offered again', async () => {
+      localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'done', step: 0 }));
+      reloadAllStores();
+      renderAt('/settings');
+      await userEvent.click(within(await openConfirm()).getByRole('button', { name: 'Clear my data' }));
+      expect(JSON.parse(localStorage.getItem('nflsw:v1:camp')!)).toEqual({ phase: 'done', step: 0 });
+      expect(localStorage.getItem('nflsw:v1:followed')).toBe('[]'); // everything else is gone
     });
 
     it('clears everything, resets the stores to defaults and drops an unsaved change', async () => {

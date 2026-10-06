@@ -8,9 +8,11 @@ import { AppRoutes } from '../App';
 import summary from '../test/fixtures/summary-pit-cle.json';
 import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
-import { renderAt, seed } from '../test/render';
+import { renderAt, seed, declineCamp } from '../test/render';
 
 import { PRESETS, copyValues } from '../scoring/presets';
+
+beforeEach(declineCamp);
 
 // A first run has no league, so most of these tests start from one called My league; those that seed their own replace it.
 const myLeague = { id: 'my-league', name: 'My league', preset: 'ppr' as const, values: copyValues(PRESETS.ppr), color: '#1f4fd8' };

@@ -100,7 +100,7 @@ function VsMatchup() {
     <section className="vs-col" aria-labelledby={`vs-${side}`}>
       <div className="vs-col-head">
         <h2 className="section-title" id={`vs-${side}`}>{COLUMNS[side].title}</h2>
-        <button type="button" className="btn press vs-add" aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
+        <button type="button" className="btn press vs-add" data-camp={`vs-add-${side}`} aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
           Add player
         </button>
         {canSync && (
