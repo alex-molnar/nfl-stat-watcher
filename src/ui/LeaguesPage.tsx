@@ -9,7 +9,10 @@ import { useStore } from '../storage/useStore';
 import { Header } from './Header';
 import { usePageTitle } from './usePageTitle';
 import { textOn } from './format';
+import { uniqueName } from '../scoring/uniqueName';
+import { ExportProfileDialog } from './ExportProfileDialog';
 import { ImportLeaguesDialog } from './ImportLeaguesDialog';
+import { ImportProfileDialog } from './ImportProfileDialog';
 import { disconnectLeagueSource, isLocallyModified } from '../leagues/import';
 import { ESPN_SCORING_MAP_VERSION } from '../leagues/espn/statMap';
 
@@ -66,14 +69,6 @@ function NumberField({ label, value, step, onChange, enabled = true, onToggle, n
 
 
 const CORE_GROUPS = ['Offense', 'Kicker', 'IDP', 'Team defense'];
-
-function uniqueName(raw: string, others: Profile[]): string {
-  const base = raw.trim() || 'Untitled league';
-  const taken = new Set(others.map((p) => p.name.toLowerCase()));
-  let name = base;
-  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${base} ${n}`;
-  return name;
-}
 
 function NameField({ profile, others, onName }: { profile: Profile; others: Profile[]; onName: (name: string) => void }) {
   const [text, setText] = useState(profile.name);
@@ -338,6 +333,8 @@ export function LeaguesPage() {
   // No league is selected until the user picks one.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importProfileOpen, setImportProfileOpen] = useState(false);
   const [refreshProfileId, setRefreshProfileId] = useState<string | undefined>();
   const [notice, setNotice] = useState('');
   const pendingImportNotice = useRef('');
@@ -409,7 +406,7 @@ export function LeaguesPage() {
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}
           <aside className="settings-side" aria-label="Profile actions">
-            <h2 className="section-title" tabIndex={-1} data-page-title>Scoring profiles</h2>
+            <h2 className="section-title" tabIndex={-1} data-page-title>Leagues</h2>
             <h3 className="sr" id="profiles-heading">Profiles</h3>
             <ul className="profile-list" aria-labelledby="profiles-heading">
               {profiles.map((p) => (
@@ -430,6 +427,12 @@ export function LeaguesPage() {
             </button>
             <button type="button" className="btn press" onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
               Import leagues
+            </button>
+            <button type="button" className="btn press" onClick={() => setImportProfileOpen(true)}>
+              Import StatWatch profile
+            </button>
+            <button type="button" className="btn press" onClick={() => setExportOpen(true)}>
+              Export profile
             </button>
             {stored && <DeleteControl key={stored.id} profile={stored} profiles={profiles} usedBy={inProfile.length - opponents} opponents={opponents} onDeleted={(id) => { refocusProfile.current = id; setSelectedId(id); }} />}
             {dirty && <SaveActions label="Save or cancel changes" onSave={save} onCancel={cancel} />}
@@ -452,6 +455,8 @@ export function LeaguesPage() {
         </div>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>
       </main>
+      <ExportProfileDialog open={exportOpen} onClose={() => setExportOpen(false)} />
+      <ImportProfileDialog open={importProfileOpen} onClose={() => setImportProfileOpen(false)} onImported={(message) => { setImportProfileOpen(false); setNotice(message); }} />
       <ImportLeaguesDialog
         open={importOpen}
         refreshProfileId={refreshProfileId}

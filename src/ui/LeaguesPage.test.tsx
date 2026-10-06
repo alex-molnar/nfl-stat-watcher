@@ -31,7 +31,7 @@ describe('leagues page', () => {
   it('keeps the title with the left menu, and the header with the tabs always visible', () => {
     renderAt('/leagues');
     const menu = screen.getByRole('complementary', { name: 'Profile actions' });
-    expect(within(menu).getByRole('heading', { level: 2, name: 'Scoring profiles' })).toBeInTheDocument(); // sticks with the list, not above it
+    expect(within(menu).getByRole('heading', { level: 2, name: 'Leagues' })).toBeInTheDocument(); // sticks with the list, not above it
     expect(within(screen.getByRole('banner')).getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
   });
 
@@ -101,7 +101,7 @@ describe('leagues page', () => {
     expect(screen.queryByText(/Select a league on the left/)).not.toBeInTheDocument();
     const menu = screen.getByRole('complementary', { name: 'Profile actions' });
     expect(within(menu).getByRole('button', { name: 'Delete profile' })).toHaveClass('btn-danger');
-    expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add profile', 'Import leagues', 'Delete profile']);
+    expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add profile', 'Import leagues', 'Import StatWatch profile', 'Export profile', 'Delete profile']);
     expect(screen.getAllByRole('button', { name: 'Delete profile' })).toHaveLength(1); // moved from the bottom of the form, not repeated
   });
 

@@ -6,7 +6,7 @@ export type EntryKey = Pick<FollowedEntry, 'kind' | 'espnId' | 'profileId' | 'si
 
 const isStr = (v: unknown): v is string => typeof v === 'string';
 
-function isEntry(v: unknown): v is FollowedEntry {
+export function isEntry(v: unknown): v is FollowedEntry {
   if (typeof v !== 'object' || v === null) return false;
   const e = v as Record<string, unknown>;
   return (

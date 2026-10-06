@@ -396,3 +396,11 @@ dialog[open] { animation: dlg 180ms ease-out; }
 dialog.sync-all { width: min(1000px, calc(100vw - 32px)); }
 .plan-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 @media (max-width: 760px) { .plan-sides { grid-template-columns: 1fr; } }
+
+/* Export and import of a whole profile. */
+dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
+.json-box { position: relative; }
+.json-box textarea { width: 100%; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 10px 44px 10px 12px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); resize: vertical; }
+.icon-btn { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--panel); color: var(--ink); cursor: pointer; }
+.icon-btn:hover { border-color: var(--accent); }
+.field-label textarea.dragging { border-color: var(--accent); outline: 2px dashed var(--accent); }

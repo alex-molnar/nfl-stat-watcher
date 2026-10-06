@@ -7,9 +7,9 @@ describe('app shell', () => {
     renderAt('/');
     expect(screen.getByRole('heading', { name: 'Stat Watch', level: 1 })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: 'Leagues' }));
-    expect(screen.getByRole('heading', { name: 'Scoring profiles' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Leagues' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: 'Players' }));
-    expect(screen.queryByRole('heading', { name: 'Scoring profiles' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Leagues' })).not.toBeInTheDocument();
   });
 
   it('sets a title per page', async () => {
@@ -42,7 +42,7 @@ describe('app shell', () => {
     renderAt('/');
     expect(document.body).toHaveFocus();
     await userEvent.click(screen.getByRole('link', { name: 'Leagues' }));
-    expect(screen.getByRole('heading', { name: 'Scoring profiles' })).toHaveFocus();
+    expect(screen.getByRole('heading', { name: 'Leagues' })).toHaveFocus();
     await userEvent.click(screen.getByRole('link', { name: 'Players' }));
     expect(screen.getByRole('heading', { name: 'Players' })).toHaveFocus();
   });
