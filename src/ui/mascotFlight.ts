@@ -82,8 +82,8 @@ function fly(from: DOMRect, el: SVGSVGElement) {
     copy.remove();
     el.style.visibility = '';
     el.classList.remove('in-flight');
+    // It keeps `landed` for good: taking it off later would hand the mascot back to its entrance animation, which would play again as a flicker.
     el.classList.add('landed');
-    setTimeout(() => el.classList.remove('landed'), 600);
   };
   animation.onfinish = land;
   animation.oncancel = land;

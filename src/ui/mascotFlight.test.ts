@@ -48,8 +48,8 @@ describe('mascot flight', () => {
     expect(el.style.visibility).toBe('');
     expect(el).not.toHaveClass('in-flight');
     expect(el).toHaveClass('landed');
-    vi.advanceTimersByTime(700);
-    expect(el).not.toHaveClass('landed');
+    vi.advanceTimersByTime(5000);
+    expect(el).toHaveClass('landed'); // never taken off: that would replay its entrance, as a flicker
   });
 
   it('works the other way round too: the arrival is remembered until the old one leaves', () => {
