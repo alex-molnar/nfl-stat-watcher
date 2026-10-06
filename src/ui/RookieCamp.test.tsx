@@ -5,8 +5,7 @@ import { vi } from 'vitest';
 import { reloadAllStores } from '../storage/store';
 import { mockFetch } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
-import { DEMO_LEAGUE, addDemoLeague } from '../storage/demoLeague';
-import { campStore } from '../storage/camp';
+import { campStore, endCamp } from '../storage/camp';
 import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { mascotEnabledStore } from '../storage/mascot';
@@ -164,7 +163,7 @@ describe('rookie camp', () => {
       await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
       expect(screen.queryByRole('heading', { name: 'Settings' })).toBeNull(); // did not navigate
       await userEvent.click(within(camp()).getByRole('button', { name: 'Skip drill' })); // the card still works
-      expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0 });
+      expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0, practice: true }); // skipping the league drill chooses the practice league
     });
 
     it('keeps Import leagues out of the league drill: it is a drill of its own', async () => {
@@ -307,11 +306,32 @@ describe('rookie camp', () => {
       expect(steps.filter((n) => n > 0)).toEqual([1]);
     });
 
-    it('is an ordinary league, and asking again does not make a second one', () => {
-      addDemoLeague();
-      addDemoLeague();
-      expect(profilesStore.get().map((p) => p.name)).toEqual([DEMO_LEAGUE]);
-      expect(followedStore.get()).toHaveLength(3);
+    it('is the camp league with the three practice players, and it goes when the camp ends', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
+      await waitFor(() => expect(profilesStore.get().map((p) => p.name)).toEqual(['Practice league']));
+      expect(followedStore.get().map((e) => e.name)).toEqual(['Cole Harlan', 'Marcus Teller', 'Jalen Whitmore']);
+      expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0, practice: true });
+      act(() => endCamp('declined'));
+      await waitFor(() => expect(profilesStore.get()).toEqual([]));
+      expect(followedStore.get()).toEqual([]);
+    });
+
+    it('is also what skipping the league drill chooses, from any step of it', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      await userEvent.click(within(camp()).getByRole('button', { name: 'Skip drill' }));
+      await waitFor(() => expect(profilesStore.get().map((p) => p.name)).toEqual(['Practice league']));
+      expect(camp()).toHaveTextContent('Second drill');
+      expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0, practice: true });
+    });
+
+    it('is not made by skipping another drill', async () => {
+      setCamp('running', 1);
+      renderAt('/');
+      await userEvent.click(within(camp()).getByRole('button', { name: 'Skip drill' }));
+      expect(profilesStore.get()).toEqual([]);
     });
   });
 

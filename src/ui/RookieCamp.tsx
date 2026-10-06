@@ -1,13 +1,12 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router';
-import { campStore, endCamp } from '../storage/camp';
-import { addDemoLeague } from '../storage/demoLeague';
+import { campStore, endCamp, patchCamp } from '../storage/camp';
 import { followedStore, sideOf } from '../storage/followed';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
-import { DRILLS, stepOn, toNextDrill, type Ctx, type Facts } from './campDrills';
+import { DRILLS, choosePractice, skipDrill, stepOn, toNextDrill, type Ctx, type Facts } from './campDrills';
 import { dialogsOpen, registerCampMascot, subscribeDialogs } from './dialogsOpen';
 import { Mascot, SEAT_Y } from './Mascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
@@ -159,14 +158,14 @@ export function RookieCamp() {
     if (!drill || sub + 1 >= drill.steps.length) return nextDrill(cheered);
     if (moved.current === where) return;
     moved.current = where;
-    campStore.set({ phase: 'running', step, sub: sub + 1 });
+    patchCamp({ sub: sub + 1 });
   };
 
   // A stored place the drills no longer have (the list changed since) lands on the start of the drill, or on the end.
   useEffect(() => {
     if (!running) return;
-    if (step >= DRILLS.length) campStore.set({ phase: 'finished', step: 0, sub: 0 });
-    else if (sub >= DRILLS[step]!.steps.length) campStore.set({ phase: 'running', step, sub: 0 });
+    if (step >= DRILLS.length) patchCamp({ phase: 'finished', step: 0, sub: 0 });
+    else if (sub >= DRILLS[step]!.steps.length) patchCamp({ sub: 0 });
   }, [running, step, sub]);
   // A drill with nothing to work on (no league to compare, none from ESPN to sync) is passed over.
   const idle = !!drill?.skipIf?.(facts);
@@ -191,7 +190,7 @@ export function RookieCamp() {
     if (!gone) return;
     const timer = setTimeout(() => {
       if (current?.optional) nextStep(false);
-      else if (sub > 0) campStore.set({ phase: 'running', step, sub: sub - 1 });
+      else if (sub > 0) patchCamp({ sub: sub - 1 });
     }, GRACE_MS);
     return () => clearTimeout(timer);
   }, [gone, where]); // eslint-disable-line react-hooks/exhaustive-deps -- the move reads this render's step
@@ -268,9 +267,9 @@ export function RookieCamp() {
   const last = sub + 1 >= drill!.steps.length;
   const buttons = (
     <>
-      {here && sub === 0 && drill!.practice && <button type="button" className="btn btn-primary press" onClick={() => { addDemoLeague(); nextDrill(true); }}>Use a practice league</button>}
+      {here && sub === 0 && drill!.practice && <button type="button" className="btn btn-primary press" onClick={() => { choosePractice(); nextDrill(true); }}>Use a practice league</button>}
       {here && current!.next && <button type="button" className="btn btn-primary press" onClick={() => nextStep(last)}>{last ? 'Complete drill' : current!.next}</button>}
-      <button type="button" className="btn press" {...wary} onClick={() => nextDrill(false)}>Skip drill</button>
+      <button type="button" className="btn press" {...wary} onClick={() => { moved.current = where; skipDrill(step); }}>Skip drill</button>
       <button type="button" className="btn btn-danger press" {...wary} onClick={() => endCamp('declined')}>Leave camp</button>
     </>
   );

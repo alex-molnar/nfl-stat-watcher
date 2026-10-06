@@ -1,9 +1,9 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router';
-import { campStore, endCamp } from '../storage/camp';
+import { campStore, endCamp, patchCamp } from '../storage/camp';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
-import { DRILLS, stepOn, toNextDrill } from './campDrills';
+import { DRILLS, skipDrill, stepOn, toNextDrill } from './campDrills';
 import { DialogMascot } from './DialogMascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
 import { TypedText } from './TypedText';
@@ -31,7 +31,7 @@ export function CampTour() {
 
   if (!shown || !drill || !current) return null;
   const last = sub + 1 >= drill.steps.length;
-  const next = () => { if (last) toNextDrill(step); else campStore.set({ phase: 'running', step, sub: sub + 1 }); };
+  const next = () => { if (last) toNextDrill(step); else patchCamp({ sub: sub + 1 }); };
   return (
     // No backdropClose, like the welcome: a stray click beside it should not answer for the user.
     <dialog ref={ref} data-instant aria-labelledby="tour-title" aria-describedby="tour-text" onClose={() => { const c = campStore.get(); if (c.phase === 'running' && c.step === step && c.sub === sub) next(); }}>
@@ -41,7 +41,7 @@ export function CampTour() {
         <p id="tour-text"><TypedText text={current.text} delay={350} hold={flying} /></p>
         <div className="dlg-actions">
           <button type="button" className="btn btn-primary press" onClick={next}>{last ? 'Complete drill' : current.next ?? 'Next'}</button>
-          <button type="button" className="btn press" onClick={() => toNextDrill(step)}>Skip drill</button>
+          <button type="button" className="btn press" onClick={() => skipDrill(step)}>Skip drill</button>
           <button type="button" className="btn btn-danger press" onClick={() => endCamp('declined')}>Leave camp</button>
         </div>
       </div>

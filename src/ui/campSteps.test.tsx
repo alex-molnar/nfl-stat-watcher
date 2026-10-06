@@ -179,7 +179,22 @@ describe('rookie camp steps', () => {
       renderAt('/leagues');
       await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
       expect(camp()).toHaveTextContent('Second drill');
-      expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0 });
+      expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0, practice: true });
+    });
+
+    it('closes the open dialog when the drill is skipped, so the next drill’s tab can be pressed', async () => {
+      mockFetch({ scoreboard: scoreboardFixture, standings });
+      seed([], profilesFixture);
+      setCamp('running', 1);
+      renderAt('/');
+      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
+      const dialog = document.querySelector('dialog')!;
+      expect(dialog).toHaveAttribute('open');
+      await waitFor(() => expect(camp().closest('dialog')).not.toBeNull()); // the card moves into the dialog once the mascot has settled there
+      await userEvent.click(within(camp()).getByRole('button', { name: 'Skip drill' }));
+      expect(dialog).not.toHaveAttribute('open');
+      expect(stored()).toEqual({ phase: 'running', step: 2, sub: 0 });
     });
 
     it('goes back to the step that opens the dialog when the dialog is closed with Escape', async () => {

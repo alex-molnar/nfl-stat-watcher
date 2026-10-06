@@ -4,6 +4,9 @@ import { useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
 import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfiles } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
+import { campStore } from '../storage/camp';
+import { showsDummiesOnly } from '../storage/campLeague';
+import { isFake } from '../espn/campSandbox';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
 import { ImportStartersDialog } from './ImportStartersDialog';
@@ -22,7 +25,9 @@ export function MainPage() {
   usePageTitle('Players');
   const profiles = useStore(profilesStore);
   // Only my entries: opponent entries (vs mode) never show here, in cards or in the empty state.
-  const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id)).filter((e) => sideOf(e) === 'mine');
+  // In the camp's last drill only the practice players show, whatever else is followed (nothing stored changes).
+  const dummiesOnly = showsDummiesOnly(useStore(campStore));
+  const followed = withValidProfiles(useStore(followedStore), profiles.map((p) => p.id)).filter((e) => sideOf(e) === 'mine' && (!dummiesOnly || isFake(e.espnId)));
   const paused = usePaused();
   const scoreboard = useScoreboard(paused);
   const [adding, setAdding] = useState(false);

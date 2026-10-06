@@ -1,7 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { warren, profilesFixture } from '../test/data';
-import { campStore } from '../storage/camp';
+import { campStore, endCamp } from '../storage/camp';
 import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { reloadAllStores } from '../storage/store';
@@ -34,7 +34,15 @@ describe('rookie camp, the last drill', () => {
     expect(card('Marcus Teller')).toHaveTextContent('No stats until kickoff');
     await waitFor(() => expect(card('Jalen Whitmore')).toHaveTextContent('Won 27-20 vs PRA'));
     expect(card('Jalen Whitmore')).toHaveTextContent('112'); // receiving yards
-    expect(card('Jalen Whitmore').querySelector('.league-chip')).toHaveTextContent('Camp league');
+    expect(card('Jalen Whitmore').querySelector('.league-chip')).toHaveTextContent('Practice league');
+  });
+
+  it('shows only the practice players while the drill runs, not the user’s own, and all of them again when the camp ends', async () => {
+    await start();
+    expect(screen.queryByRole('heading', { name: 'Jaylen Warren' })).toBeNull(); // the user's own player is in the store but off the page
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Cole Harlan', 'Marcus Teller', 'Jalen Whitmore']);
+    act(() => endCamp('done'));
+    await screen.findByRole('heading', { name: 'Jaylen Warren' });
   });
 
   it('walks over the three cards with Next, then asks for the highlight, and that one is a real clip of the final game’s player', async () => {

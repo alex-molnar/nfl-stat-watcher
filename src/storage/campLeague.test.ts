@@ -32,6 +32,25 @@ describe('the camp league', () => {
     expect(followedStore.get().filter((e) => e.profileId !== CAMP_PROFILE_ID)).toEqual([warren]);
   });
 
+  it('is there from the moment the practice league is chosen, in any drill, and goes with the camp', async () => {
+    campStore.set({ phase: 'running', step: 1, sub: 0, practice: true });
+    await settle();
+    expect(camped()).toEqual({ league: true, entries: 3 });
+    expect(sandboxOn()).toBe(true);
+    campStore.set({ phase: 'running', step: 2, sub: 0, practice: true });
+    await settle();
+    expect(camped()).toEqual({ league: true, entries: 3 }); // not made twice
+    endCamp('declined');
+    await settle();
+    expect(camped()).toEqual({ league: false, entries: 0 });
+  });
+
+  it('is made at the last drill for a user who did drill 1 with their own league, and not before', async () => {
+    campStore.set({ phase: 'running', step: 3, sub: 0 }); // no practice flag
+    await settle();
+    expect(camped()).toEqual({ league: false, entries: 0 });
+  });
+
   it('stays through the congratulation and goes when the camp is left, done, or declined, with the user’s players still where they were', async () => {
     for (const end of [() => endCamp('declined'), () => endCamp('done')]) {
       campStore.set({ phase: 'finished', step: 0, sub: 0 });

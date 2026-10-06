@@ -4,7 +4,7 @@
  * place highlighted and one way of being done. Controls the camp points at carry a `data-camp` attribute where a class would be brittle.
  */
 
-import { campStore } from '../storage/camp';
+import { patchCamp } from '../storage/camp';
 
 export type Page = '/' | '/leagues' | '/vs';
 export interface Facts { leagues: number; followed: number; path: string; /** A league imported from ESPN exists (the practice league is not one). */ imported: boolean }
@@ -56,7 +56,23 @@ export interface Drill {
 export const stepOn = (drill: Drill, step: Step) => step.on ?? drill.on;
 
 /** On to the next drill, or to the congratulation after the last. */
-export const toNextDrill = (step: number) => campStore.set(step + 1 >= DRILLS.length ? { phase: 'finished', step: 0, sub: 0 } : { phase: 'running', step: step + 1, sub: 0 });
+export const toNextDrill = (step: number) => patchCamp(step + 1 >= DRILLS.length ? { phase: 'finished', step: 0, sub: 0 } : { phase: 'running', step: step + 1, sub: 0 });
+
+/** The practice league is wanted from here to the end of the camp. */
+export const choosePractice = () => patchCamp({ practice: true });
+
+/**
+ * Skip drill. Open dialogs are closed first (the next drill may ask for a tab that is dead behind a modal dialog); skipping the league drill is choosing
+ * the practice league, because the drills after it need a league to work on.
+ */
+export function skipDrill(step: number) {
+  // A dialog whose owner keeps it open by state reopens on the next render unless that owner hears about the close first, and the browser sends the
+  // `close` event only a moment later: so it is sent now too (an owner hearing it twice just sets its state to closed twice; the tour's own dialog
+  // moves the camp one step on, which the move to the next drill just below overrides).
+  document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => { d.close(); d.dispatchEvent(new Event('close')); });
+  if (DRILLS[step]?.practice) choosePractice();
+  toNextDrill(step);
+}
 
 /** True once the control's value is not what it was when the step began. */
 export const changed = (selector: string) => (c: Ctx) => {
