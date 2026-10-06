@@ -259,10 +259,9 @@ function DeleteControl({ profile, profiles, usedBy, opponents, onDeleted }: { pr
   return (
     <>
       <div className="delete-control">
-        <button type="button" className="btn btn-danger" disabled={others.length === 0} aria-describedby={others.length === 0 ? 'last-profile-note' : undefined} onClick={() => setOpen(true)}>
+        <button type="button" className="btn btn-danger" onClick={() => setOpen(true)}>
           Delete league
         </button>
-        {others.length === 0 && <p id="last-profile-note" className="muted">You need at least one league.</p>}
       </div>
       <DeleteLeagueDialog open={open} onClose={() => setOpen(false)} profile={profile} others={others} mine={usedBy} opponents={opponents} onDeleted={onDeleted} />
     </>
@@ -377,7 +376,7 @@ export function LeaguesPage() {
             <button type="button" className="btn press" onClick={() => setImportProfileOpen(true)}>
               Import StatWatch profile
             </button>
-            <button type="button" className="btn press" onClick={() => setExportOpen(true)}>
+            <button type="button" className="btn press" aria-disabled={profiles.length === 0 || undefined} title={profiles.length === 0 ? 'Add a league first: there is nothing to export yet' : undefined} onClick={() => { if (profiles.length > 0) setExportOpen(true); }}>
               Export profile
             </button>
             {stored && <DeleteControl key={stored.id} profile={stored} profiles={profiles} usedBy={inProfile.length - opponents} opponents={opponents} onDeleted={(id) => { refocusProfile.current = id; setSelectedId(id); }} />}
@@ -395,7 +394,7 @@ export function LeaguesPage() {
             />
           ) : (
             <section className="profile-form profile-empty" aria-label="No league selected">
-              <p>Select a league on the left to edit its scoring, or add or import one.</p>
+              <p>{profiles.length === 0 ? 'You have no leagues yet. Add or import one to start following players.' : 'Select a league on the left to edit its scoring, or add or import one.'}</p>
             </section>
           )}
         </div>

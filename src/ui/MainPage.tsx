@@ -14,6 +14,8 @@ import { usePageTitle } from './usePageTitle';
 import { GROUPS } from './gameGroups';
 import { useLiveOrder } from '../hooks/useLiveOrder';
 
+const NEED_LEAGUE = 'Add a scoring league first to add players';
+
 export function MainPage() {
   usePageTitle('Players');
   const profiles = useStore(profilesStore);
@@ -24,6 +26,9 @@ export function MainPage() {
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
   const hasImported = profiles.some((profile) => profile.source);
+  const noLeagues = profiles.length === 0;
+  // aria-disabled, not disabled: a disabled button shows no tooltip, and this one explains what to do first.
+  const needLeague = noLeagues ? NEED_LEAGUE : undefined;
   const hasSchedule = scoreboard.data !== undefined;
   const games = scoreboard.data ?? [];
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
@@ -56,7 +61,7 @@ export function MainPage() {
   const opener = useRef<HTMLElement | null>(null);
   const headerAdd = useRef<HTMLButtonElement>(null);
   const addButton = (ref?: React.Ref<HTMLButtonElement>) => (
-    <button type="button" ref={ref} className="btn btn-primary press" onClick={(e) => { opener.current = e.currentTarget; setAdding(true); }}>
+    <button type="button" ref={ref} className="btn btn-primary press" aria-disabled={noLeagues || undefined} title={needLeague} onClick={(e) => { if (noLeagues) return; opener.current = e.currentTarget; setAdding(true); }}>
       Add player
     </button>
   );
@@ -73,7 +78,7 @@ export function MainPage() {
         actions={
           <>
             <PauseButton />
-            {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Sync starters</button>}
+            {(hasImported || noLeagues) && <button type="button" className="btn press" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>Sync starters</button>}
             {addButton(headerAdd)}
           </>
         }
@@ -83,7 +88,7 @@ export function MainPage() {
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
           <div className="empty">
-            <p>You're not following anyone yet. Add players or team defenses from any of your leagues.</p>
+            <p>{noLeagues ? 'Add a scoring league first to start following players.' : "You're not following anyone yet. Add players or team defenses from any of your leagues."}</p>
             {addButton()}
           </div>
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.

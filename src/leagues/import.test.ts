@@ -50,7 +50,7 @@ describe('commitLeagueImports', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const result = commitLeagueImports([value], [{ sourceIdentity: leagueIdentity(value.source), profileId: null }]);
     expect(result.persisted).toBe(false);
-    expect(profilesStore.get()).toHaveLength(2);
+    expect(profilesStore.get()).toHaveLength(1); // kept in memory, no league existed before
     quota.mockRestore();
     warn.mockRestore();
   });

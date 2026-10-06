@@ -78,9 +78,10 @@ export function removeProfileEntries(profileId: string) {
   followedStore.set(followedStore.get().filter((e) => e.profileId !== profileId));
 }
 
-/** Orphan repair: my entries of a missing profile move to the first profile; opponent entries of a missing profile are dropped. */
+/** Orphan repair: my entries of a missing profile move to the first profile (all are dropped when there is no profile); opponent entries of a missing profile are dropped. */
 export function withValidProfiles(entries: FollowedEntry[], profileIds: string[]): FollowedEntry[] {
-  const first = profileIds[0] ?? '';
+  if (profileIds.length === 0) return []; // no league, so nothing can be followed
+  const first = profileIds[0]!;
   return dedupe(
     entries.flatMap((e) => (profileIds.includes(e.profileId) ? [e] : sideOf(e) === 'opponent' ? [] : [{ ...e, profileId: first }])),
   );

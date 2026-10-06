@@ -10,6 +10,12 @@ import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warr
 import { mockFetch } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 
+import { PRESETS, copyValues } from '../scoring/presets';
+
+// A first run has no league, so most of these tests start from one called My league; those that seed their own replace it.
+const myLeague = { id: 'my-league', name: 'My league', preset: 'ppr' as const, values: copyValues(PRESETS.ppr), color: '#1f4fd8' };
+beforeEach(() => seed([], [myLeague]));
+
 const profiles = () => JSON.parse(localStorage.getItem('nflsw:v1:profiles') ?? '[]');
 const fieldset = (name: string) => screen.getByRole('group', { name });
 /** Nothing is selected when the page opens, so every test picks a league first. */
@@ -263,11 +269,6 @@ describe('leagues page', () => {
     expect(profiles().map((p: { name: string }) => p.name)).toEqual(['Friends league 2', 'Friends league']);
   });
 
-  it('describes the disabled delete button', async () => {
-    await open();
-    expect(screen.getByRole('button', { name: 'Delete league' })).toHaveAccessibleDescription('You need at least one league.');
-  });
-
   it('adds a profile, selects it, and shows a rename only after Save', async () => {
     await open();
     await userEvent.click(screen.getByRole('button', { name: 'Add profile' }));
@@ -377,11 +378,6 @@ describe('leagues page', () => {
     expect(screen.queryByRole('navigation', { name: 'Profiles' })).not.toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Profiles' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Profiles' })).toBeInTheDocument();
-  });
-
-  it('does not allow deleting the last profile', async () => {
-    await open();
-    expect(screen.getByRole('button', { name: 'Delete league' })).toBeDisabled();
   });
 
   it('changes card points on the main screen once the change is saved', async () => {
@@ -536,5 +532,35 @@ describe('delete league dialog', () => {
     await userEvent.selectOptions(within(dialog()).getByLabelText('League to move your players to'), 'Third league');
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
     expect(remaining()[0]!.profileId).toBe('p3');
+  });
+
+  it('on the last league greys out the move choices, preselects deleting the players, and leaves no league', async () => {
+    seed([warren, opponent(pitDefense)], [profilesFixture[0]!]);
+    await open('Office league');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete league' }));
+    expect(within(dialog()).getByText(/last league, so there is nowhere to move players to/)).toBeInTheDocument();
+    expect(within(dialog()).getByRole('radio', { name: 'Move 1 player to' })).toBeDisabled();
+    expect(within(dialog()).getByRole('radio', { name: 'Move 1 player and 1 opponent player to' })).toBeDisabled();
+    expect(within(dialog()).getByRole('radio', { name: 'Delete existing players' })).toBeChecked();
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
+    expect(profiles()).toEqual([]);
+    expect(remaining()).toEqual([]);
+    expect(screen.getByText('You have no leagues yet. Add or import one to start following players.')).toBeInTheDocument();
+  });
+});
+
+describe('with no league', () => {
+  it('says to add or import one, and has nothing to export yet', () => {
+    seed([], []);
+    renderAt('/leagues');
+    expect(screen.getByText('You have no leagues yet. Add or import one to start following players.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export profile' })).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('lets the first league be added', async () => {
+    seed([], []);
+    renderAt('/leagues');
+    await userEvent.click(screen.getByRole('button', { name: 'Add profile' }));
+    expect(profiles().map((p: { name: string }) => p.name)).toEqual(['New league']);
   });
 });

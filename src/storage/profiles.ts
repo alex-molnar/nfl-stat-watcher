@@ -38,8 +38,8 @@ export function repairValues(stored: Partial<ScoringValues> & { fg50plus?: numbe
 
 export const profilesStore = createStore<Profile[]>({
   key: 'nflsw:v1:profiles',
-  fallback: () => [newProfile('My league')],
-  isValid: (v): v is Profile[] => Array.isArray(v) && v.length > 0 && v.every(isProfile),
+  fallback: () => [], // no league until the user adds or imports one
+  isValid: (v): v is Profile[] => Array.isArray(v) && v.every(isProfile),
   repair: (ps) => ps.reduce<Profile[]>((done, p) => {
     const values = repairValues(p.values);
     const rawSource = p.source as (Record<string, unknown> & { baselineValues?: Partial<ScoringValues> }) | undefined;
@@ -82,7 +82,7 @@ export function renameProfile(id: string, name: string) {
 
 export function deleteProfile(id: string, players: PlayersHandling): boolean {
   const list = profilesStore.get();
-  if (list.length <= 1 || !list.some((p) => p.id === id)) return false;
+  if (!list.some((p) => p.id === id)) return false;
   if (players === 'delete') {
     removeProfileEntries(id);
   } else {

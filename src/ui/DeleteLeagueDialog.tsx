@@ -25,7 +25,8 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function DeleteLeagueDialog({ open, onClose, profile, others, mine, opponents, onDeleted }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const hasPlayers = mine + opponents > 0;
-  const firstChoice: Choice = mine > 0 ? 'move' : 'moveBoth';
+  const canMove = others.length > 0; // the last league has nowhere to move players to
+  const firstChoice: Choice = !canMove ? 'delete' : mine > 0 ? 'move' : 'moveBoth';
   const [choice, setChoice] = useState<Choice>(firstChoice);
   const [moveTo, setMoveTo] = useState(others[0]?.id ?? '');
 
@@ -41,15 +42,15 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- the choices start fresh each time it opens
 
   function confirm() {
-    const players: PlayersHandling = !hasPlayers || choice === 'delete' ? 'delete' : { moveTo, opponents: choice === 'moveBoth' };
+    const players: PlayersHandling = !hasPlayers || !canMove || choice === 'delete' ? 'delete' : { moveTo, opponents: choice === 'moveBoth' };
     if (deleteProfile(profile.id, players)) {
       ref.current?.close();
-      onDeleted(players === 'delete' ? others[0]!.id : players.moveTo);
+      onDeleted(players === 'delete' ? others[0]?.id ?? '' : players.moveTo);
     }
   }
 
   const select = (forChoice: Choice, label: string) => (
-    <select aria-label={label} value={moveTo} disabled={choice !== forChoice} onChange={(event) => setMoveTo(event.target.value)}>
+    <select aria-label={label} value={moveTo} disabled={!canMove || choice !== forChoice} onChange={(event) => setMoveTo(event.target.value)}>
       {others.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
     </select>
   );
@@ -65,10 +66,11 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
         {hasPlayers ? (
           <fieldset className="delete-choices">
             <legend>What should happen to its players?</legend>
+            {!canMove && <p className="muted">This is your last league, so there is nowhere to move players to.</p>}
             {mine > 0 && (
               <div className="choice-row">
                 <label className="choice">
-                  <input type="radio" name="delete-choice" checked={choice === 'move'} onChange={() => setChoice('move')} />
+                  <input type="radio" name="delete-choice" disabled={!canMove} checked={choice === 'move'} onChange={() => setChoice('move')} />
                   {`Move ${plural(mine, 'player')} to`}
                 </label>
                 {select('move', 'League to move your players to')}
@@ -78,7 +80,7 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
             {opponents > 0 && (
               <div className="choice-row">
                 <label className="choice">
-                  <input type="radio" name="delete-choice" checked={choice === 'moveBoth'} onChange={() => setChoice('moveBoth')} />
+                  <input type="radio" name="delete-choice" disabled={!canMove} checked={choice === 'moveBoth'} onChange={() => setChoice('moveBoth')} />
                   {`Move ${bothText} to`}
                 </label>
                 {select('moveBoth', 'League to move your and the opponent players to')}

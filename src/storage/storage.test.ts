@@ -21,34 +21,30 @@ const seedProfiles = (...ps: Profile[]) => {
 };
 
 describe('store loading', () => {
-  it('creates one PPR profile named My league on first run', () => {
-    const [p] = profilesStore.get();
-    expect(profilesStore.get()).toHaveLength(1);
-    expect(p?.name).toBe('My league');
-    expect(p?.preset).toBe('ppr');
+  it('creates no league on first run', () => {
+    expect(profilesStore.get()).toEqual([]);
+    expect(localStorage.getItem('nflsw:v1:profiles')).toBe('[]');
   });
 
-  it('keeps the default profile id stable across reloads', () => {
-    const id = profilesStore.get()[0]!.id;
+  it('keeps a league across reloads', () => {
+    const id = addProfile('Mine');
     reloadAllStores();
-    expect(profilesStore.get()[0]!.id).toBe(id);
+    expect(profilesStore.get().map((p) => p.id)).toEqual([id]);
   });
 
-  it('replaces a corrupt stored value with the persisted fallback', () => {
+  it('replaces a corrupt stored value with the persisted fallback: no league', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     localStorage.setItem('nflsw:v1:profiles', '{');
     reloadAllStores();
-    const id = profilesStore.get()[0]!.id;
-    expect(JSON.parse(localStorage.getItem('nflsw:v1:profiles')!)[0].id).toBe(id);
-    reloadAllStores();
-    expect(profilesStore.get()[0]!.id).toBe(id);
+    expect(profilesStore.get()).toEqual([]);
+    expect(localStorage.getItem('nflsw:v1:profiles')).toBe('[]');
   });
 
   it('rejects a stored profile with an unknown preset', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     localStorage.setItem('nflsw:v1:profiles', JSON.stringify([{ ...profile('p1', 'Old'), preset: 'bogus' }]));
     reloadAllStores();
-    expect(profilesStore.get()[0]?.name).toBe('My league');
+    expect(profilesStore.get()).toEqual([]);
   });
 
   it('warns when a write to localStorage fails', () => {
@@ -72,7 +68,7 @@ describe('store loading', () => {
     localStorage.setItem('nflsw:v1:profiles', JSON.stringify({ a: 1 }));
     reloadAllStores();
     expect(followedStore.get()).toEqual([]);
-    expect(profilesStore.get()[0]?.name).toBe('My league');
+    expect(profilesStore.get()).toEqual([]);
     expect(warn).toHaveBeenCalled();
   });
 
@@ -86,7 +82,8 @@ describe('store loading', () => {
 
 describe('league colours', () => {
   it('gives the first league a colour and every new league the next unused one', () => {
-    const first = profilesStore.get()[0]!.color;
+    const firstId = addProfile('First');
+    const first = profilesStore.get().find((p) => p.id === firstId)!.color;
     expect(first).toMatch(/^#[0-9a-f]{6}$/i);
     const id = addProfile('Second');
     const second = profilesStore.get().find((p) => p.id === id)!.color;
@@ -106,7 +103,7 @@ describe('league colours', () => {
   });
 
   it('changes the colour, and ignores anything that is not #rrggbb', () => {
-    const id = profilesStore.get()[0]!.id;
+    const id = addProfile('My league');
     setProfileColor(id, '#AABBCC');
     expect(profilesStore.get()[0]!.color).toBe('#aabbcc');
     setProfileColor(id, 'red');
@@ -117,7 +114,7 @@ describe('league colours', () => {
 
 describe('rule switches and migrated fields', () => {
   it('turns a rule off and on without losing its weight', () => {
-    const id = profilesStore.get()[0]!.id;
+    const id = addProfile('My league');
     setRuleEnabled(id, 'passTd', false);
     expect(profilesStore.get()[0]!.values.off).toEqual(['passTd']);
     expect(profilesStore.get()[0]!.values.passTd).toBe(4);
@@ -180,7 +177,7 @@ describe('profiles', () => {
   });
 
   it('marks a profile custom when a value changes', () => {
-    const id = profilesStore.get()[0]!.id;
+    const id = addProfile('My league');
     setValue(id, 'passTd', 6);
     setTier(id, 0, 12);
     const p = profilesStore.get()[0]!;
@@ -190,7 +187,7 @@ describe('profiles', () => {
   });
 
   it('ignores non-finite values and out-of-range tier indexes', () => {
-    const id = profilesStore.get()[0]!.id;
+    const id = addProfile('My league');
     const before = profilesStore.get();
     setValue(id, 'passTd', NaN);
     setValue(id, 'passTd', Infinity);
@@ -202,7 +199,7 @@ describe('profiles', () => {
   });
 
   it('applies a preset', () => {
-    const id = profilesStore.get()[0]!.id;
+    const id = addProfile('My league');
     setValue(id, 'passTd', 6);
     applyPreset(id, 'standard');
     const p = profilesStore.get()[0]!;
@@ -212,7 +209,7 @@ describe('profiles', () => {
   });
 
   it('edits imported points-allowed bands and clears them when applying a preset', () => {
-    const id = profilesStore.get()[0]!.id;
+    const id = addProfile('My league');
     profilesStore.set(profilesStore.get().map((p) => ({ ...p, values: { ...p.values, pointsAllowedBands: [
       { min: 0, max: 17, points: 2 }, { min: 18, max: null, points: -2 },
     ] } })));
@@ -222,10 +219,14 @@ describe('profiles', () => {
     expect(profilesStore.get()[0]!.values.pointsAllowedBands).toBeUndefined();
   });
 
-  it('refuses to delete the last profile', () => {
-    const id = profilesStore.get()[0]!.id;
+  it('can delete the last profile, but only with its players deleted: there is nowhere to move them', () => {
+    const id = addProfile('My league');
+    addEntry(purdy(id));
     expect(deleteProfile(id, { moveTo: id, opponents: false })).toBe(false);
     expect(profilesStore.get()).toHaveLength(1);
+    expect(deleteProfile(id, 'delete')).toBe(true);
+    expect(profilesStore.get()).toEqual([]);
+    expect(followedStore.get()).toEqual([]);
   });
 
   it('drops duplicates when reassigning entries of a deleted profile', () => {
@@ -249,16 +250,12 @@ describe('theme', () => {
 });
 
 describe('orphaned followed entries', () => {
-  it('are moved to an existing profile in storage when profiles fall back to a default', () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('are moved to the first profile when theirs is missing, and dropped when there is no profile at all', () => {
+    seedProfiles(profile('p1', 'Office'));
     localStorage.setItem('nflsw:v1:followed', JSON.stringify([purdy('gone')]));
-    localStorage.setItem('nflsw:v1:profiles', '{');
     reloadAllStores();
-    const ids = profilesStore.get().map((p) => p.id);
-    const stored = JSON.parse(localStorage.getItem('nflsw:v1:followed')!);
-    expect(stored).toHaveLength(1);
-    expect(ids).toContain(stored[0].profileId);
-    expect(followedStore.get()[0]?.profileId).toBe(stored[0].profileId);
+    expect(followedStore.get().map((e) => e.profileId)).toEqual(['p1']);
+    expect(withValidProfiles([purdy('gone')], [])).toEqual([]);
   });
 });
 
@@ -372,12 +369,10 @@ describe('opponent entries', () => {
     expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([purdy('p2'), opponent(kelce('p2'))]);
   });
 
-  it('drops orphaned opponent entries from storage when profiles fall back to a default', () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('drops orphaned opponent entries from storage and moves mine to the first profile', () => {
+    seedProfiles(profile('p1', 'Office'));
     localStorage.setItem('nflsw:v1:followed', JSON.stringify([purdy('gone'), opponent(kelce('gone'))]));
-    localStorage.setItem('nflsw:v1:profiles', '{');
     reloadAllStores();
-    const id = profilesStore.get()[0]!.id;
-    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([purdy(id)]);
+    expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toEqual([purdy('p1')]);
   });
 });
