@@ -84,7 +84,7 @@ describe('main page', () => {
     seed([], profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/');
-    expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent(/not following anyone yet/);
   });
 
   it('keeps the last numbers and shows an updated note when a live refetch fails', async () => {
@@ -278,8 +278,31 @@ describe('opponent entries on the Players page', () => {
     seed([opponent(warren)], profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/');
-    expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent(/not following anyone yet/);
     expect(screen.queryByText('Loading games')).not.toBeInTheDocument();
+  });
+});
+
+describe('with leagues but nobody followed yet', () => {
+  it('has the mascot say so in a bubble, with Add player inside it, instead of plain text', async () => {
+    seed([], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    const says = document.querySelector('.mascot-says') as HTMLElement;
+    expect(says.querySelector('.mascot')).not.toBeNull();
+    expect(says.querySelector('.bubble')).toHaveTextContent("You're not following anyone yet. Add players or team defenses from any of your leagues.");
+    expect(document.querySelector('.brand .mascot')).toBeNull(); // the mascot is on the page, not also in the header
+    await userEvent.click(within(says).getByRole('button', { name: 'Add player' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument(); // and the button works
+  });
+
+  it('goes up into the header once somebody is followed', async () => {
+    seed([warren], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    await screen.findByText('Jaylen Warren');
+    expect(document.querySelector('.mascot-says')).toBeNull();
+    expect(document.querySelector('.brand .mascot')).not.toBeNull();
   });
 });
 

@@ -77,7 +77,7 @@ export function MainPage() {
   return (
     <>
       <Header
-        pageMascot={noLeagues}
+        pageMascot={followed.length === 0}
         actions={
           <>
             <PauseButton />
@@ -95,10 +95,9 @@ export function MainPage() {
               <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
             </MascotSays>
           ) : (
-            <div className="empty">
-              <p>You're not following anyone yet. Add players or team defenses from any of your leagues.</p>
+            <MascotSays text="You're not following anyone yet. Add players or team defenses from any of your leagues.">
               {addButton()}
-            </div>
+            </MascotSays>
           )
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {

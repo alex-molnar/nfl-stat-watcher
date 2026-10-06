@@ -359,7 +359,7 @@ export function LeaguesPage() {
 
   return (
     <>
-      <Header pageMascot={profiles.length === 0} />
+      <Header pageMascot={!stored} />
       <main className="wrap">
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}
@@ -406,13 +406,7 @@ export function LeaguesPage() {
               footer={dirty ? <SaveActions label="Save or cancel changes, end of form" onSave={save} onCancel={cancel} /> : null}
             />
           ) : (
-            profiles.length === 0 ? (
-              <MascotSays pointAt="left" minLines={6} text={hint ? MENU_HINTS[hint] : 'You have no leagues yet. Add or import one from the menu to start following players.'} />
-            ) : (
-              <section className="profile-form profile-empty" aria-label="No league selected">
-                <p>Select a league on the left to edit its scoring, or add or import one.</p>
-              </section>
-            )
+            <MascotSays pointAt="left" minLines={6} text={hint ? MENU_HINTS[hint] : profiles.length === 0 ? 'You have no leagues yet. Add or import one from the menu to start following players.' : 'Select a league from the menu to edit its scoring, or add or import one.'} />
           )}
         </div>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>
