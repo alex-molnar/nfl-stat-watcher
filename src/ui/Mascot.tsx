@@ -1,4 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { dialogsOpen, subscribeDialogs } from './dialogsOpen';
 import { isMascotFlying, mascotAppeared, mascotLeft, subscribeMascotFlight } from './mascotFlight';
 import { mascotEnabledStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
@@ -49,6 +50,7 @@ interface Props {
   entrance?: boolean;
   /** Sits on an edge with its legs hanging and swinging gently: no shadow underneath, and no bobbing. */
   seated?: boolean;
+  style?: CSSProperties;
 }
 
 /**
@@ -56,7 +58,7 @@ interface Props {
  * hidden from assistive technology; whatever it "says" is real text next to it. Its eyes follow the pointer, and it blinks,
  * glances and bobs on its own. Every motion is CSS transform and opacity, and all of it stops under reduced motion.
  */
-export function Mascot({ size = 160, className, pointAt, entrance = true, seated = false }: Props) {
+export function Mascot({ size = 160, className, pointAt, entrance = true, seated = false, style }: Props) {
   const uid = useId().replace(/:/g, ''); // gradient and clip ids must be unique per instance, and colons break url(#...)
   const ref = useRef<SVGSVGElement>(null);
   const placed = useRef<DOMRect | null>(null); // where it last was on screen
@@ -108,7 +110,7 @@ export function Mascot({ size = 160, className, pointAt, entrance = true, seated
   );
 
   return (
-    <svg ref={ref} className={`mascot${size <= 48 ? ' sm' : ''}${entrance ? '' : ' no-entrance'}${seated ? ' seated' : ''}${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+    <svg ref={ref} className={`mascot${size <= 48 ? ' sm' : ''}${entrance ? '' : ' no-entrance'}${seated ? ' seated' : ''}${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false" style={style}>
       <defs>
         <radialGradient id={`${uid}-leather`} cx="38%" cy="30%" r="80%">
           <stop offset="0" stopColor="#D98A4E" /><stop offset=".55" stopColor="#A9582B" /><stop offset="1" stopColor="#6A3114" />
@@ -165,9 +167,11 @@ function PlainSays({ text, children }: { text: string; children?: ReactNode }) {
 function Talking({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
   // The jump into this place is part of arriving on the page, so the bubble waits for it and only then appears and starts to talk.
   const flying = useSyncExternalStore(subscribeMascotFlight, isMascotFlying, () => false);
+  // While a dialog has the mascot it is not here: it jumped in there, and comes back when the dialog closes. Its space stays, so nothing moves.
+  const inDialog = useSyncExternalStore(subscribeDialogs, dialogsOpen, () => false);
   return (
     <div className="empty mascot-says">
-      <Mascot size={168} pointAt={pointAt} />
+      {inDialog ? <div aria-hidden="true" style={{ width: 168, height: 168, flex: 'none' }} /> : <Mascot size={168} pointAt={pointAt} />}
       <div className={`bubble${flying ? ' waiting' : ''}`}>
         {/* A polite live region: a changed text is announced once, whole, however it is typed on screen. */}
         <p aria-live="polite" style={minLines ? { minHeight: `${minLines * 1.45}em` } : undefined}><TypedText text={text} delay={350} hold={flying} /></p>

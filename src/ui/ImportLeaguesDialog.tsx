@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { backdropClose } from './backdropClose';
+import { DialogMascot, useHint } from './DialogMascot';
 import { useQueryClient } from '@tanstack/react-query';
 import { espnSettingsQueryKey, loadEspnLeagueSettings, EspnLoadError } from '../leagues/espn/client';
 import { PrivateLeagueHelp } from './PrivateLeagueHelp';
@@ -63,6 +64,7 @@ function settingsUrl(input: string, season: string): string | null {
 }
 
 export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileId }: Props) {
+  const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [leagueInputs, setLeagueInputs] = useState('');
@@ -244,6 +246,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
 
   return (
     <dialog ref={ref} aria-labelledby="import-title" onClose={handleDialogClose} {...backdropClose}>
+      <DialogMascot />
       <div className="dlg import-dlg">
         <div className="dlg-head">
           <h2 id="import-title">Import ESPN leagues</h2>
@@ -251,14 +254,14 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
         </div>
         <label className="field-label">
           ESPN fantasy football league links or IDs, one per line
-          <textarea ref={inputRef} rows={3} value={leagueInputs} disabled={busy} onChange={(event) => { setLeagueInputs(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="Paste league links or decimal IDs" />
+          <textarea ref={inputRef} rows={3} {...hint('Paste the link of each ESPN league, or just its ID: the number after leagueId= in the address.')} value={leagueInputs} disabled={busy} onChange={(event) => { setLeagueInputs(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="Paste league links or decimal IDs" />
         </label>
         <label className="field-label">
           Season
-          <input type="number" min="2000" max="2100" step="1" value={season} disabled={busy} onChange={(event) => { setSeason(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="For example, 2026" />
+          <input type="number" min="2000" max="2100" step="1" {...hint('The year the season started, for example 2026. It is the season of the league settings that is loaded.')} value={season} disabled={busy} onChange={(event) => { setSeason(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="For example, 2026" />
         </label>
         <p className="muted">Public settings load anonymously. For a private league you copy its settings page across from your own signed-in ESPN tab; Stat Watch never asks for your ESPN password.</p>
-        <button type="button" className="btn btn-primary" onClick={() => void loadAll()} disabled={busy}>Load leagues</button>
+        <button type="button" className="btn btn-primary" {...hint('Looks the leagues up on ESPN. Nothing changes here until you choose what to import.')} onClick={() => void loadAll()} disabled={busy}>Load leagues</button>
         {(message || error) && <p className={error ? 'error msg' : 'muted msg'} role={error ? 'alert' : 'status'} aria-live="polite">{error || message}</p>}
         {entries.length > 0 && (
           <section className="import-results" aria-label="League import results">

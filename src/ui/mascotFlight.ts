@@ -2,7 +2,7 @@
 // at the same moment, it jumps there. Leaving and arriving are separate components in separate pages, so this matches them up:
 // whichever happens first is remembered for a moment, and when the other follows, a copy of the mascot flies between them.
 
-const WINDOW_MS = 200; // how long a leaving, or an arrival, waits for its counterpart
+const WINDOW_MS = 320; // how long a leaving, or an arrival, waits for its counterpart
 const CROUCH_MS = 260; // the build-up before it leaves the ground: bend the legs, dip, throw the arms up
 
 interface Leaving { rect: DOMRect; at: number }
@@ -106,7 +106,16 @@ function fly(from: DOMRect, el: SVGSVGElement, to: DOMRect) {
   const copy = el.cloneNode(true) as SVGSVGElement;
   copy.classList.add('flying');
   Object.assign(copy.style, { position: 'fixed', left: '0', top: '0', width: `${to.width}px`, height: `${to.height}px`, margin: '0', transformOrigin: '0 0', zIndex: '40', pointerEvents: 'none', bottom: 'auto' });
-  document.body.appendChild(copy);
+  // A modal dialog is drawn in the browser's top layer, above everything else, so the copy goes there too (as a popover opened after the dialog),
+  // or it would fly under the dialog's backdrop. Without popovers it is a plain element on the page.
+  const host = document.createElement('div');
+  host.className = 'mascot-flight';
+  host.setAttribute('popover', 'manual');
+  host.appendChild(copy);
+  document.body.appendChild(host);
+  if (typeof host.showPopover === 'function') {
+    try { host.showPopover(); } catch { /* not supported here: the copy stays on the page */ }
+  }
 
   el.classList.add('in-flight'); // hidden, and its animations held until it lands
   el.style.visibility = 'hidden';
@@ -137,7 +146,7 @@ function fly(from: DOMRect, el: SVGSVGElement, to: DOMRect) {
     if (landed) return; // finishing and cancelling can both report
     landed = true;
     countFlight(-1);
-    copy.remove();
+    host.remove();
     el.style.visibility = '';
     el.classList.remove('in-flight');
     // It keeps `landed` for good: taking it off later would hand the mascot back to its entrance animation, which would play again as a flicker.

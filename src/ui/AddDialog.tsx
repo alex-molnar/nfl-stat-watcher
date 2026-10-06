@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { backdropClose } from './backdropClose';
+import { DialogMascot, useHint } from './DialogMascot';
 import { useQueries } from '@tanstack/react-query';
 import { getAthlete } from '../espn/client';
 import type { EspnTeamRef } from '../espn/types';
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Props) {
+  const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const profiles = useStore(profilesStore);
@@ -106,6 +108,7 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
 
   return (
     <dialog ref={ref} aria-labelledby="add-title" onClose={onClose} {...backdropClose}>
+      <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="add-title">{title}</h2>
@@ -113,12 +116,12 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
         </div>
         <label className="field-label">
           Search
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" ref={inputRef} />
+          <input type="search" {...hint("Type a player's name, or a team to follow its defense.")} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" ref={inputRef} />
         </label>
         {fixedProfileId === undefined && (
           <label className="field-label">
             League
-            <select value={chosenId} onChange={(e) => setChosenId(e.target.value)}>
+            <select {...hint("Which league's scoring counts this player's points.")} value={chosenId} onChange={(e) => setChosenId(e.target.value)}>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>

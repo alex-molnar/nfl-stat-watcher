@@ -115,6 +115,40 @@ describe('mascot flight', () => {
     expect(el.style.visibility).toBe('');
   });
 
+  describe('the copy is drawn in the top layer, so it flies over a dialog too', () => {
+    it('is a popover host with the copy inside, opened as a popover, and removed once it has landed', () => {
+      const show = vi.fn();
+      (HTMLElement.prototype as { showPopover?: unknown }).showPopover = show;
+      const { el, animations } = mascotAt(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      const host = document.querySelector('.mascot-flight') as HTMLElement;
+      expect(host).not.toBeNull();
+      expect(host).toHaveAttribute('popover', 'manual');
+      expect(host.querySelector('svg.flying')).not.toBeNull();
+      expect(show).toHaveBeenCalledTimes(1);
+      animations[0]!.onfinish!();
+      expect(document.querySelector('.mascot-flight')).toBeNull();
+      delete (HTMLElement.prototype as { showPopover?: unknown }).showPopover;
+    });
+
+    it('still flies where popovers are not supported', () => {
+      const { el } = mascotAt(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      expect(copies()).toHaveLength(1);
+    });
+
+    it('does not fail if opening it as a popover is refused', () => {
+      (HTMLElement.prototype as { showPopover?: unknown }).showPopover = () => { throw new Error('not allowed'); };
+      const { el } = mascotAt(PAGE);
+      mascotLeft(HEADER);
+      expect(() => mascotAppeared(el)).not.toThrow();
+      expect(copies()).toHaveLength(1);
+      delete (HTMLElement.prototype as { showPopover?: unknown }).showPopover;
+    });
+  });
+
   describe('whether it is flying', () => {
     it('is true from the moment the jump begins until the mascot has landed, and tells those who watch', () => {
       const { el, animations } = mascotAt(PAGE);

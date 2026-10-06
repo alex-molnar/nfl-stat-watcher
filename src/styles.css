@@ -138,8 +138,10 @@ select { max-width: 100%; }
 dialog { border: 0; padding: 0; border-radius: 12px; width: min(560px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0, 0, 0, .35); }
 dialog::backdrop { background: rgba(5, 10, 20, .5); }
 dialog[open] { animation: dlg 180ms ease-out; }
+/* The mascot sits on the dialog's top edge, outside its box, so the dialog does not clip: its content scrolls instead, and leaves room above and below. */
+dialog { overflow: visible; max-height: none; }
 @keyframes dlg { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
-.dlg { padding: 20px; display: grid; gap: 14px; }
+.dlg { padding: 20px; display: grid; gap: 14px; max-height: calc(100dvh - 11rem); overflow-y: auto; border-radius: inherit; }
 .dlg-head { display: flex; align-items: center; justify-content: space-between; }
 .dlg-head h2 { margin: 0; font: 800 20px/1.2 Anybody, sans-serif; font-stretch: 115%; }
 .close { border: 0; background: none; font-size: 24px; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; }
@@ -333,7 +335,7 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .hl-btn { position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font-size: 12px; font-weight: 800; cursor: pointer; }
 .hl-btn.fresh { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
 .hl-dot { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--pylon); }
-.hl-dlg { width: min(720px, calc(100vw - 24px)); max-height: 92vh; overflow-y: auto; }
+.hl-dlg { width: min(720px, calc(100vw - 24px)); }
 .hl-player { margin: 0; display: grid; gap: 6px; }
 .hl-player video { width: 100%; max-height: 56vh; border-radius: 10px; background: #000; }
 .hl-player figcaption { font-size: 13px; color: var(--muted); }
@@ -489,3 +491,12 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 /* Buttons inside a speech bubble sit side by side. */
 .bubble-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .empty:not(.mascot-says) .bubble-actions { justify-content: center; } /* plain text: the buttons sit under the centred sentence */
+
+/* The mascot in a dialog: seated on its top edge near the left corner, legs hanging in, with a bubble beside it for a hint. */
+.dialog-perch { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.dialog-perch .perch-mascot { position: absolute; left: 24px; }
+.perch-say { position: absolute; left: 108px; bottom: 8px; width: min(26rem, calc(100vw - 150px)); }
+.perch-bubble { position: relative; padding: 10px 14px; border-radius: 14px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); font-size: 15px; line-height: 1.45; }
+.perch-bubble::before { content: ""; position: absolute; left: -7px; bottom: 14px; width: 12px; height: 12px; background: var(--panel); border-left: 1px solid var(--rule); border-bottom: 1px solid var(--rule); transform: rotate(45deg); }
+/* The copy of the mascot that jumps between its places is a popover (the top layer, above any dialog) with all of the browser's popover styling taken off. */
+.mascot-flight { position: fixed; inset: 0 auto auto 0; width: 0; height: 0; margin: 0; padding: 0; border: 0; background: none; overflow: visible; pointer-events: none; }

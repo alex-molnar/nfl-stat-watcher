@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { backdropClose } from './backdropClose';
+import { DialogMascot, useHint } from './DialogMascot';
 import { useTeams } from '../hooks/queries';
 import { ALL_LEAGUES } from '../hooks/useMatchup';
 import { setLeagueRemoveNonStarters, setLeagueTeam } from '../leagues/import';
@@ -50,6 +51,7 @@ function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed
 type Failure = { id: string; message: string; needsAccess: boolean };
 
 export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: fixedId }: Props) {
+  const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const profiles = useStore(profilesStore);
   const followed = useStore(followedStore);
@@ -184,6 +186,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   return (
     <>
     <dialog ref={ref} className={both ? 'sync-all' : undefined} aria-labelledby="starters-title" onClose={onClose} {...backdropClose}>
+      <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="starters-title">{heading}</h2>
@@ -212,7 +215,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         {!pending && loaded.map(({ profile: target, lineups }) => (
           <label key={target.id} className="field-label">
             {everyLeague ? `Your team in ${target.name}` : 'Your team in this league'}
-            <select value={myTeamIn(target, lineups)} onChange={(event) => { setStatus(''); if (event.target.value) setLeagueTeam(target.id, event.target.value); }}>
+            <select {...hint('Pick your own fantasy team, so I know whose lineup to read. It is remembered for next time.')} value={myTeamIn(target, lineups)} onChange={(event) => { setStatus(''); if (event.target.value) setLeagueTeam(target.id, event.target.value); }}>
               <option value="">Choose your team</option>
               {lineups.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
             </select>
@@ -223,7 +226,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         )}
         {!pending && hasTeam && (
           <label className="check-row">
-            <input type="checkbox" checked={removeOthers} onChange={(event) => targets.forEach((target) => setLeagueRemoveNonStarters(target.id, event.target.checked))} />
+            <input type="checkbox" {...hint('Players you follow in this league who are not in the lineup are removed too. Off, nothing is removed.')} checked={removeOthers} onChange={(event) => targets.forEach((target) => setLeagueRemoveNonStarters(target.id, event.target.checked))} />
             Remove every non starter player
           </label>
         )}

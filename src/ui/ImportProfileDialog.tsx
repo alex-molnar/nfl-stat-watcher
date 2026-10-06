@@ -4,6 +4,7 @@ import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { backdropClose } from './backdropClose';
+import { DialogMascot, useHint } from './DialogMascot';
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ function headline({ removed, updated, added, players }: MergeSummary): string {
 
 /** Paste the JSON, drop a file or browse for one; the file is checked at once and previewed before anything changes. */
 export function ImportProfileDialog({ open, onClose, onImported }: Props) {
+  const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   const profiles = useStore(profilesStore);
@@ -84,6 +86,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
 
   return (
     <dialog ref={ref} className="transfer-dialog" aria-labelledby="import-profile-title" onClose={onClose} {...backdropClose}>
+      <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="import-profile-title">Import StatWatch profile</h2>
@@ -94,6 +97,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
           Profile JSON
           <textarea
             rows={8}
+            {...hint('Paste the profile text here, or drop the .json file on this box. It is checked as soon as it arrives.')}
             className={dragging ? 'dragging' : undefined}
             value={text}
             spellCheck={false}
@@ -116,7 +120,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
           />
         </div>
         <label className="check-row">
-          <input type="checkbox" checked={override} onChange={(event) => setOverride(event.target.checked)} />
+          <input type="checkbox" {...hint('Careful: everything here is deleted first, and only what is in the file is kept.')} checked={override} onChange={(event) => setOverride(event.target.checked)} />
           Override existing profiles
         </label>
         {override && <p className="error">Everything here is deleted first: every league and every followed player. Only what is in the file is kept.</p>}

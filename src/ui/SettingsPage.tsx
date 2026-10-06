@@ -4,6 +4,7 @@ import { mascotEnabledStore } from '../storage/mascot';
 import { reloadAllStores } from '../storage/store';
 import { useStore } from '../storage/useStore';
 import { backdropClose } from './backdropClose';
+import { DialogMascot, useHint } from './DialogMascot';
 import { Header } from './Header';
 import { SaveActions } from './LeaguesPage';
 import { usePageTitle } from './usePageTitle';
@@ -14,6 +15,7 @@ const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
   usePageTitle('Settings');
+  const hint = useHint();
   const stored = useStore(nameDisplayStore);
   const storedMascot = useStore(mascotEnabledStore);
   const [draft, setDraft] = useState<{ mode: NameDisplayMode; mascot: boolean } | null>(null); // null: no unsaved change
@@ -91,13 +93,14 @@ export function SettingsPage() {
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>
       </main>
       <dialog ref={confirmRef} aria-labelledby="clear-title" aria-describedby="clear-warning" {...backdropClose}>
+        <DialogMascot />
         <div className="dlg">
           <h2 id="clear-title">Clear all your data?</h2>
           <p id="clear-warning">This permanently deletes your followed players, your leagues and their scoring, and your settings from this browser. It cannot be undone.</p>
           <div className="dlg-actions">
             {/* Keep is first, so it takes the focus the dialog opens with, and is the filled, inviting button. */}
-            <button type="button" className="btn btn-primary press" onClick={() => confirmRef.current?.close()}>Keep my data</button>
-            <button type="button" className="btn btn-danger" onClick={clearData}>Clear my data</button>
+            <button type="button" className="btn btn-primary press" {...hint('Closes this and changes nothing.')} onClick={() => confirmRef.current?.close()}>Keep my data</button>
+            <button type="button" className="btn btn-danger" {...hint('Removes every league, player and setting from this browser, for good.')} onClick={clearData}>Clear my data</button>
           </div>
         </div>
       </dialog>

@@ -3,6 +3,7 @@ import type { PlayersHandling } from '../storage/followed';
 import type { Profile } from '../scoring/types';
 import { deleteProfile } from '../storage/profiles';
 import { backdropClose } from './backdropClose';
+import { DialogMascot, useHint } from './DialogMascot';
 
 type Choice = 'move' | 'moveBoth' | 'delete';
 
@@ -23,6 +24,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Deleting a league asks what happens to its players: move them, move the opponent side too, or delete them. */
 export function DeleteLeagueDialog({ open, onClose, profile, others, mine, opponents, onDeleted }: Props) {
+  const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const hasPlayers = mine + opponents > 0;
   const canMove = others.length > 0; // the last league has nowhere to move players to
@@ -58,6 +60,7 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
 
   return (
     <dialog ref={ref} aria-labelledby="delete-league-title" onClose={onClose} {...backdropClose}>
+      <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="delete-league-title">Delete {profile.name}?</h2>
@@ -88,7 +91,7 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
             )}
             <div className="choice-row">
               <label className="choice">
-                <input type="radio" name="delete-choice" checked={choice === 'delete'} onChange={() => setChoice('delete')} />
+                <input type="radio" name="delete-choice" {...hint('The players followed in this league are removed along with it.')} checked={choice === 'delete'} onChange={() => setChoice('delete')} />
                 Delete existing players
               </label>
             </div>
@@ -98,7 +101,7 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
         )}
         <div className="dlg-actions">
           <button type="button" className="btn btn-primary press" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-danger" onClick={confirm}>Delete league</button>
+          <button type="button" className="btn btn-danger" {...hint('This cannot be undone.')} onClick={confirm}>Delete league</button>
         </div>
       </div>
     </dialog>
