@@ -15,6 +15,10 @@ before an image is built.
 The test namespace is one slot: a newer push to any branch replaces a deployment still running. Live deployments queue
 one at a time and are never cancelled half way.
 
+## Deploying by hand
+
+`.github/workflows/deploy-manual.yml` never runs on its own. Open Actions, Deploy manually, Run workflow, choose the branch under "Use workflow from" and `test` or `live`. It deploys the tip of that branch to that environment (`nfl-stat-watcher-test` or `nfl-stat-watcher`) through the same `_deploy.yml`, with the same checks. It uses the same concurrency group as the automatic workflow of that environment, so a manual and an automatic deployment never run at the same time. Any branch can go to either environment, so a branch run to `live` replaces what `main` deployed; if that should not be possible, limit the `live` environment to `main` as described below, which makes GitHub refuse it.
+
 ## One-time cluster setup (a cluster admin)
 
 ```sh
