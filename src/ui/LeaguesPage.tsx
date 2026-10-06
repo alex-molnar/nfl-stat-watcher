@@ -80,7 +80,7 @@ function NameField({ profile, others, onName }: { profile: Profile; others: Prof
   // Follow the working copy when it is reset (Cancel) without fighting what is being typed.
   useEffect(() => { if (profile.name !== text) setText(profile.name); }, [profile.name]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="field-wrap">
+    <div className="field-wrap" data-camp="league-name">
       <label className="field-label">
         Name
         <input
@@ -109,7 +109,7 @@ function NameField({ profile, others, onName }: { profile: Profile; others: Prof
 /** The league's colour: the tag on its player cards. A native colour input, so it is keyboard and screen reader friendly. */
 function ColorField({ profile, onColor }: { profile: Profile; onColor: (color: string) => void }) {
   return (
-    <div className="color-row">
+    <div className="color-row" data-camp="league-color">
       <label className="field-label color-field">
         Color
         <input type="color" value={profile.color ?? '#2563eb'} onChange={(e) => onColor(e.target.value)} />
@@ -170,14 +170,14 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
       <NameField profile={profile} others={others} onName={(name) => onEdit((p) => withName(p, name))} />
       <ColorField profile={profile} onColor={(color) => onEdit((p) => withColor(p, color))} />
       <div className="preset-row">
-        <label className="field-label">
+        <label className="field-label" data-camp="league-preset">
           Preset
           <select value={preset} onChange={(e) => setPicked(e.target.value as PresetId)}>
             {(Object.keys(PRESET_LABELS) as PresetId[]).map((id) => <option key={id} value={id}>{PRESET_LABELS[id]}</option>)}
             <option value="custom" disabled>Custom</option>
           </select>
         </label>
-        <button type="button" className="btn press" disabled={preset === 'custom' || preset === profile.preset} onClick={applyPicked}>Apply preset</button>
+        <button type="button" className="btn press" data-camp="league-apply" disabled={preset === 'custom' || preset === profile.preset} onClick={applyPicked}>Apply preset</button>
       </div>
 
       {FIELD_GROUPS.map((group) => {

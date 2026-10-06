@@ -78,10 +78,11 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
   const shown = (name: string) => displayName({ kind: 'player', name }, nameMode);
 
   // aria-disabled, not disabled, so focus stays on the button after it is pressed.
-  const addButton = (name: string, meta: string, done: boolean, disabled: boolean, onClick: () => void) => (
+  const addButton = (name: string, meta: string, done: boolean, disabled: boolean, onClick: () => void, result?: string) => (
     <button
       type="button"
       className="add press"
+      data-result={result}
       aria-disabled={done || disabled || undefined}
       onClick={() => { if (!done && !disabled) onClick(); }}
       aria-label={done ? `${name} added` : `Add ${name}, ${meta}`}
@@ -114,12 +115,12 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
           <h2 id="add-title">{title}</h2>
           <button type="button" className="close" aria-label="Close" onClick={onClose}>×</button>
         </div>
-        <label className="field-label">
+        <label className="field-label" data-camp="add-dialog-search">
           Search
           <input type="search" {...hint("Type a player's name, or a team to follow its defense.")} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" ref={inputRef} />
         </label>
         {fixedProfileId === undefined && (
-          <label className="field-label">
+          <label className="field-label" data-camp="add-dialog-league">
             League
             <select {...hint("Which league's scoring counts this player's points.")} value={chosenId} onChange={(e) => setChosenId(e.target.value)}>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -127,7 +128,7 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
           </label>
         )}
         <p role="status" className={message ? 'muted msg' : 'sr'}>{summary}</p>
-        <ul className="results">
+        <ul className="results" data-camp="add-dialog-results">
           {defenses.map((t) => (
             <li key={`d${t.id}`}>
               <span className="r"><b>{t.displayName}</b><small>Team defense</small></span>
@@ -146,7 +147,7 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
             return (
               <li key={`p${h.id}`}>
                 <span className="r"><b>{shown(h.displayName)}</b><small>{meta}</small></span>
-                {addButton(shown(h.displayName), meta, isFollowed('player', h.id), !a?.team, () => addPlayer(i))}
+                {addButton(shown(h.displayName), meta, isFollowed('player', h.id), !a?.team, () => addPlayer(i), h.displayName)}
               </li>
             );
           })}
