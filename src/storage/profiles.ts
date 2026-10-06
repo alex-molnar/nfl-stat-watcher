@@ -7,7 +7,7 @@ import { withBand, withColor, withName, withPreset, withRuleEnabled, withStepPoi
 import { isLeagueSource } from '../leagues/types';
 import { isValidPointsAllowedBands } from '../scoring/types';
 
-const newProfile = (name: string, existing: Profile[] = []): Profile => ({ id: crypto.randomUUID(), name, preset: 'ppr', values: copyValues(PRESETS.ppr), color: nextLeagueColor(existing.map((p) => p.color)) });
+export const newProfile = (name: string, existing: Profile[] = []): Profile => ({ id: crypto.randomUUID(), name, preset: 'ppr', values: copyValues(PRESETS.ppr), color: nextLeagueColor(existing.map((p) => p.color)) });
 
 function isProfile(v: unknown): v is Profile {
   if (typeof v !== 'object' || v === null) return false;
