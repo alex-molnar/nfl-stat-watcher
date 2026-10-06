@@ -9,6 +9,7 @@ import { AddDialog } from './AddDialog';
 import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
+import { MascotSays } from './Mascot';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
 import type { FollowedEntry } from '../storage/types';
 import { usePageTitle } from './usePageTitle';
@@ -88,10 +89,17 @@ export function MainPage() {
         <h2 className="sr" tabIndex={-1} data-page-title>Players</h2>
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
-          <div className="empty">
-            <p>{noLeagues ? 'Add a scoring league first to start following players.' : "You're not following anyone yet. Add players or team defenses from any of your leagues."}</p>
-            {noLeagues ? <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link> : addButton()}
-          </div>
+          noLeagues ? (
+            <MascotSays>
+              <p>Add a scoring league first to start following players.</p>
+              <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
+            </MascotSays>
+          ) : (
+            <div className="empty">
+              <p>You're not following anyone yet. Add players or team defenses from any of your leagues.</p>
+              {addButton()}
+            </div>
+          )
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);

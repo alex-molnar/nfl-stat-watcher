@@ -10,6 +10,7 @@ import { AddDialog } from './AddDialog';
 import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
+import { MascotSays } from './Mascot';
 import { PauseButton, pageNote, usePaused } from './PauseButton';
 import { LEADER_TEXT, ScoreBar, leaderOf } from './ScoreBar';
 import { usePageTitle } from './usePageTitle';
@@ -192,10 +193,10 @@ export function VsPage() {
       <Header />
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
-        <div className="empty">
+        <MascotSays>
           <p>Add a scoring league first to compare a matchup.</p>
           <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
-        </div>
+        </MascotSays>
       </main>
     </>
   );
