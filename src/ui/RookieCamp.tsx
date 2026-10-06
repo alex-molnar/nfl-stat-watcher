@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useState, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router';
 import { campStore, endCamp } from '../storage/camp';
 import { addDemoLeague } from '../storage/demoLeague';
@@ -30,7 +30,7 @@ interface Drill {
 }
 
 export const DRILLS: Drill[] = [
-  { on: '/leagues', target: '[data-camp="add-league"]', also: '[data-camp="import-leagues"]', go: 'First drill: a league. Open Leagues and set one up.', text: 'First drill: set up a league. Press Add a league, or Import leagues if you play on ESPN.', done: (f) => f.leagues > 0, practice: true },
+  { on: '/leagues', target: '[data-camp="add-league"]', also: '[data-camp="import-leagues"]', go: 'First drill: a league. Open Leagues and set one up.', text: 'First drill: set up a league. Press Add a league, or Import leagues if you play on ESPN. Alternatively use a practice league, to get things going.', done: (f) => f.leagues > 0, practice: true },
   { on: '/', target: '[data-camp="add-player"]', go: 'Second drill: follow a player. Open Players.', text: 'Second drill: follow a player. Press Add player and pick someone from your league.', done: (f) => f.followed > 0 },
   { target: '.nav a[href="/vs"]', text: 'Third drill: pit two sides against each other. Open Vs Mode.', done: (f) => f.path === '/vs' },
   { on: '/', target: '.hl-btn', go: 'Last drill: watch a highlight. Open Players.', text: 'Last drill: big plays get a ▶ Highlights button on a player’s card. Open one when you see it, or skip this drill.', clicked: '.hl-btn' },
@@ -68,7 +68,16 @@ const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-r
  * Finds the control the current drill points at, and follows it as the page moves, scrolls and changes. It also says which selector the rectangle
  * was measured for: the mascot only jumps once the card has its new place, or it would fly to where the card was.
  */
-function useTarget(selector: string | null) {
+/** The smallest rectangle holding both. */
+export function union(a: DOMRect, b: DOMRect): DOMRect {
+  const left = Math.min(a.left, b.left);
+  const top = Math.min(a.top, b.top);
+  const right = Math.max(a.right, b.right);
+  const bottom = Math.max(a.bottom, b.bottom);
+  return { left, top, right, bottom, x: left, y: top, width: right - left, height: bottom - top } as DOMRect;
+}
+
+function useTarget(selector: string | null, also?: string) {
   const [found, setFound] = useState<{ selector: string | null; rect: DOMRect | null }>({ selector: null, rect: null });
   useEffect(() => {
     if (!selector) { setFound({ selector: null, rect: null }); return; }
@@ -79,7 +88,9 @@ function useTarget(selector: string | null) {
         seen = el;
         if (el && !reduced()) el.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); // a control below the fold is brought into view once
       }
-      const next = el?.getBoundingClientRect() ?? null;
+      const first = el?.getBoundingClientRect() ?? null;
+      const second = also ? document.querySelector(also)?.getBoundingClientRect() ?? null : null;
+      const next = first && second ? union(first, second) : first; // one ring around both controls that do the drill's job
       setFound((prev) => {
         const same = prev.selector === selector && (prev.rect && next ? prev.rect.left === next.left && prev.rect.top === next.top && prev.rect.width === next.width && prev.rect.height === next.height : prev.rect === next);
         return same ? prev : { selector, rect: next };
@@ -94,34 +105,19 @@ function useTarget(selector: string | null) {
       window.removeEventListener('scroll', measure);
       window.removeEventListener('resize', measure);
     };
-  }, [selector]);
+  }, [selector, also]);
   return found;
 }
 
 const CHEER_MS = 1800; // how long the mascot looks pleased after a drill
-const TOUCHDOWN_MS = 2600; // how long "Touchdown!" stays up
-
-/** Two small hops, on the mascot's perch. Transform only. */
-function hop(el: HTMLElement | null) {
-  if (!el || reduced() || typeof el.animate !== 'function') return;
-  el.animate(
-    [
-      { transform: 'translateY(0)', easing: 'cubic-bezier(.23, 1, .32, 1)' },
-      { transform: 'translateY(-26px)', offset: 0.22, easing: 'cubic-bezier(.55, 0, 1, .45)' },
-      { transform: 'translateY(0)', offset: 0.44, easing: 'cubic-bezier(.23, 1, .32, 1)' },
-      { transform: 'translateY(-16px)', offset: 0.68, easing: 'cubic-bezier(.55, 0, 1, .45)' },
-      { transform: 'translateY(0)' },
-    ],
-    { duration: 760 },
-  );
-}
+const PRESS_MS = 2000; // how long a press on a drill's button waits for the dialog it should open
 
 /**
  * Rookie camp: the mascot coaches a first practice of a few drills, each done by the user on the real page. A ring marks the control, the
  * mascot sits on the edge of its speech card beside it, and the next drill starts only once the user has really done the thing. It follows the user from page to page and
  * is offered once to a user with no league, by the welcome dialog (`CampWelcome`). The mascot is the one mascot: while the camp shows it the page's own step aside, it jumps from drill to drill (the card
  * moves, and a new mascot at the new place is matched with the one leaving the old, like between pages), looks pleased when a drill is done, worried when about to leave or skip,
- * and on finishing hops and says "Touchdown!". With the mascot off in Settings it is neither offered nor run.
+ * and on finishing hands over to the congratulation dialog (`CampFinish`). With the mascot off in Settings it is neither offered nor run.
  */
 export function RookieCamp() {
   const { phase, step } = useStore(campStore);
@@ -137,11 +133,9 @@ export function RookieCamp() {
   }, []);
   const inDialog = useSyncExternalStore(subscribeDialogs, dialogsOpen, () => false); // a dialog has the mascot now
   const flying = useSyncExternalStore(subscribeMascotFlight, isMascotFlying, () => false);
-  const perch = useRef<HTMLDivElement>(null);
   const [cheer, setCheer] = useState(false); // a drill was just done
   const [worried, setWorried] = useState(false); // the pointer or focus is on Skip or Leave
-  const [touchdown, setTouchdown] = useState(false);
-  const hopped = useRef(false);
+  const [pressed, setPressed] = useState(false); // the drill's button was pressed and its dialog is on its way
   const drill = phase === 'running' && mascotOn ? DRILLS[step] : undefined;
   const facts: Facts = { leagues: profiles.length, followed: profiles.length ? followed.filter((e) => sideOf(e) === 'mine').length : 0, path: pathname };
 
@@ -159,13 +153,21 @@ export function RookieCamp() {
   const clicked = drill?.clicked;
   useEffect(() => {
     if (!clicked) return;
-    const press = (event: MouseEvent) => { if ((event.target as Element | null)?.closest(clicked)) advance(); };
+    const press = (event: MouseEvent) => { if ((event.target as Element | null)?.closest(clicked)) setPressed(true); };
     document.addEventListener('click', press);
     return () => document.removeEventListener('click', press);
+  }, [clicked]);
+  // The drill is done once its dialog has the mascot: the card's mascot jumps into it like for any dialog, and the congratulation (`CampFinish`)
+  // waits for that dialog to close. If no dialog came, the press is forgotten and the drill stays as it was.
+  useEffect(() => {
+    if (!pressed) return;
+    if (inDialog) { setPressed(false); advance(); return; }
+    const timer = setTimeout(() => setPressed(false), PRESS_MS);
+    return () => clearTimeout(timer);
   }); // eslint-disable-line react-hooks/exhaustive-deps -- advance reads the same step
 
   const here = !drill?.on || drill.on === pathname;
-  const { selector: measured, rect } = useTarget(drill ? (here ? drill.target : navLink(drill.on!)) : null);
+  const { selector: measured, rect } = useTarget(drill ? (here ? drill.target : navLink(drill.on!)) : null, here ? drill?.also : undefined);
 
   // While a drill waits, the page is dead except for the control it points at (and the other way of doing the same job) and the camp's own card.
   // A dialog that opens from there is the user's to use freely: the guard stands down while one is open.
@@ -184,8 +186,7 @@ export function RookieCamp() {
     return () => events.forEach((type) => document.removeEventListener(type, guard, true));
   }, [guarding, measured, drill]);
 
-  const finished = phase === 'finished' && mascotOn;
-  const wants = mascotOn && (finished || !!drill);
+  const wants = mascotOn && !!drill;
   const visible = wants && !inDialog;
 
   useEffect(() => setWorried(false), [phase, step]); // the button that worried it is gone, and a mouse-leave will not be sent
@@ -198,52 +199,33 @@ export function RookieCamp() {
   // They stay aside while a dialog has it: the camp holds its place, or the page's would appear for a moment when the dialog closes.
   useLayoutEffect(() => (wants ? registerCampMascot() : undefined), [wants]);
 
-  // The celebration waits for the mascot to land on the card, then it hops once and says "Touchdown!".
-  useEffect(() => {
-    if (!finished) { hopped.current = false; setTouchdown(false); return; }
-    if (!visible || measured !== null || flying || isMascotFlying() || hopped.current) return; // measured: the card has moved to its resting place, so the jump there has begun
-    hopped.current = true;
-    setTouchdown(true);
-    hop(perch.current);
-    const timer = setTimeout(() => setTouchdown(false), TOUCHDOWN_MS);
-    return () => clearTimeout(timer);
-  }, [finished, visible, measured, flying]);
-
   // A drill's card waits for the first look at its control, or the mascot would land in the corner first and jump again.
   if (!visible || (drill && measured === null)) return null;
 
   // Hovering or focusing what ends the practice early makes the mascot worried.
   const wary = { onMouseEnter: () => setWorried(true), onMouseLeave: () => setWorried(false), onFocus: () => setWorried(true), onBlur: () => setWorried(false) };
-  let text: string;
-  let buttons: ReactNode;
-  if (phase === 'finished') {
-    text = 'That is practice done. You are on the team! You can take it again from Settings any time.';
-    buttons = <button type="button" className="btn btn-primary press" onClick={() => endCamp('done')}>Done</button>;
-  } else {
-    text = here ? drill!.text : drill!.go!;
-    buttons = (
-      <>
-        {drill!.practice && <button type="button" className="btn press" onClick={addDemoLeague}>Use a practice league</button>}
-        <button type="button" className="btn press" {...wary} onClick={() => advance(false)}>Skip drill</button>
-        <button type="button" className="btn press" {...wary} onClick={() => endCamp('declined')}>Leave camp</button>
-      </>
-    );
-  }
+  const text = here ? drill!.text : drill!.go!;
+  const buttons = (
+    <>
+      {here && drill!.practice && <button type="button" className="btn btn-primary press" onClick={addDemoLeague}>Use a practice league</button>}
+      <button type="button" className="btn press" {...wary} onClick={() => advance(false)}>Skip drill</button>
+      <button type="button" className="btn btn-danger press" {...wary} onClick={() => endCamp('declined')}>Leave camp</button>
+    </>
+  );
 
   // `rect` and `measured` change together, so the card never moves a step ahead of its mascot's key.
   const pos = placeCard(rect, window.innerWidth, window.innerHeight);
   const pad = 6;
   return (
     <>
-      {drill && rect && <div className="camp-ring" aria-hidden="true" style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + 2 * pad, height: rect.height + 2 * pad }} />}
+      {rect && <div className="camp-ring" aria-hidden="true" style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + 2 * pad, height: rect.height + 2 * pad }} />}
       <section className={`camp${flying ? ' waiting' : ''}`} aria-label="Rookie camp" style={pos}>
         {/* Keyed by where the card was measured for: a new place is a new mascot, matched with the old one, so it jumps. */}
-        <div ref={perch} className="dialog-perch">
-          <Mascot key={measured ?? 'none'} size={SIZE} seated entrance={false} worried={worried} happy={!worried && (cheer || finished)} className="perch-mascot" style={{ top: -PERCH }} />
-          {touchdown && !flying && <div className="perch-say" aria-hidden="true"><div className="perch-bubble camp-td"><TypedText text="Touchdown!" /></div></div>}
+        <div className="dialog-perch">
+          <Mascot key={measured ?? 'none'} size={SIZE} seated entrance={false} worried={worried} happy={!worried && cheer} className="perch-mascot" style={{ top: -PERCH }} />
         </div>
         <div className="camp-body">
-          <p className="camp-name">{name}{drill && <span className="muted"> · drill {step + 1} of {DRILLS.length}</span>}</p>
+          <p className="camp-name">{name}<span className="muted"> · drill {step + 1} of {DRILLS.length}</span></p>
           {/* A polite live region: each new drill is announced once, whole, however it is typed on screen. */}
           <p className="camp-text" aria-live="polite"><TypedText text={text} hold={flying} /></p>
           <div className="bubble-actions">{buttons}</div>

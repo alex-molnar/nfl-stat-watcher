@@ -138,6 +138,7 @@ select { max-width: 100%; }
 dialog { border: 0; padding: 0; border-radius: 12px; width: min(560px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(0, 0, 0, .35); }
 dialog::backdrop { background: rgba(5, 10, 20, .5); }
 dialog[open] { animation: dlg 180ms ease-out; }
+dialog[open][data-instant] { animation: none; } /* it replaces what the mascot was in a moment ago (a card, another dialog): no scale-in to wait for */
 /* The mascot sits on the dialog's top edge, outside its box, so the dialog does not clip: its content scrolls instead, and leaves room above and below. */
 dialog { overflow: visible; max-height: none; }
 @keyframes dlg { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
@@ -518,9 +519,7 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .camp:not(.waiting) { transition: opacity 180ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
 .camp.waiting { opacity: 0; pointer-events: none; }
 .camp .perch-say { width: auto; }
-.camp-td { font-weight: 800; font-size: 19px; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .camp:not(.waiting) { transition: none; } }
-.camp-practice { justify-self: start; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 .camp-body { display: grid; gap: 8px; min-width: 0; }
 .camp-body p { margin: 0; }
 .camp-name { font-weight: 800; }

@@ -21,7 +21,7 @@ export function useHint() {
  * The mascot in a dialog, put as its first child. It sits on the dialog's top edge near the left corner, seated like in the header, with its legs
  * hanging into the dialog. Since it hangs from the corner it does not matter how the dialog's size changes. It jumps there from where it was
  * once the dialog has settled, and back when it closes. When a control with a hint (`data-hint`, see `useHint`) is hovered or focused, a bubble
- * beside it types the hint. A dialog about something that cannot be undone has `data-worried` (it can come and go while it is open): the mascot then looks worried.
+ * beside it types the hint. A dialog with `data-instant` has no opening animation, so the mascot lands at once (for a dialog that takes over from where the mascot just was). A dialog about something that cannot be undone has `data-worried` (it can come and go while it is open): the mascot then looks worried.
  * Without the mascot (the setting) this renders nothing.
  */
 export function DialogMascot() {
@@ -40,7 +40,7 @@ export function DialogMascot() {
       setWorried(dialog.hasAttribute('data-worried'));
       clearTimeout(timer);
       if (dialog.open) {
-        timer = setTimeout(() => setReady(true), calm ? 0 : SETTLE_MS);
+        timer = setTimeout(() => setReady(true), calm || dialog.hasAttribute('data-instant') ? 0 : SETTLE_MS);
       } else {
         setReady(false);
         setHint('');

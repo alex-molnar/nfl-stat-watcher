@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import { MainPage } from './ui/MainPage';
+import { CampFinish } from './ui/CampFinish';
 import { CampWelcome } from './ui/CampWelcome';
 import { RookieCamp } from './ui/RookieCamp';
 import { LeaguesPage } from './ui/LeaguesPage';
@@ -39,6 +40,7 @@ export function AppRoutes() {
       <FocusPageHeading />
       <RookieCamp />
       <CampWelcome />
+      <CampFinish />
     </>
   );
 }
