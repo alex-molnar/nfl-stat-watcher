@@ -1,4 +1,4 @@
-import { fakeAthlete, fakeClipAthletes, fakeSummary } from './campSandbox';
+import { fakeAthlete, fakeClipAthletes, fakeSearch, fakeSummary } from './campSandbox';
 import type {
   EspnAthleteResponse,
   EspnScoreboard,
@@ -27,10 +27,16 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 export async function searchPlayers(query: string): Promise<EspnSearchItem[]> {
-  const res = await getJson<{ items?: EspnSearchItem[] }>(
-    `${WEB}/search?query=${encodeURIComponent(query)}&limit=10&type=player`,
-  );
-  return (res.items ?? []).filter((item) => item.league === 'nfl');
+  const practice = fakeSearch(query); // Rookie camp's practice player, first in the list, when the camp is on its player drill
+  try {
+    const res = await getJson<{ items?: EspnSearchItem[] }>(
+      `${WEB}/search?query=${encodeURIComponent(query)}&limit=10&type=player`,
+    );
+    return [...practice, ...(res.items ?? []).filter((item) => item.league === 'nfl')];
+  } catch (error) {
+    if (practice.length > 0) return practice; // the practice does not need ESPN
+    throw error;
+  }
 }
 
 export const getAthlete = async (id: string) =>

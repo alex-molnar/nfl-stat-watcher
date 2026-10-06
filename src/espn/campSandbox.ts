@@ -3,8 +3,9 @@
 // everything real still goes to ESPN. The teams and players are invented. The shapes are ESPN's own, so the app's normal parsing reads them.
 
 import { toGames, type GameInfo } from '../stats/scoreboard';
+import { campStore } from '../storage/camp';
 import type { FollowedEntry } from '../storage/types';
-import type { EspnAthleteResponse, EspnPlay, EspnScoreboard, EspnStatCategory, EspnSummary, EspnTeamRef } from './types';
+import type { EspnAthleteResponse, EspnPlay, EspnSearchItem, EspnScoreboard, EspnStatCategory, EspnSummary, EspnTeamRef } from './types';
 
 export const CAMP_PROFILE_ID = 'camp-league';
 export const isFake = (id: string) => id.startsWith('camp-');
@@ -44,6 +45,19 @@ const PLAYERS = {
   pre: { espnId: 'camp-pre-rb', name: 'Marcus Teller', team: GRZ, position: 'RB', jersey: '28', first: 'Marcus', last: 'Teller' },
   final: { espnId: 'camp-final-wr', name: 'Jalen Whitmore', team: SMT, position: 'WR', jersey: '11', first: 'Jalen', last: 'Whitmore' },
 } as const;
+
+/** The player the user adds in drill 2; the other two are in the practice league from the start. */
+export const FINAL_ID = PLAYERS.final.espnId;
+
+/**
+ * Player search finds him, and only him, while the practice league is there and the camp is on its player drill: at any other time there is nothing
+ * to find, so a real search for "Whitmore" shows real players only.
+ */
+export function fakeSearch(query: string): EspnSearchItem[] {
+  const camp = campStore.get();
+  if (!on || camp.phase !== 'running' || camp.step !== 1 || !/whitmore/i.test(query)) return [];
+  return [{ id: FINAL_ID, displayName: PLAYERS.final.name, league: 'nfl' }];
+}
 
 /** The three followed entries, for the camp's league. */
 export const campEntries = (): FollowedEntry[] =>

@@ -4,16 +4,17 @@
  * place highlighted and one way of being done. Controls the camp points at carry a `data-camp` attribute where a class would be brittle.
  */
 
-import { patchCamp } from '../storage/camp';
+import { endCamp, patchCamp } from '../storage/camp';
 
 export type Page = '/' | '/leagues' | '/vs';
-export interface Facts { leagues: number; followed: number; path: string; /** A league imported from ESPN exists (the practice league is not one). */ imported: boolean }
+export interface Facts { leagues: number; followed: number; path: string; /** A league imported from ESPN exists (the practice league is not one). */ imported: boolean; /** The practice league is there. */ practice: boolean }
 
 /** What a step can look at: the state, the page (`q`), and a note that lasts for as long as the step does (`memo`). */
 export interface Ctx { facts: Facts; q: (selector: string) => Element | null; memo: Record<string, unknown> }
 
 export interface Step {
-  text: string;
+  /** What is said; it can depend on the state (the player drill names the practice player when there is a practice league). */
+  text: string | ((facts: Facts) => string);
   /** The page this step's controls are on, when it is not the drill's; elsewhere the camp points at that page's tab and says `go`. */
   on?: Page;
   go?: string;
@@ -52,6 +53,8 @@ export interface Drill {
   steps: Step[];
 }
 
+export const stepText = (step: Step, facts: Facts) => (typeof step.text === 'function' ? step.text(facts) : step.text);
+
 /** Where a step's controls are: its own page, else the drill's. */
 export const stepOn = (drill: Drill, step: Step) => step.on ?? drill.on;
 
@@ -66,12 +69,24 @@ export const choosePractice = () => patchCamp({ practice: true });
  * the practice league, because the drills after it need a league to work on.
  */
 export function skipDrill(step: number) {
-  // A dialog whose owner keeps it open by state reopens on the next render unless that owner hears about the close first, and the browser sends the
-  // `close` event only a moment later: so it is sent now too (an owner hearing it twice just sets its state to closed twice; the tour's own dialog
-  // moves the camp one step on, which the move to the next drill just below overrides).
-  document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => { d.close(); d.dispatchEvent(new Event('close')); });
+  closeOpenDialogs();
   if (DRILLS[step]?.practice) choosePractice();
   toNextDrill(step);
+}
+
+/** Leave camp. Open dialogs are closed too: the camp is gone, and with it the card, so a dialog left open would be the only thing on the page. */
+export function leaveCamp() {
+  closeOpenDialogs();
+  endCamp('declined');
+}
+
+/**
+ * Closes every open dialog. A dialog whose owner keeps it open by state reopens on the next render unless that owner hears about the close first, and
+ * the browser sends the `close` event only a moment later: so it is sent now too (an owner hearing it twice just sets its state to closed twice; the
+ * tour's own dialog moves the camp one step on, which the move that follows overrides).
+ */
+function closeOpenDialogs() {
+  document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => { d.close(); d.dispatchEvent(new Event('close')); });
 }
 
 /** True once the control's value is not what it was when the step began. */
@@ -116,14 +131,14 @@ export const DRILLS: Drill[] = [
       { target: ['[data-camp="add-player"]'], when: addDialogOpen, text: 'Second drill: follow a player. Press Add player.' },
       {
         target: [SEARCH, '[data-camp="add-dialog-league"]'],
-        when: (c) => /maye/i.test((c.q(`${SEARCH} input`) as HTMLInputElement | null)?.value ?? ''),
-        text: 'Search for a player or a team defense here, and pick which league they count for below it. Leagues matter because each one scores differently, so the same player is worth different points in each. Try searching for Maye.',
+        when: (c) => /maye|whitmore/i.test((c.q(`${SEARCH} input`) as HTMLInputElement | null)?.value ?? ''),
+        text: (f) => `Search for a player or a team defense here, and pick which league they count for below it${f.practice ? ': choose the Practice league' : ''}. Leagues matter because each one scores differently, so the same player is worth different points in each. Try searching for ${f.practice ? 'Whitmore' : 'Maye'}.`,
       },
       {
-        target: ['.results button[data-result="Drake Maye"], .results button.add:not([aria-disabled])'],
+        target: ['.results button[data-result="Jalen Whitmore"], .results button[data-result="Drake Maye"], .results button.add:not([aria-disabled])'],
         needs: '[data-camp="add-dialog-results"]',
         when: (c) => !!c.q('.results button.add[aria-label$=" added"]'),
-        text: 'There he is, Drake Maye. Press Add to follow him in the league you picked.',
+        text: (f) => f.practice ? 'There he is, Jalen Whitmore. Press Add to follow him in the Practice league.' : 'There he is, Drake Maye. Press Add to follow him in the league you picked.',
       },
       {
         target: ['dialog[open] .close'],

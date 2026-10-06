@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { campStore } from '../storage/camp';
+import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { reloadAllStores } from '../storage/store';
 import standings from '../test/fixtures/standings.json';
@@ -156,6 +157,52 @@ describe('rookie camp steps', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Close' }));
       await waitFor(() => expect(camp()).toHaveTextContent('Third drill'));
       expect(stored()).toEqual({ phase: 'running', step: 2, sub: 0 });
+    });
+
+    describe('with the practice league, where the player to add is Jalen Whitmore', () => {
+      const practice = (step = 1) => {
+        localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'running', step, sub: 0, practice: true }));
+        reloadAllStores();
+      };
+
+      it('asks for the Practice league and Whitmore, finds him in the search, and adds him to it', async () => {
+        mockFetch({ scoreboard: scoreboardFixture, 'search?query=Whitmore': { items: [] }, standings });
+        seed([], profilesFixture);
+        practice();
+        renderAt('/');
+        await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+        await waitFor(() => expect(camp()).toHaveTextContent('choose the Practice league'));
+        expect(camp()).toHaveTextContent('Try searching for Whitmore');
+        expect(within(document.querySelector('dialog[open]')!).getByRole('combobox', { name: 'League' })).toHaveValue('camp-league'); // the dialog starts on the practice league
+        await userEvent.type(screen.getByLabelText('Search'), 'Whitmore');
+        await waitFor(() => expect(camp()).toHaveTextContent('There he is, Jalen Whitmore'), { timeout: 3000 });
+        await userEvent.click(await screen.findByRole('button', { name: /^Add Jalen Whitmore/ }));
+        expect(followedStore.get().find((e) => e.espnId === 'camp-final-wr')?.profileId).toBe('camp-league');
+        await waitFor(() => expect(camp()).toHaveTextContent('Close the dialog with the X'));
+      });
+
+      it('is silently completed by skipping the drill: he is in the practice league for the last drill', async () => {
+        mockFetch({ scoreboard: scoreboardFixture, standings });
+        seed([], profilesFixture);
+        practice();
+        renderAt('/');
+        await waitFor(() => expect(followedStore.get().map((e) => e.name)).toEqual(['Cole Harlan', 'Marcus Teller']));
+        await userEvent.click(within(camp()).getByRole('button', { name: 'Skip drill' }));
+        await waitFor(() => expect(followedStore.get().map((e) => e.name)).toEqual(['Cole Harlan', 'Marcus Teller', 'Jalen Whitmore']));
+      });
+    });
+
+    it('closes the open dialog when the camp is left, and nothing of the camp is left on the page', async () => {
+      mockFetch({ scoreboard: scoreboardFixture, standings });
+      seed([], profilesFixture);
+      setCamp('running', 1);
+      renderAt('/');
+      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await waitFor(() => expect(camp().closest('dialog')).not.toBeNull());
+      await userEvent.click(within(camp()).getByRole('button', { name: 'Leave camp' }));
+      expect(document.querySelector('dialog[open]')).toBeNull();
+      expect(stored()).toEqual({ phase: 'declined', step: 0, sub: 0 });
+      expect(screen.queryByRole('region', { name: 'Rookie camp' })).toBeNull();
     });
 
     it('swallows a click on the area around the dialog, except in the step about closing it', async () => {

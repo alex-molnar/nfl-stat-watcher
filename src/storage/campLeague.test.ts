@@ -35,14 +35,29 @@ describe('the camp league', () => {
   it('is there from the moment the practice league is chosen, in any drill, and goes with the camp', async () => {
     campStore.set({ phase: 'running', step: 1, sub: 0, practice: true });
     await settle();
-    expect(camped()).toEqual({ league: true, entries: 3 });
+    expect(camped()).toEqual({ league: true, entries: 2 }); // the third is what drill 2 adds
     expect(sandboxOn()).toBe(true);
-    campStore.set({ phase: 'running', step: 2, sub: 0, practice: true });
+    campStore.set({ phase: 'running', step: 2, sub: 0, practice: true }); // drill 2 done or skipped: he is there, silently, if he is not yet
+    await settle();
+    expect(camped()).toEqual({ league: true, entries: 3 });
+    campStore.set({ phase: 'running', step: 3, sub: 0, practice: true });
     await settle();
     expect(camped()).toEqual({ league: true, entries: 3 }); // not made twice
     endCamp('declined');
     await settle();
     expect(camped()).toEqual({ league: false, entries: 0 });
+  });
+
+  it('does not add the third player again when the user added him in drill 2, even to another league', async () => {
+    campStore.set({ phase: 'running', step: 1, sub: 0, practice: true });
+    await settle();
+    followedStore.set([...followedStore.get(), { kind: 'player', espnId: 'camp-final-wr', name: 'Jalen Whitmore', teamId: 'camp-t-smt', teamAbbr: 'SMT', position: 'WR', profileId: profilesFixture[0]!.id }]);
+    campStore.set({ phase: 'running', step: 2, sub: 0, practice: true });
+    await settle();
+    expect(followedStore.get().filter((e) => e.espnId === 'camp-final-wr')).toHaveLength(1);
+    endCamp('done');
+    await settle();
+    expect(followedStore.get()).toEqual([warren]); // every practice player goes, from whatever league it is in
   });
 
   it('is made at the last drill for a user who did drill 1 with their own league, and not before', async () => {

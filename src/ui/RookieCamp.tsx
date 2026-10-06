@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router';
-import { campStore, endCamp, patchCamp } from '../storage/camp';
+import { campStore, patchCamp } from '../storage/camp';
 import { followedStore, sideOf } from '../storage/followed';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
-import { DRILLS, choosePractice, skipDrill, stepOn, toNextDrill, type Ctx, type Facts } from './campDrills';
+import { CAMP_PROFILE_ID } from '../espn/campSandbox';
+import { DRILLS, choosePractice, leaveCamp, skipDrill, stepOn, stepText, toNextDrill, type Ctx, type Facts } from './campDrills';
 import { dialogsOpen, registerCampMascot, subscribeDialogs } from './dialogsOpen';
 import { Mascot, SEAT_Y } from './Mascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
@@ -131,7 +132,7 @@ export function RookieCamp() {
   const running = phase === 'running' && mascotOn;
   const drill = running ? DRILLS[step] : undefined;
   const current = drill?.steps[sub];
-  const facts: Facts = { leagues: profiles.length, followed: profiles.length ? followed.filter((e) => sideOf(e) === 'mine').length : 0, path: pathname, imported: profiles.some((p) => p.source) };
+  const facts: Facts = { leagues: profiles.length, followed: profiles.length ? followed.filter((e) => sideOf(e) === 'mine').length : 0, path: pathname, imported: profiles.some((p) => p.source), practice: profiles.some((p) => p.id === CAMP_PROFILE_ID) };
 
   const on = drill && current ? stepOn(drill, current) : undefined;
   const here = !on || on === pathname;
@@ -263,14 +264,14 @@ export function RookieCamp() {
 
   // Hovering or focusing what ends the practice early makes the mascot worried.
   const wary = { onMouseEnter: () => setWorried(true), onMouseLeave: () => setWorried(false), onFocus: () => setWorried(true), onBlur: () => setWorried(false) };
-  const text = here ? current!.text : current!.go ?? drill!.go!;
+  const text = here ? stepText(current!, facts) : current!.go ?? drill!.go!;
   const last = sub + 1 >= drill!.steps.length;
   const buttons = (
     <>
       {here && sub === 0 && drill!.practice && <button type="button" className="btn btn-primary press" onClick={() => { choosePractice(); nextDrill(true); }}>Use a practice league</button>}
       {here && current!.next && <button type="button" className="btn btn-primary press" onClick={() => nextStep(last)}>{last ? 'Complete drill' : current!.next}</button>}
       <button type="button" className="btn press" {...wary} onClick={() => { moved.current = where; skipDrill(step); }}>Skip drill</button>
-      <button type="button" className="btn btn-danger press" {...wary} onClick={() => endCamp('declined')}>Leave camp</button>
+      <button type="button" className="btn btn-danger press" {...wary} onClick={leaveCamp}>Leave camp</button>
     </>
   );
 

@@ -306,12 +306,12 @@ describe('rookie camp', () => {
       expect(steps.filter((n) => n > 0)).toEqual([1]);
     });
 
-    it('is the camp league with the three practice players, and it goes when the camp ends', async () => {
+    it('is the camp league with two practice players, and it goes when the camp ends', async () => {
       setCamp('running', 0);
       renderAt('/leagues');
       await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
       await waitFor(() => expect(profilesStore.get().map((p) => p.name)).toEqual(['Practice league']));
-      expect(followedStore.get().map((e) => e.name)).toEqual(['Cole Harlan', 'Marcus Teller', 'Jalen Whitmore']);
+      expect(followedStore.get().map((e) => e.name)).toEqual(['Cole Harlan', 'Marcus Teller']); // the third is what drill 2 adds
       expect(stored()).toEqual({ phase: 'running', step: 1, sub: 0, practice: true });
       act(() => endCamp('declined'));
       await waitFor(() => expect(profilesStore.get()).toEqual([]));

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useLocation } from 'react-router';
-import { campStore, endCamp, patchCamp } from '../storage/camp';
+import { campStore, patchCamp } from '../storage/camp';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
-import { DRILLS, skipDrill, stepOn, toNextDrill } from './campDrills';
+import { DRILLS, leaveCamp, skipDrill, stepOn, toNextDrill } from './campDrills';
 import { DialogMascot } from './DialogMascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
 import { TypedText } from './TypedText';
@@ -38,11 +38,11 @@ export function CampTour() {
       <DialogMascot />
       <div className="dlg">
         <h2 id="tour-title">{name}<span className="muted"> · drill {step + 1} of {DRILLS.length}</span></h2>
-        <p id="tour-text"><TypedText text={current.text} delay={350} hold={flying} /></p>
+        <p id="tour-text"><TypedText text={typeof current.text === 'string' ? current.text : ''} /* a tour's text is fixed */ delay={350} hold={flying} /></p>
         <div className="dlg-actions">
           <button type="button" className="btn btn-primary press" onClick={next}>{last ? 'Complete drill' : current.next ?? 'Next'}</button>
           <button type="button" className="btn press" onClick={() => skipDrill(step)}>Skip drill</button>
-          <button type="button" className="btn btn-danger press" onClick={() => endCamp('declined')}>Leave camp</button>
+          <button type="button" className="btn btn-danger press" onClick={leaveCamp}>Leave camp</button>
         </div>
       </div>
     </dialog>

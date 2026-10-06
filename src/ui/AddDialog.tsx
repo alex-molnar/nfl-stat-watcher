@@ -3,6 +3,7 @@ import { backdropClose } from './backdropClose';
 import { DialogMascot, useHint } from './DialogMascot';
 import { useQueries } from '@tanstack/react-query';
 import { getAthlete } from '../espn/client';
+import { CAMP_PROFILE_ID } from '../espn/campSandbox';
 import type { EspnTeamRef } from '../espn/types';
 import { useDebounced, usePlayerSearch, useTeams } from '../hooks/queries';
 import { addEntry, followedStore, sameEntry, type Side } from '../storage/followed';
@@ -45,6 +46,7 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
     if (!dialog) return;
     if (open && !dialog.open) {
       setQuery(''); // each opening starts clean, not with the other side's last search
+      if (profilesStore.get().some((p) => p.id === CAMP_PROFILE_ID)) setChosenId(CAMP_PROFILE_ID); // Rookie camp's practice league is what the player drill asks for
       dialog.showModal();
       inputRef.current?.focus();
     }

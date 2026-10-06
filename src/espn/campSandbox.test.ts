@@ -1,5 +1,6 @@
-import { CAMP_PROFILE_ID, campEntries, fakeAthlete, fakeClipAthletes, fakeGames, fakeSummary, isFake, setSandbox } from './campSandbox';
+import { CAMP_PROFILE_ID, campEntries, fakeAthlete, fakeSearch, fakeClipAthletes, fakeGames, fakeSummary, isFake, setSandbox } from './campSandbox';
 import { getAthlete, getClipAthletes, getSummary } from './client';
+import { reloadAllStores } from '../storage/store';
 import { normalizeSummary } from '../stats/normalize';
 import { scoreEntry } from '../scoring/score';
 import { PRESETS } from '../scoring/presets';
@@ -65,5 +66,18 @@ describe('the practice players of Rookie camp', () => {
     expect(fakeSummary('401772345')).toBeNull();
     await getSummary('camp-e-pre');
     expect(fetched).toHaveBeenCalledTimes(1);
+  });
+
+  it('finds the third practice player in a search only while the sandbox is on and the camp is on its player drill', () => {
+    const at = (phase: 'running' | 'idle', step: number) => { localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase, step, sub: 0 })); reloadAllStores(); };
+    setSandbox(true);
+    at('running', 1);
+    expect(fakeSearch('Whitmore').map((i) => i.displayName)).toEqual(['Jalen Whitmore']);
+    expect(fakeSearch('Maye')).toEqual([]);
+    at('running', 2);
+    expect(fakeSearch('Whitmore')).toEqual([]);
+    at('running', 1);
+    setSandbox(false);
+    expect(fakeSearch('Whitmore')).toEqual([]);
   });
 });

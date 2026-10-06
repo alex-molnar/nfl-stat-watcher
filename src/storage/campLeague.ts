@@ -1,4 +1,4 @@
-import { CAMP_PROFILE_ID, campEntries, setSandbox } from '../espn/campSandbox';
+import { CAMP_PROFILE_ID, FINAL_ID, campEntries, isFake, setSandbox } from '../espn/campSandbox';
 import { DRILLS } from '../ui/campDrills';
 import { newProfile, profilesStore } from './profiles';
 import { campStore, type CampState } from './camp';
@@ -19,17 +19,24 @@ const wanted = () => {
  * one would be handed to the user's first real league. Runs at startup too, which clears what a tab closed mid-drill left behind.
  */
 export function syncCampLeague() {
+  const camp = campStore.get();
   const entries = followedStore.get();
   const profiles = profilesStore.get();
   const hasLeague = profiles.some((p) => p.id === CAMP_PROFILE_ID);
   if (wanted()) {
     if (!hasLeague) profilesStore.set([...profiles, { ...newProfile('Practice league', profiles), id: CAMP_PROFILE_ID }]);
-    if (!entries.some((e) => e.profileId === CAMP_PROFILE_ID)) followedStore.set([...entries, ...campEntries()]);
+    // The league starts with two practice players; the third is what the user adds in drill 2, and is put there silently if drill 2 was skipped or
+    // the last drill is reached without him. One that is already followed anywhere (in another league the user picked) is not added again.
+    const all = camp.step >= 2 || showsDummiesOnly(camp);
+    const missing = campEntries().filter((e) => (all || e.espnId !== FINAL_ID) && !entries.some((f) => f.espnId === e.espnId));
+    if (missing.length) followedStore.set([...entries, ...missing]);
     setSandbox(true);
     return;
   }
   setSandbox(false);
-  if (entries.some((e) => e.profileId === CAMP_PROFILE_ID)) followedStore.set(entries.filter((e) => e.profileId !== CAMP_PROFILE_ID));
+  // Every practice player goes, in whatever league it ended up (the user may have added him to a real one), before the league: an entry without one
+  // would be handed to the user's first real league.
+  if (entries.some((e) => isFake(e.espnId))) followedStore.set(entries.filter((e) => !isFake(e.espnId)));
   if (hasLeague) profilesStore.set(profiles.filter((p) => p.id !== CAMP_PROFILE_ID));
 }
 

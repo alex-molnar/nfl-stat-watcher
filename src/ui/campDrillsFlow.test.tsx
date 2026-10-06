@@ -9,7 +9,7 @@ import { profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 import { reloadAllStores } from '../storage/store';
-import { DRILLS, type Ctx } from './campDrills';
+import { DRILLS, stepText, type Ctx } from './campDrills';
 
 const draft = normalizeEspnLeague(parseEspnLeagueSettings(settings));
 const imported = { id: 'p1', name: 'Tapai', preset: 'custom' as const, values: draft.values, source: draft.source };
@@ -115,9 +115,9 @@ describe('drill 4: importing a league', () => {
   });
 
   it('skips the warning steps for a league with none', () => {
-    const none: Ctx = { facts: { leagues: 1, followed: 0, path: '/leagues', imported: false }, q: () => null, memo: {} };
+    const none: Ctx = { facts: { leagues: 1, followed: 0, path: '/leagues', imported: false, practice: false }, q: () => null, memo: {} };
     const steps = DRILLS[3]!.steps;
-    expect(steps.filter((s) => s.skipIf?.(none)).map((s) => s.text.slice(0, 9))).toEqual(['Some of t', 'To go on ']);
+    expect(steps.filter((s) => s.skipIf?.(none)).map((s) => stepText(s, none.facts).slice(0, 9))).toEqual(['Some of t', 'To go on ']);
   });
 });
 
