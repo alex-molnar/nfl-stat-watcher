@@ -4,7 +4,7 @@ import { Mascot, MascotSays } from './Mascot';
 import { TypedText } from './TypedText';
 import * as flight from './mascotFlight';
 
-vi.mock('./mascotFlight', () => ({ mascotAppeared: vi.fn(), mascotLeft: vi.fn(), resetMascotFlight: vi.fn() }));
+vi.mock('./mascotFlight', () => ({ mascotAppeared: vi.fn(), mascotLeft: vi.fn(), resetMascotFlight: vi.fn(), isMascotFlying: () => false, subscribeMascotFlight: () => () => {} }));
 
 describe('Mascot', () => {
   it('is decorative: hidden from assistive technology', () => {
@@ -109,6 +109,18 @@ describe('TypedText', () => {
     const { container } = render(<TypedText text={long} />);
     act(() => { vi.advanceTimersByTime(1700); });
     expect(typed(container)).toBe(long);
+  });
+
+  it('stays silent while held, and starts a moment after it is let go', () => {
+    vi.useFakeTimers();
+    const { container, rerender } = render(<TypedText text="Hello there" hold />);
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(typed(container)).toBe('');
+    rerender(<TypedText text="Hello there" hold={false} />);
+    act(() => { vi.advanceTimersByTime(60); });
+    expect(typed(container)).toBe('');
+    act(() => { vi.advanceTimersByTime(1500); });
+    expect(typed(container)).toBe('Hello there');
   });
 
   it('starts again when the text changes', () => {

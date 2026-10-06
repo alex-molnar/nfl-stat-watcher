@@ -1,5 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
-import { mascotAppeared, mascotLeft } from './mascotFlight';
+import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { isMascotFlying, mascotAppeared, mascotLeft, subscribeMascotFlight } from './mascotFlight';
 import { TypedText } from './TypedText';
 
 const INK = '#14231A';
@@ -145,12 +145,14 @@ export function Mascot({ size = 160, className, pointAt, entrance = true, seated
 
 /** The mascot telling the user something in a speech bubble. The text types itself out, while assistive technology reads it whole; `minLines` keeps room for a longer text that may replace it. */
 export function MascotSays({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
+  // The jump into this place is part of arriving on the page, so the bubble waits for it and only then appears and starts to talk.
+  const flying = useSyncExternalStore(subscribeMascotFlight, isMascotFlying, () => false);
   return (
     <div className="empty mascot-says">
       <Mascot size={168} pointAt={pointAt} />
-      <div className="bubble">
+      <div className={`bubble${flying ? ' waiting' : ''}`}>
         {/* A polite live region: a changed text is announced once, whole, however it is typed on screen. */}
-        <p aria-live="polite" style={minLines ? { minHeight: `${minLines * 1.45}em` } : undefined}><TypedText text={text} delay={350} /></p>
+        <p aria-live="polite" style={minLines ? { minHeight: `${minLines * 1.45}em` } : undefined}><TypedText text={text} delay={350} hold={flying} /></p>
         {children}
       </div>
     </div>

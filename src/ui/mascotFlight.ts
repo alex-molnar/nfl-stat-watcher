@@ -42,6 +42,21 @@ export function mascotLeft(rect: DOMRect) {
 export function resetMascotFlight() {
   leaving = null;
   arrival = null;
+  flights = 0;
+  watchers.forEach((notify) => notify());
+}
+
+// Whether a jump is under way, for what should wait for it: the speech bubble does not show or start talking until the mascot has landed.
+let flights = 0;
+const watchers = new Set<() => void>();
+export const isMascotFlying = () => flights > 0;
+export function subscribeMascotFlight(notify: () => void) {
+  watchers.add(notify);
+  return () => void watchers.delete(notify);
+}
+function countFlight(change: 1 | -1) {
+  flights += change;
+  watchers.forEach((notify) => notify());
 }
 
 /**
@@ -87,6 +102,7 @@ function fly(from: DOMRect, el: SVGSVGElement, to: DOMRect) {
   if (calm() || typeof el.animate !== 'function') return;
   if (near(from, to)) return; // it did not really move: the header is rebuilt on every page
 
+  countFlight(1);
   const copy = el.cloneNode(true) as SVGSVGElement;
   copy.classList.add('flying');
   Object.assign(copy.style, { position: 'fixed', left: '0', top: '0', width: `${to.width}px`, height: `${to.height}px`, margin: '0', transformOrigin: '0 0', zIndex: '40', pointerEvents: 'none', bottom: 'auto' });
@@ -116,7 +132,11 @@ function fly(from: DOMRect, el: SVGSVGElement, to: DOMRect) {
   );
   limbsForTheJump(copy, flightMs);
 
+  let landed = false;
   const land = () => {
+    if (landed) return; // finishing and cancelling can both report
+    landed = true;
+    countFlight(-1);
     copy.remove();
     el.style.visibility = '';
     el.classList.remove('in-flight');

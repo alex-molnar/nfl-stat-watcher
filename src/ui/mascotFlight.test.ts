@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { mascotAppeared, mascotLeft, resetMascotFlight } from './mascotFlight';
+import { isMascotFlying, mascotAppeared, mascotLeft, resetMascotFlight, subscribeMascotFlight } from './mascotFlight';
 
 const rect = (left: number, top: number, width: number) => ({ left, top, width, height: width, right: left + width, bottom: top + width, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
 
@@ -113,6 +113,43 @@ describe('mascot flight', () => {
     animations[0]!.oncancel!();
     expect(copies()).toHaveLength(0);
     expect(el.style.visibility).toBe('');
+  });
+
+  describe('whether it is flying', () => {
+    it('is true from the moment the jump begins until the mascot has landed, and tells those who watch', () => {
+      const { el, animations } = mascotAt(PAGE);
+      const seen: boolean[] = [];
+      const stop = subscribeMascotFlight(() => seen.push(isMascotFlying()));
+      expect(isMascotFlying()).toBe(false);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      expect(isMascotFlying()).toBe(true);
+      animations[0]!.onfinish!();
+      expect(isMascotFlying()).toBe(false);
+      expect(seen).toEqual([true, false]);
+      stop();
+    });
+
+    it('is false when nothing jumps (reduced motion, no move), so nothing waits for a jump that never comes', () => {
+      vi.stubGlobal('matchMedia', () => ({ matches: true }));
+      const { el } = mascotAt(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      expect(isMascotFlying()).toBe(false);
+    });
+
+    it('counts a jump once even if it both finishes and is cancelled', () => {
+      const { el, animations } = mascotAt(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      animations[0]!.onfinish!();
+      animations[0]!.oncancel!();
+      expect(isMascotFlying()).toBe(false);
+      const second = mascotAt(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(second.el);
+      expect(isMascotFlying()).toBe(true); // not off by one
+    });
   });
 
   describe('before it jumps', () => {

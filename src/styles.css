@@ -478,3 +478,10 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .mascot.landed.seated .m-root { animation: mascot-land 280ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
 @keyframes mascot-land { 0% { transform: scale(1.06, .88); } 55% { transform: scale(.98, 1.03); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .mascot.landed .m-root { animation: none !important; } }
+
+/* While the mascot jumps into place, its bubble is not there yet: it comes in as the mascot lands, and then the text types. */
+.bubble { transform-origin: left center; }
+/* The transition belongs to the way in only: it hides at once (a bubble that was drawn before the jump began must not fade out under the mascot) and fades in on landing. */
+.bubble:not(.waiting) { transition: opacity 180ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)), transform 180ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
+.bubble.waiting { opacity: 0; transform: scale(.96); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .bubble:not(.waiting) { transition: none; } .bubble.waiting { transform: none; } }

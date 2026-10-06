@@ -8,7 +8,7 @@ import { renderAt, seed } from '../test/render';
 import * as flight from './mascotFlight';
 
 // Every mascot that appears or leaves is reported; a jump needs exactly one of each, in the same moment.
-vi.mock('./mascotFlight', () => ({ mascotAppeared: vi.fn(), mascotLeft: vi.fn(), resetMascotFlight: vi.fn() }));
+vi.mock('./mascotFlight', () => ({ mascotAppeared: vi.fn(), mascotLeft: vi.fn(), resetMascotFlight: vi.fn(), isMascotFlying: () => false, subscribeMascotFlight: () => () => {} }));
 const appeared = () => vi.mocked(flight.mascotAppeared);
 const left = () => vi.mocked(flight.mascotLeft);
 const goTo = (name: string) => userEvent.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name }));
