@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { mascotAppeared, mascotLeft } from './mascotFlight';
 import { registerPageMascot } from './mascotPresence';
 import { TypedText } from './TypedText';
 
@@ -57,6 +58,14 @@ interface Props {
 export function Mascot({ size = 160, className, pointAt, entrance = true, seated = false }: Props) {
   const uid = useId().replace(/:/g, ''); // gradient and clip ids must be unique per instance, and colons break url(#...)
   const ref = useRef<SVGSVGElement>(null);
+
+  // Where this mascot appears and leaves is remembered for a moment, so one that leaves a place as another shows up in a new one jumps across.
+  useLayoutEffect(() => {
+    const svg = ref.current;
+    if (!svg) return;
+    mascotAppeared(svg);
+    return () => mascotLeft(svg.getBoundingClientRect());
+  }, []);
 
   // The eyes look towards the pointer. The glance is set on --lx and --ly, which the CSS turns into a small shift of the pupils.
   useEffect(() => {
