@@ -506,6 +506,8 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .mascot.worried .m-brow-l { transform: translateY(-3px) rotate(-17deg); }
 .mascot.worried .m-brow-r { transform: translateY(-3px) rotate(17deg); }
 .mascot.worried .m-mouth { transform: translateY(5px) scaleY(-.8); }
+.mascot.happy .m-brow { transform: translateY(-4px); }
+.mascot.happy .m-mouth { transform: translateY(-1px) scale(1.25, 1.35); }
 @media (prefers-reduced-motion: reduce) { .mascot .m-brow, .mascot .m-mouth { transition: none; } }
 
 /* Rookie camp: a ring around the control the drill is about (it never takes a click), and the mascot's card beside it. */
@@ -513,6 +515,11 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .camp-ring::after { content: ""; position: absolute; inset: -3px; border-radius: inherit; border: 3px solid var(--accent); animation: camp-pulse 1.6s ease-out infinite; }
 @keyframes camp-pulse { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.12); } }
 .camp { position: fixed; z-index: 30; box-sizing: border-box; padding: 14px 16px; border-radius: 16px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); box-shadow: 0 10px 28px rgba(0, 0, 0, .35); }
+.camp:not(.waiting) { transition: opacity 180ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
+.camp.waiting { opacity: 0; pointer-events: none; }
+.camp .perch-say { width: auto; }
+.camp-td { font-weight: 800; font-size: 19px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .camp:not(.waiting) { transition: none; } }
 .camp-body { display: grid; gap: 8px; min-width: 0; }
 .camp-body p { margin: 0; }
 .camp-name { font-weight: 800; }

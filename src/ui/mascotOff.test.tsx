@@ -2,11 +2,13 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { profilesFixture, scoreboardFixture } from '../test/data';
 import { mockFetch } from '../test/mockFetch';
-import { renderAt, seed } from '../test/render';
+import { renderAt, seed, declineCamp } from '../test/render';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { parseEspnLeagueSettings } from '../leagues/espn/parse';
 import settings from '../test/fixtures/espn-fantasy/public-settings-1900128084-2026.json';
 import { reloadAllStores } from '../storage/store';
+
+beforeEach(declineCamp);
 
 const off = () => { localStorage.setItem('nflsw:v1:mascot', 'false'); reloadAllStores(); };
 const noMascotAnywhere = () => { expect(document.querySelector('.mascot')).toBeNull(); expect(document.querySelector('.bubble')).toBeNull(); };

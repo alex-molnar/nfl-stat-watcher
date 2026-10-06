@@ -1,8 +1,13 @@
-import { act, screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { warren, profilesFixture } from '../test/data';
+import { vi } from 'vitest';
 import { reloadAllStores } from '../storage/store';
 import { renderAt, seed } from '../test/render';
+import { DEMO_LEAGUE, addDemoLeague } from '../storage/demoLeague';
+import { campStore } from '../storage/camp';
+import { followedStore } from '../storage/followed';
+import { profilesStore } from '../storage/profiles';
 import { placeCard } from './RookieCamp';
 
 const camp = () => screen.getByRole('region', { name: 'Rookie camp' });
@@ -21,12 +26,19 @@ describe('placeCard', () => {
   });
 
   it('sits below the control, lined up with it and kept on screen', () => {
-    expect(placeCard(rect(50, 100), 1000, 800)).toEqual({ left: 50, top: 144, width: 340 });
+    expect(placeCard(rect(50, 100), 1000, 800)).toEqual({ left: 50, top: 198, width: 340 }); // in the header
     expect(placeCard(rect(950, 100), 1000, 800).left).toBe(1000 - 340 - 12);
   });
 
+  it('goes to the right of a small control in the page, so it does not cover the ones under it', () => {
+    expect(placeCard(rect(50, 200, 200, 40), 1000, 800)).toEqual({ left: 264, top: 200, width: 340 });
+    expect(placeCard(rect(50, 700, 200, 40), 1000, 800)).toEqual({ left: 264, top: 800 - 190 - 12, width: 340 });
+    expect(placeCard(rect(50, 200, 200, 40), 500, 800).bottom).toBe(12); // not on a narrow screen
+    expect(placeCard(rect(50, 200, 700, 40), 1100, 800).top).toBe(200 + 40 + 14 + 54); // a wide row: below it
+  });
+
   it('goes above the control when there is no room below, and shrinks on a narrow screen', () => {
-    expect(placeCard(rect(50, 700), 1000, 800)).toEqual({ left: 50, bottom: 114, width: 340 });
+    expect(placeCard(rect(50, 700, 400), 1000, 800)).toEqual({ left: 50, bottom: 114, width: 340 });
     expect(placeCard(null, 300, 600).width).toBe(276);
   });
 
@@ -162,6 +174,139 @@ describe('rookie camp', () => {
       await act(async () => { await userEvent.click(screen.getByRole('button', { name: 'Start rookie camp' })); });
       expect(stored()).toEqual({ phase: 'running', step: 1 }); // the league drill is skipped: there already is one
       expect(camp()).toHaveTextContent('Second drill');
+    });
+  });
+
+  describe('the practice league', () => {
+    it('is offered next to Start, and starts the camp with the league and players already there', async () => {
+      renderAt('/');
+      await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
+      expect(profilesStore.get().map((p) => p.name)).toEqual([DEMO_LEAGUE]);
+      expect(followedStore.get().map((e) => e.name)).toEqual(['Patrick Mahomes', 'Jaylen Warren', 'Pittsburgh Steelers']);
+      expect(camp()).toHaveTextContent('Third drill'); // the league and the player drills are done
+    });
+
+    it('is on the first drill too, and counts it and the player drill as done', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
+      expect(camp()).toHaveTextContent('Third drill');
+      expect(profilesStore.get()).toHaveLength(1);
+    });
+
+    it('moves past both done drills in one step, so only one jump is sent', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      const steps: number[] = [];
+      const off = campStore.subscribe(() => steps.push(campStore.get().step));
+      await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
+      off();
+      expect(steps.filter((n) => n > 0)).toEqual([2]);
+    });
+
+    it('is an ordinary league, and asking again does not make a second one', () => {
+      addDemoLeague();
+      addDemoLeague();
+      expect(profilesStore.get().map((p) => p.name)).toEqual([DEMO_LEAGUE]);
+      expect(followedStore.get()).toHaveLength(3);
+    });
+  });
+
+  describe('the mascot', () => {
+    const mascots = () => document.querySelectorAll('.mascot');
+
+    it('is the only one on screen while the camp is on, and the page has its own again when it ends', async () => {
+      renderAt('/');
+      expect(mascots()).toHaveLength(1);
+      expect(camp().querySelector('.mascot')).not.toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: 'No thanks' }));
+      expect(mascots().length).toBeGreaterThan(0);
+      expect(camp).toThrow(); // the card went, and the page's mascots came back
+    });
+
+    it('is the only one during the drills too, on a page of its own', () => {
+      seed([], profilesFixture);
+      setCamp('running', 1);
+      renderAt('/');
+      expect(mascots()).toHaveLength(1);
+      expect(document.querySelector('.brand .mascot')).toBeNull();
+    });
+
+    it('goes to a dialog and comes back, and the page never gets a mascot of its own in between', async () => {
+      seed([warren], profilesFixture);
+      setCamp('running', 3);
+      renderAt('/');
+      await userEvent.click(screen.getByRole('button', { name: 'Add player' }));
+      await waitFor(() => expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument());
+      expect(mascots()).toHaveLength(1);
+      expect(document.querySelector('dialog .mascot')).not.toBeNull();
+      await act(async () => { document.querySelector('dialog')!.close(); });
+      await waitFor(() => expect(camp().querySelector('.mascot')).not.toBeNull());
+      expect(mascots()).toHaveLength(1);
+    });
+
+    it('looks worried while Skip drill or Leave camp is hovered, and calm again after', async () => {
+      seed([], profilesFixture);
+      setCamp('running', 1);
+      renderAt('/');
+      const face = () => camp().querySelector('.mascot')!;
+      await userEvent.hover(screen.getByRole('button', { name: 'Leave camp' }));
+      expect(face()).toHaveClass('worried');
+      await userEvent.unhover(screen.getByRole('button', { name: 'Leave camp' }));
+      expect(face()).not.toHaveClass('worried');
+    });
+
+    it('looks pleased for a moment when a drill is done, but not when it is skipped', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      const face = () => camp().querySelector('.mascot')!;
+      expect(face()).not.toHaveClass('happy');
+      await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
+      expect(face()).toHaveClass('happy');
+    });
+
+    it('is not pleased about a skipped drill', async () => {
+      seed([], profilesFixture);
+      setCamp('running', 1);
+      renderAt('/');
+      await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
+      expect(camp().querySelector('.mascot')).not.toHaveClass('happy');
+    });
+  });
+
+  describe('the finish', () => {
+    const hops = vi.fn();
+    beforeEach(() => {
+      hops.mockClear();
+      (HTMLElement.prototype as { animate?: unknown }).animate = hops; // not the mascot's svg: only its perch hops
+    });
+    afterEach(() => { delete (HTMLElement.prototype as { animate?: unknown }).animate; });
+    const finish = async () => {
+      seed([], profilesFixture);
+      setCamp('running', 3);
+      renderAt('/');
+      await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
+    };
+
+    it('has the mascot hop and say Touchdown!, then settle on the congratulation', async () => {
+      await finish();
+      expect(camp().querySelector('.camp-td')).toHaveTextContent('Touchdown!');
+      expect(hops).toHaveBeenCalledTimes(1);
+      expect(camp().querySelector('.mascot')).toHaveClass('happy');
+      expect(camp()).toHaveTextContent('You are on the team');
+    });
+
+    it('announces the congratulation once, and the bubble is not read out as well', async () => {
+      await finish();
+      expect(camp().querySelectorAll('[aria-live]')).toHaveLength(1);
+      expect(camp().querySelector('.camp-td')!.closest('[aria-hidden="true"]')).not.toBeNull();
+    });
+
+    it('only says it, with no hop, under reduced motion', async () => {
+      vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+      await finish();
+      expect(camp().querySelector('.camp-td')).toHaveTextContent('Touchdown!');
+      expect(hops).not.toHaveBeenCalled();
     });
   });
 });

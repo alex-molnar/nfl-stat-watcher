@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type
 import { NavLink } from 'react-router';
 import { mascotEnabledStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
-import { dialogsOpen, subscribeDialogs } from './dialogsOpen';
+import { mascotAway, subscribeDialogs } from './dialogsOpen';
 import { Mascot, SEAT_Y } from './Mascot';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -23,7 +23,7 @@ const isWide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matche
 export function Header({ actions, pageMascot = false }: { actions?: ReactNode; /** The page shows its own mascot, so the header's steps aside. The page knows this when it renders, which a header could only learn too late. */ pageMascot?: boolean }) {
   const bar = useRef<HTMLElement>(null);
   const mascotOn = useStore(mascotEnabledStore);
-  const inDialog = useSyncExternalStore(subscribeDialogs, dialogsOpen, () => false); // a dialog has the mascot now
+  const inDialog = useSyncExternalStore(subscribeDialogs, mascotAway, () => false); // a dialog or the camp has the mascot now
   // On a wide screen the mascot sits on the bottom edge of the header with its legs hanging over it; on a narrower one it stands beside the title.
   const seated = useSyncExternalStore(subscribeWide, isWide, () => false);
   // The header is pinned to the top, so it publishes its height: other sticky parts and focus scrolling sit below it (WCAG 2.4.11).

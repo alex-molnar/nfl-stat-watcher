@@ -6,10 +6,12 @@ import teams from '../test/fixtures/standings.json';
 import summary from '../test/fixtures/summary-pit-cle.json';
 import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
-import { renderAt, seed } from '../test/render';
+import { renderAt, seed, declineCamp } from '../test/render';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { parseEspnLeagueSettings } from '../leagues/espn/parse';
 import settings from '../test/fixtures/espn-fantasy/public-settings-1900128084-2026.json';
+
+beforeEach(declineCamp);
 
 const card = (name: string) => screen.getByText(name).closest('li')!;
 

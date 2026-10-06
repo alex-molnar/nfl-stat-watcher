@@ -2,7 +2,9 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mahomes, profilesFixture, warren } from '../test/data';
 import { reloadAllStores } from '../storage/store';
-import { renderAt, seed } from '../test/render';
+import { renderAt, seed, declineCamp } from '../test/render';
+
+beforeEach(declineCamp);
 
 const stored = () => localStorage.getItem('nflsw:v1:nameDisplay');
 const radio = (name: string) => screen.getByRole('radio', { name });
