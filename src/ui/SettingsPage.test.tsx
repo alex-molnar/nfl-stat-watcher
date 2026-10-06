@@ -121,6 +121,27 @@ describe('settings page', () => {
       expect(localStorage.getItem('nflsw:v1:mascot')).toBe('false');
     });
 
+    it('is called Fumble unless you name it', async () => {
+      renderAt('/settings');
+      const field = screen.getByRole('textbox', { name: 'Name' });
+      expect(field).toHaveValue('Fumble');
+      await userEvent.clear(field);
+      await userEvent.type(field, 'Gridley');
+      expect(localStorage.getItem('nflsw:v1:mascotName')).toBe('"Fumble"'); // a working copy until Save
+      await userEvent.click(saveBtn()!);
+      expect(localStorage.getItem('nflsw:v1:mascotName')).toBe('"Gridley"');
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Gridley');
+    });
+
+    it('goes back to Fumble when the name is saved blank', async () => {
+      localStorage.setItem('nflsw:v1:mascotName', JSON.stringify('Gridley'));
+      reloadAllStores();
+      renderAt('/settings');
+      await userEvent.clear(screen.getByRole('textbox', { name: 'Name' }));
+      await userEvent.click(saveBtn()!);
+      expect(localStorage.getItem('nflsw:v1:mascotName')).toBe('"Fumble"');
+    });
+
     it('takes the mascot out of the header at once when it is saved off', async () => {
       renderAt('/settings');
       expect(document.querySelector('.brand .mascot')).not.toBeNull();

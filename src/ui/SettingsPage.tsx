@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
-import { mascotEnabledStore } from '../storage/mascot';
+import { DEFAULT_MASCOT_NAME, MAX_MASCOT_NAME, mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { reloadAllStores } from '../storage/store';
 import { useStore } from '../storage/useStore';
 import { backdropClose } from './backdropClose';
@@ -18,12 +18,15 @@ export function SettingsPage() {
   const hint = useHint();
   const stored = useStore(nameDisplayStore);
   const storedMascot = useStore(mascotEnabledStore);
-  const [draft, setDraft] = useState<{ mode: NameDisplayMode; mascot: boolean } | null>(null); // null: no unsaved change
+  const storedName = useStore(mascotNameStore);
+  const [draft, setDraft] = useState<{ mode: NameDisplayMode; mascot: boolean; name: string } | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
   const confirmRef = useRef<HTMLDialogElement>(null);
   const mode = draft?.mode ?? stored;
   const mascot = draft?.mascot ?? storedMascot;
-  const dirty = mode !== stored || mascot !== storedMascot;
+  const name = draft?.name ?? storedName;
+  const change = (patch: Partial<{ mode: NameDisplayMode; mascot: boolean; name: string }>) => setDraft({ mode, mascot, name, ...patch });
+  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -36,6 +39,7 @@ export function SettingsPage() {
   function save() {
     nameDisplayStore.set(mode);
     mascotEnabledStore.set(mascot);
+    mascotNameStore.set(name.trim() || DEFAULT_MASCOT_NAME);
     setDraft(null);
     setNotice('Saved settings.');
   }
@@ -67,7 +71,7 @@ export function SettingsPage() {
                 <div key={m} className="choice-row">
                   {/* The example sits outside the label, so the radio's name stays "Full", "Initial" or "Formal". */}
                   <label className="choice">
-                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => setDraft({ mode: m, mascot })} />
+                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => change({ mode: m })} />
                     {MODE_LABELS[m]}
                   </label>
                   <span id={`name-display-${m}`} className="muted">e.g. {MODE_EXAMPLES[m]}</span>
@@ -78,9 +82,15 @@ export function SettingsPage() {
           <fieldset>
             <legend>Mascot</legend>
             <label className="choice">
-              <input type="checkbox" checked={mascot} aria-describedby="mascot-help" onChange={(event) => setDraft({ mode, mascot: event.target.checked })} />
+              <input type="checkbox" checked={mascot} aria-describedby="mascot-help" onChange={(event) => change({ mascot: event.target.checked })} />
               Show the mascot
             </label>
+            <div className="field-wrap">
+              <label className="field-label">
+                Name
+                <input value={name} maxLength={MAX_MASCOT_NAME} placeholder={DEFAULT_MASCOT_NAME} onChange={(event) => change({ name: event.target.value })} />
+              </label>
+            </div>
             <p id="mascot-help" className="muted">The football in glasses that appears beside the title and says what to do next when a page is empty. Off, every page uses plain text instead, and the Leagues menu explains its buttons in tooltips.</p>
           </fieldset>
           <fieldset>
