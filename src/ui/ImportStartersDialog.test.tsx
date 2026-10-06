@@ -12,7 +12,8 @@ import { renderAt, seed } from '../test/render';
 const draft = normalizeEspnLeague(parseEspnLeagueSettings(settings));
 const league = { id: 'p1', name: 'Tapai', preset: 'custom' as const, values: draft.values, source: draft.source };
 const followed = (): { espnId: string; side?: string; position: string; teamAbbr: string }[] => JSON.parse(localStorage.getItem('nflsw:v1:followed') ?? '[]');
-const opener = () => screen.getByRole('button', { name: 'Sync starters' });
+// The header's button: with nobody followed the empty state offers one too, in the speech bubble.
+const opener = () => within(screen.getByRole('banner')).getByRole('button', { name: 'Sync starters' });
 const sync = () => userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Sync starters' }));
 const routes = { scoreboard: scoreboardFixture, standings, 'leagues/1900128084?view=mRoster': lineups };
 
@@ -28,7 +29,7 @@ describe('sync starters', () => {
     mockFetch(routes);
     seed([], [league]);
     renderAt('/');
-    await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+    await userEvent.click(opener());
     await userEvent.selectOptions(await screen.findByLabelText('Your team in this league'), '1');
     expect(await screen.findByRole('region', { name: /Starters for/ })).toBeInTheDocument();
     await sync();
@@ -60,7 +61,7 @@ describe('sync starters', () => {
     mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
     seed([], [league]);
     renderAt('/');
-    await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+    await userEvent.click(opener());
     expect(await screen.findByText(/This league is private/)).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Copy lineups from ESPN' });
     expect(link.getAttribute('href')).toMatch(/^javascript:/);
@@ -84,7 +85,7 @@ describe('sync starters', () => {
       mockFetch(routes);
       seed([extra('3117251', 'Christian McCaffrey', { position: 'RB' }), extra('999', 'Bench Guy'), extra('998', 'Other league guy', { profileId: 'p2' })], [{ ...league, source: { ...league.source, teamId: '1' } }, { ...league, id: 'p2', name: 'Second' }]);
       renderAt('/');
-      await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+      await userEvent.click(opener());
       return screen.findByRole('region', { name: /Starters for/ });
     };
     const list = (region: HTMLElement, title: RegExp) => within(region).getByRole('heading', { name: title }).parentElement!;
@@ -190,7 +191,7 @@ describe('sync starters', () => {
       await openAll('Sync your starters');
       expect(await screen.findByText(/This league is private/)).toBeInTheDocument();
       expect(screen.getByText('League 2 of 2: Second')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Sync starters' })).toBeDisabled(); // nothing to sync until the loop is done
+      expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Sync starters' })).toBeDisabled(); // nothing to sync until the loop is done
       await userEvent.click(screen.getByLabelText(/Rosters JSON for/));
       await userEvent.paste(JSON.stringify({ ...lineups, id: 777 }));
       const region = await screen.findByRole('region', { name: 'Starters for your side' });
@@ -205,7 +206,7 @@ describe('sync starters', () => {
       mockFetch(privateRoutes);
       seed([], [first, second]);
       renderAt('/');
-      await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+      await userEvent.click(opener());
       await userEvent.selectOptions(await within(await screen.findByRole('dialog')).findByLabelText('League'), 'All');
       await userEvent.click(await screen.findByRole('button', { name: 'Skip Second' }));
       await screen.findByRole('region', { name: 'Starters for your side' });
@@ -235,7 +236,7 @@ describe('sync starters', () => {
     mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
     seed([], [league]);
     renderAt('/');
-    await userEvent.click(screen.getByRole('button', { name: 'Sync starters' }));
+    await userEvent.click(opener());
     const area = await screen.findByLabelText(/Rosters JSON for/);
     expect(screen.getByRole('button', { name: 'Import these rosters' })).toBeDisabled(); // nothing to import yet
     fireEvent.change(area, { target: { value: JSON.stringify(lineups) } }); // typing or dropping fires change, not paste

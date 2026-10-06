@@ -95,8 +95,11 @@ export function MainPage() {
               <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
             </MascotSays>
           ) : (
-            <MascotSays text="You're not following anyone yet. Add players or team defenses from any of your leagues.">
-              {addButton()}
+            <MascotSays text={`You're not following anyone yet. Add players or team defenses from any of your leagues.${hasImported ? ' Alternatively sync your starters from your imported leagues.' : ''}`}>
+              <div className="bubble-actions">
+                {addButton()}
+                {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Sync starters</button>}
+              </div>
             </MascotSays>
           )
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
