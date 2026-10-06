@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { getAthlete, getLeagueInjuries, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
+import { fakeGames, sandboxOn, subscribeSandbox } from '../espn/campSandbox';
 import { parseLeagueInjuries } from '../stats/injury';
 import { normalizeSummary } from '../stats/normalize';
 import { toGames, type GameInfo } from '../stats/scoreboard';
@@ -33,9 +34,12 @@ export function freshness(isError: boolean, dataUpdatedAt: number): string | nul
 
 // Paused (WCAG 2.2.2): no interval and no focus refetch, loaded data stays on screen.
 export function useScoreboard(paused = false) {
+  // Rookie camp's fake games ride beside the real ones while its last drill runs. They are added on the way out, not cached with the real schedule.
+  const practice = useSyncExternalStore(subscribeSandbox, sandboxOn, () => false);
   return useQuery({
     queryKey: ['scoreboard'],
     queryFn: async () => toGames(await getScoreboard()),
+    select: practice ? (games) => [...games, ...fakeGames()] : undefined,
     refetchInterval: (query) => scoreboardRefetch(query.state.status, query.state.data, paused),
     refetchOnWindowFocus: !paused,
     refetchOnReconnect: !paused,
