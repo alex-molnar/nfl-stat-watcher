@@ -359,7 +359,7 @@ export function LeaguesPage() {
 
   return (
     <>
-      <Header />
+      <Header pageMascot={profiles.length === 0} />
       <main className="wrap">
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}

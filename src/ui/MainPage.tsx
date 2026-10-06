@@ -77,6 +77,7 @@ export function MainPage() {
   return (
     <>
       <Header
+        pageMascot={noLeagues}
         actions={
           <>
             <PauseButton />

@@ -21,8 +21,8 @@ describe('header mascot', () => {
     expect(container.querySelector('.brand .mascot')).toHaveClass('no-entrance');
   });
 
-  it('steps aside while the page shows a mascot of its own, and comes back after', () => {
-    const { container, rerender } = inRouter(<><Header /><MascotSays text="Add a league first." /></>);
+  it('steps aside when the page says it shows a mascot of its own, and is back when it does not', () => {
+    const { container, rerender } = inRouter(<><Header pageMascot /><MascotSays text="Add a league first." /></>);
     expect(container.querySelector('.brand .mascot')).toBeNull();
     expect(container.querySelector('.mascot-says .mascot')).not.toBeNull();
     rerender(<MemoryRouter><Header /></MemoryRouter>);

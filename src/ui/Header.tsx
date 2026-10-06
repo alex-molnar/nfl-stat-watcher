@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import { Mascot, SEAT_Y } from './Mascot';
-import { mascotsOnPage, subscribeMascots } from './mascotPresence';
 import { ThemeToggle } from './ThemeToggle';
 
 const SEAT_SIZE = 82; // px, the mascot's size when it sits on the edge
@@ -18,9 +17,8 @@ const isWide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matche
  * Brand on the left (the title, then the mascot, unless the page is already showing one), then the page's own buttons, then the tabs and theme switch pinned to the right edge, so
  * they stay put however many page buttons there are.
  */
-export function Header({ actions }: { actions?: ReactNode }) {
+export function Header({ actions, pageMascot = false }: { actions?: ReactNode; /** The page shows its own mascot, so the header's steps aside. The page knows this when it renders, which a header could only learn too late. */ pageMascot?: boolean }) {
   const bar = useRef<HTMLElement>(null);
-  const pageHasMascot = useSyncExternalStore(subscribeMascots, mascotsOnPage, mascotsOnPage) > 0;
   // On a wide screen the mascot sits on the bottom edge of the header with its legs hanging over it; on a narrower one it stands beside the title.
   const seated = useSyncExternalStore(subscribeWide, isWide, () => false);
   // The header is pinned to the top, so it publishes its height: other sticky parts and focus scrolling sit below it (WCAG 2.4.11).
@@ -42,7 +40,7 @@ export function Header({ actions }: { actions?: ReactNode }) {
       <div className="wrap top">
         <h1 className="brand">
           Stat Watch
-          {!pageHasMascot && (
+          {!pageMascot && (
             // The seat holds the space beside the title; the mascot is hung from the header's bottom edge by `--hang`, the part of the drawing below the body.
             <span className={`brand-seat${seated ? ' is-seated' : ''}`} style={{ '--seat': `${SEAT_SIZE}px`, '--hang': `${(SEAT_SIZE * (200 - SEAT_Y)) / 200}px` } as CSSProperties}>
               <Mascot size={seated ? SEAT_SIZE : 52} className="brand-mascot" entrance={false} seated={seated} />

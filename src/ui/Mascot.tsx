@@ -1,6 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { mascotAppeared, mascotLeft } from './mascotFlight';
-import { registerPageMascot } from './mascotPresence';
 import { TypedText } from './TypedText';
 
 const INK = '#14231A';
@@ -133,7 +132,6 @@ export function Mascot({ size = 160, className, pointAt, entrance = true, seated
 
 /** The mascot telling the user something in a speech bubble. The text types itself out, while assistive technology reads it whole; `minLines` keeps room for a longer text that may replace it. */
 export function MascotSays({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
-  useLayoutEffect(() => registerPageMascot(), []); // before paint, so the header's mascot never shows beside this one
   return (
     <div className="empty mascot-says">
       <Mascot size={168} pointAt={pointAt} />

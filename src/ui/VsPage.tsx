@@ -190,7 +190,7 @@ export function VsPage() {
   if (profiles.length > 0) return <VsMatchup />;
   return (
     <>
-      <Header />
+      <Header pageMascot />
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
         <MascotSays text="Add a scoring league first to compare a matchup.">
