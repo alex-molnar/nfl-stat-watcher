@@ -227,8 +227,7 @@ const gridiron = (px, cls = '') => `
     <g class="rig m-leg-r" ${joint(114, 124)}>${sock(114)}${cleat(118, -1)}</g>
     <g class="rig m-arm-l" ${joint(36, 98)}>${limb('M36 98Q14 106 18 128', 9)}${glove(18, 134)}</g>
     <g transform="translate(20 4) scale(.8)"><g transform="rotate(-12 100 100)">${ball()}${face()}</g></g>
-    <g class="rig m-arm-r" ${joint(162, 88)}>${limb('M162 88Q186 96 183 120', 9)}${glove(183, 128)}
-      <path d="M183 136V148" stroke="${INK}" stroke-width="9" stroke-linecap="round"/><path d="M183 136V148" stroke="#86EFAC" stroke-width="4.5" stroke-linecap="round"/></g>
+    <g class="rig m-arm-r" ${joint(162, 88)}>${limb('M162 88Q186 96 183 120', 9)}${glove(183, 128)}</g>
     </g>
   </g>
 </svg>`;
@@ -236,7 +235,7 @@ const gridiron = (px, cls = '') => `
 const variants = [
   { name: 'Stubby', draw: stubby, note: 'Axis: proportion. The Studious ball, small and round on short legs, noodle arms with round mitts. The cutest, the fewest parts, and the easiest to keep readable when small.' },
   { name: 'Upright', draw: upright, note: 'Axis: posture. The ball stands on end and leans, the face stays level. Longer legs and arms give it room to walk and point; the cost is that it reads a little less like a football at a glance.' },
-  { name: 'Gridiron', draw: gridiron, note: 'Axis: styling. The Stubby proportions in kit: striped socks, cleats, mint gloves and a pointing finger on the right glove. The most sporty and the most to draw.' },
+  { name: 'Gridiron', draw: gridiron, note: 'Axis: styling. The Stubby proportions in kit: striped socks, cleats, and mint gloves. The most sporty and the most to draw. The chosen one.' },
 ];
 
 /* ============ One scene per direction, the same layout for each so only the mascot changes ============ */
