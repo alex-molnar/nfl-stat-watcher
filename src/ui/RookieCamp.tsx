@@ -17,6 +17,8 @@ interface Drill {
   /** Where the control for this drill lives; elsewhere the camp points at that page's tab instead. No page: the control is the tab itself. */
   on?: '/' | '/leagues';
   target: string;
+  /** Another control that does the drill's job, which stays usable (Import leagues, for the league drill). */
+  also?: string;
   text: string;
   /** What is said while the user is on another page than `on`. */
   go?: string;
@@ -28,7 +30,7 @@ interface Drill {
 }
 
 export const DRILLS: Drill[] = [
-  { on: '/leagues', target: '[data-camp="add-league"]', go: 'First drill: a league. Open Leagues and set one up.', text: 'First drill: set up a league. Press Add a league, or Import leagues if you play on ESPN.', done: (f) => f.leagues > 0, practice: true },
+  { on: '/leagues', target: '[data-camp="add-league"]', also: '[data-camp="import-leagues"]', go: 'First drill: a league. Open Leagues and set one up.', text: 'First drill: set up a league. Press Add a league, or Import leagues if you play on ESPN.', done: (f) => f.leagues > 0, practice: true },
   { on: '/', target: '[data-camp="add-player"]', go: 'Second drill: follow a player. Open Players.', text: 'Second drill: follow a player. Press Add player and pick someone from your league.', done: (f) => f.followed > 0 },
   { target: '.nav a[href="/vs"]', text: 'Third drill: pit two sides against each other. Open Vs Mode.', done: (f) => f.path === '/vs' },
   { on: '/', target: '.hl-btn', go: 'Last drill: watch a highlight. Open Players.', text: 'Last drill: big plays get a ▶ Highlights button on a player’s card. Open one when you see it, or skip this drill.', clicked: '.hl-btn' },
@@ -164,6 +166,23 @@ export function RookieCamp() {
 
   const here = !drill?.on || drill.on === pathname;
   const { selector: measured, rect } = useTarget(drill ? (here ? drill.target : navLink(drill.on!)) : null);
+
+  // While a drill waits, the page is dead except for the control it points at (and the other way of doing the same job) and the camp's own card.
+  // A dialog that opens from there is the user's to use freely: the guard stands down while one is open.
+  const guarding = !!drill && measured !== null && !inDialog;
+  useEffect(() => {
+    if (!guarding) return;
+    const allowed = ['.camp', measured, drill?.also].filter(Boolean).join(', ');
+    const guard = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') return; // only what would press something
+      if ((event.target as Element | null)?.closest?.(allowed)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const events = ['pointerdown', 'mousedown', 'click', 'dblclick', 'auxclick', 'keydown'];
+    events.forEach((type) => document.addEventListener(type, guard, true));
+    return () => events.forEach((type) => document.removeEventListener(type, guard, true));
+  }, [guarding, measured, drill]);
 
   const finished = phase === 'finished' && mascotOn;
   const wants = mascotOn && (finished || !!drill);

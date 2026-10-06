@@ -394,7 +394,7 @@ export function LeaguesPage() {
             <button type="button" className="btn press" data-camp="add-league" {...hintOn('add')} onClick={() => { if (mayLeave()) { const draft = newProfile('New league', profiles); setAdding(draft); setSelectedId(draft.id); } }}>
               Add a league
             </button>
-            <button type="button" className="btn press" {...hintOn('import')} onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
+            <button type="button" className="btn press" data-camp="import-leagues" {...hintOn('import')} onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
               Import leagues
             </button>
             <button type="button" className="btn press" {...hintOn('profile')} onClick={() => setImportProfileOpen(true)}>

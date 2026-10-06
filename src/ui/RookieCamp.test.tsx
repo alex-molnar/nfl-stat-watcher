@@ -134,6 +134,25 @@ describe('rookie camp', () => {
       expect(stored()).toEqual({ phase: 'running', step: 1 });
     });
 
+    it('lets nothing else be pressed while a drill waits: only its control, the other way to do it, and the camp card', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      expect(camp()).toHaveTextContent('Press Add a league');
+      await userEvent.click(screen.getByRole('button', { name: 'Import StatWatch profile' }));
+      expect(screen.queryByRole('dialog', { name: /profile/i })).toBeNull(); // swallowed
+      await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
+      expect(screen.queryByRole('heading', { name: 'Settings' })).toBeNull(); // did not navigate
+      await userEvent.click(within(camp()).getByRole('button', { name: 'Skip drill' })); // the card still works
+      expect(stored()).toEqual({ phase: 'running', step: 1 });
+    });
+
+    it('lets Import leagues through for the league drill, and everything inside the dialog it opens', async () => {
+      setCamp('running', 0);
+      renderAt('/leagues');
+      await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
+      expect(await screen.findByRole('dialog', { name: /import/i })).toBeInTheDocument();
+    });
+
     it('skip a drill that is already done', () => {
       seed([], profilesFixture);
       setCamp('running', 0);
@@ -276,10 +295,10 @@ describe('rookie camp', () => {
     });
 
     it('goes to a dialog and comes back, and the page never gets a mascot of its own in between', async () => {
-      seed([warren], profilesFixture);
-      setCamp('running', 3);
+      seed([], profilesFixture);
+      setCamp('running', 1);
       renderAt('/');
-      await userEvent.click(screen.getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument());
       expect(mascots()).toHaveLength(1);
       expect(document.querySelector('dialog .mascot')).not.toBeNull();
