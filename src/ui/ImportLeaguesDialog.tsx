@@ -252,16 +252,16 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
           <h2 id="import-title">Import ESPN leagues</h2>
           <button type="button" className="close" aria-label="Close import leagues dialog" onClick={cancel}>×</button>
         </div>
-        <label className="field-label">
+        <label className="field-label" data-camp="import-links">
           ESPN fantasy football league links or IDs, one per line
           <textarea ref={inputRef} rows={3} {...hint('Paste the link of each ESPN league, or just its ID: the number after leagueId= in the address.')} value={leagueInputs} disabled={busy} onChange={(event) => { setLeagueInputs(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="Paste league links or decimal IDs" />
         </label>
-        <label className="field-label">
+        <label className="field-label" data-camp="import-season">
           Season
           <input type="number" min="2000" max="2100" step="1" {...hint('The year the season started, for example 2026. It is the season of the league settings that is loaded.')} value={season} disabled={busy} onChange={(event) => { setSeason(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="For example, 2026" />
         </label>
         <p className="muted">Public settings load anonymously. For a private league you copy its settings page across from your own signed-in ESPN tab; Stat Watch never asks for your ESPN password.</p>
-        <button type="button" className="btn btn-primary" {...hint('Looks the leagues up on ESPN. Nothing changes here until you choose what to import.')} onClick={() => void loadAll()} disabled={busy}>Load leagues</button>
+        <button type="button" className="btn btn-primary" data-camp="import-load" {...hint('Looks the leagues up on ESPN. Nothing changes here until you choose what to import.')} onClick={() => void loadAll()} disabled={busy}>Load leagues</button>
         {(message || error) && <p className={error ? 'error msg' : 'muted msg'} role={error ? 'alert' : 'status'} aria-live="polite">{error || message}</p>}
         {entries.length > 0 && (
           <section className="import-results" aria-label="League import results">
@@ -342,7 +342,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
         )}
         <div className="dlg-actions">
           <button type="button" className="btn" onClick={cancel}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={!canImport} onClick={commit}>Import selected leagues ({selected.length})</button>
+          <button type="button" className="btn btn-primary" data-camp="import-commit" disabled={!canImport} onClick={commit}>Import selected leagues ({selected.length})</button>
         </div>
       </div>
     </dialog>

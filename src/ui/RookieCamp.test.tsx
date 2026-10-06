@@ -141,7 +141,7 @@ describe('rookie camp', () => {
       await userEvent.click(within(await welcome()).getByRole('button', { name: 'Enter training camp' }));
       expect(stored()).toEqual({ phase: 'running', step: 0, sub: 0 });
       expect(camp()).toHaveTextContent('First drill: a league. Open Leagues');
-      expect(camp()).toHaveTextContent('drill 1 of 4');
+      expect(camp()).toHaveTextContent('drill 1 of 6');
       expect(ring()).not.toBeNull();
     });
 
@@ -187,18 +187,19 @@ describe('rookie camp', () => {
       renderAt('/');
       expect(camp()).toHaveTextContent('Third drill');
       await userEvent.click(screen.getByRole('link', { name: 'Vs Mode' }));
-      expect(camp()).toHaveTextContent('Last drill');
+      expect(stored()).toEqual({ phase: 'running', step: 2, sub: 1 }); // the tour of the page begins
+      expect(await screen.findByRole('dialog', { name: /drill 3 of 6/ })).toHaveTextContent('This is Vs Mode');
     });
 
     it('are done once the highlight dialog has the mascot, and the congratulation waits for that dialog to close', async () => {
       seed([warren], profilesFixture);
-      setCamp('running', 3);
+      setCamp('running', 5);
       renderAt('/');
       const clip = document.createElement('button');
       clip.className = 'hl-btn';
       document.body.appendChild(clip);
       await userEvent.click(clip);
-      expect(stored()).toEqual({ phase: 'running', step: 3, sub: 0 }); // the card stays, with its mascot, until the dialog has its own
+      expect(stored()).toEqual({ phase: 'running', step: 5, sub: 0 }); // the card stays, with its mascot, until the dialog has its own
       let leave = () => {};
       act(() => { leave = registerOpenDialog(); }); // the highlights dialog's mascot is there
       expect(stored()).toEqual({ phase: 'finished', step: 0, sub: 0 });
@@ -211,7 +212,7 @@ describe('rookie camp', () => {
     it('forget a press that opened no dialog, and stay on the drill', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       seed([warren], profilesFixture);
-      setCamp('running', 3);
+      setCamp('running', 5);
       renderAt('/');
       const clip = document.createElement('button');
       clip.className = 'hl-btn';
@@ -219,7 +220,7 @@ describe('rookie camp', () => {
       await userEvent.click(clip);
       await act(async () => { vi.advanceTimersByTime(2500); });
       act(() => { registerOpenDialog()(); });
-      expect(stored()).toEqual({ phase: 'running', step: 3, sub: 0 });
+      expect(stored()).toEqual({ phase: 'running', step: 5, sub: 0 });
       clip.remove();
       vi.useRealTimers();
     });
@@ -240,10 +241,10 @@ describe('rookie camp', () => {
 
     it('can be skipped one drill at a time, and the congratulation ends it', async () => {
       seed([], profilesFixture);
-      setCamp('running', 2);
+      setCamp('running', 3);
       renderAt('/');
       await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
-      expect(camp()).toHaveTextContent('Last drill');
+      expect(camp()).toHaveTextContent('Last drill'); // the sync drill has no ESPN league to work on, so it is passed over
       await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument(); // the card is gone
       const dialog = await screen.findByRole('dialog', { name: 'Touchdown!' });
@@ -259,7 +260,7 @@ describe('rookie camp', () => {
       const { unmount } = renderAt('/');
       unmount();
       renderAt('/');
-      expect(camp()).toHaveTextContent('drill 3 of 4');
+      expect(camp()).toHaveTextContent('drill 3 of 6');
       await userEvent.click(screen.getByRole('button', { name: 'Leave camp' }));
       expect(stored()).toEqual({ phase: 'declined', step: 0, sub: 0 });
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument();
@@ -395,7 +396,7 @@ describe('rookie camp', () => {
     afterEach(() => { delete (HTMLElement.prototype as { animate?: unknown }).animate; });
     const finish = async () => {
       seed([], profilesFixture);
-      setCamp('running', 3);
+      setCamp('running', 5);
       renderAt('/');
       await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
       return screen.findByRole('dialog', { name: 'Touchdown!' });

@@ -39,11 +39,11 @@ export function CampWelcome() {
       <div className="dlg">
         <h2 id="welcome-title">Hi, I’m {name}!</h2>
         <p id="welcome-text">
-          <TypedText text="I’m the football in glasses who keeps an eye on the stats around here. Want to join my training camp? It’s four short drills on the real app, and you’ll know your way around in about a minute. And if I’m ever in the way, you can turn me off at any point in Settings." delay={350} hold={flying} />
+          <TypedText text="I’m the football in glasses who keeps an eye on the stats around here. Want to join my training camp? It’s a handful of short drills on the real app, and you’ll know your way around in a few minutes. And if I’m ever in the way, you can turn me off at any point in Settings." delay={350} hold={flying} />
         </p>
         <div className="dlg-actions">
           {/* Enter is first, so it takes the focus the dialog opens with. */}
-          <button type="button" className="btn btn-primary press" {...hint('Four drills, each one done on the real pages.')} onClick={startCamp}>Enter training camp</button>
+          <button type="button" className="btn btn-primary press" {...hint('A few drills, each one done on the real pages.')} onClick={startCamp}>Enter training camp</button>
           <button type="button" className="btn press" {...hint('You can start it later from Settings.')} onClick={() => endCamp('declined')}>Skip</button>
           <button type="button" className="btn press" {...hint('Turns me off. You can switch me back on in Settings.')} onClick={() => { endCamp('declined'); mascotEnabledStore.set(false); }}>Skip and disable {name}</button>
         </div>

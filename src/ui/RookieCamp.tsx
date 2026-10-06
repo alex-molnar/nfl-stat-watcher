@@ -7,7 +7,7 @@ import { followedStore, sideOf } from '../storage/followed';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
-import { DRILLS, type Ctx, type Facts } from './campDrills';
+import { DRILLS, stepOn, toNextDrill, type Ctx, type Facts } from './campDrills';
 import { dialogsOpen, registerCampMascot, subscribeDialogs } from './dialogsOpen';
 import { Mascot, SEAT_Y } from './Mascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
@@ -96,6 +96,7 @@ function useTarget(targets: string[] | null, needs?: string) {
 
 const CHEER_MS = 1800; // how long the mascot looks pleased after a drill
 const PRESS_MS = 2000; // how long a press on a step's button waits for the dialog it should open
+const PATIENCE_MS = 4000; // how long a step whose controls have not shown up stays out of sight before the card appears anyway, with Skip drill and Leave camp
 const GRACE_MS = 700; // how long what a step needs may be off the page (a page changing, a list loading) before the camp steps back, or on for an optional step
 
 /** The dialog on top, if one is open: the card goes into it, because a modal dialog blocks everything outside it and a card outside could not be pressed. */
@@ -131,11 +132,14 @@ export function RookieCamp() {
   const running = phase === 'running' && mascotOn;
   const drill = running ? DRILLS[step] : undefined;
   const current = drill?.steps[sub];
-  const facts: Facts = { leagues: profiles.length, followed: profiles.length ? followed.filter((e) => sideOf(e) === 'mine').length : 0, path: pathname };
+  const facts: Facts = { leagues: profiles.length, followed: profiles.length ? followed.filter((e) => sideOf(e) === 'mine').length : 0, path: pathname, imported: profiles.some((p) => p.source) };
 
-  const here = !drill?.on || drill.on === pathname;
-  // Elsewhere than the drill's page the camp points at that page's tab.
-  const targets = current ? (here ? current.target : [navLink(drill!.on!)]) : null;
+  const on = drill && current ? stepOn(drill, current) : undefined;
+  const here = !on || on === pathname;
+  // A modal step is a dialog (`CampTour`), not a ring and a card: nothing is measured or guarded.
+  const modal = !!current?.modal && here;
+  // Elsewhere than the step's page the camp points at that page's tab.
+  const targets = current && !modal ? (here ? current.target : [navLink(on!)]) : null;
   const { key: measured, rect, present } = useTarget(targets, here ? current?.needs : undefined);
 
   // What the step has seen: a note it can keep (what a field held when it began), and that it has moved on, so two quick checks do not move two steps.
@@ -149,7 +153,7 @@ export function RookieCamp() {
     if (moved.current === where) return;
     moved.current = where;
     if (cheered) setCheer(true);
-    campStore.set(step + 1 >= DRILLS.length ? { phase: 'finished', step: 0, sub: 0 } : { phase: 'running', step: step + 1, sub: 0 });
+    toNextDrill(step);
   };
   const nextStep = (cheered: boolean) => {
     if (!drill || sub + 1 >= drill.steps.length) return nextDrill(cheered);
@@ -157,6 +161,16 @@ export function RookieCamp() {
     moved.current = where;
     campStore.set({ phase: 'running', step, sub: sub + 1 });
   };
+
+  // A stored place the drills no longer have (the list changed since) lands on the start of the drill, or on the end.
+  useEffect(() => {
+    if (!running) return;
+    if (step >= DRILLS.length) campStore.set({ phase: 'finished', step: 0, sub: 0 });
+    else if (sub >= DRILLS[step]!.steps.length) campStore.set({ phase: 'running', step, sub: 0 });
+  }, [running, step, sub]);
+  // A drill with nothing to work on (no league to compare, none from ESPN to sync) is passed over.
+  const idle = !!drill?.skipIf?.(facts);
+  useEffect(() => { if (idle) nextDrill(false); }); // eslint-disable-line react-hooks/exhaustive-deps -- nextDrill reads this render's step
 
   // A step that is done by what is on the page or in the state is looked at often; one that has nothing to wait for is passed over.
   useEffect(() => {
@@ -206,6 +220,13 @@ export function RookieCamp() {
   // While a step waits, the page is dead except for what it points at (and what it allows besides) and the camp's own card, in dialogs too: a closed
   // dialog is the user's to close with Escape, and the camp then steps back to the step that opens it. A click on the area around a dialog counts
   // only for a step about closing it.
+  const [patient, setPatient] = useState(true);
+  useEffect(() => {
+    setPatient(true);
+    if (!current?.wait) return;
+    const timer = setTimeout(() => setPatient(false), PATIENCE_MS);
+    return () => clearTimeout(timer);
+  }, [where]); // eslint-disable-line react-hooks/exhaustive-deps -- the step is whatever `where` says
   const guarding = !!current && measured !== null;
   useEffect(() => {
     if (!guarding || !targets) return;
@@ -238,10 +259,12 @@ export function RookieCamp() {
 
   // A step's card waits for the first look at what it points at, or the mascot would land in the corner first and jump again.
   if (!visible || measured === null) return null;
+  // A step whose controls come and go keeps its card away until they are there; the mascot is in the dialog meanwhile. If they never come, the card appears.
+  if (current!.wait && !rect && patient && here) return null;
 
   // Hovering or focusing what ends the practice early makes the mascot worried.
   const wary = { onMouseEnter: () => setWorried(true), onMouseLeave: () => setWorried(false), onFocus: () => setWorried(true), onBlur: () => setWorried(false) };
-  const text = here ? current!.text : drill!.go!;
+  const text = here ? current!.text : current!.go ?? drill!.go!;
   const last = sub + 1 >= drill!.steps.length;
   const buttons = (
     <>

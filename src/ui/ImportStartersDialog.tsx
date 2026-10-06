@@ -213,7 +213,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
           </>
         )}
         {!pending && loaded.map(({ profile: target, lineups }) => (
-          <label key={target.id} className="field-label">
+          <label key={target.id} className="field-label" data-camp="starters-team">
             {everyLeague ? `Your team in ${target.name}` : 'Your team in this league'}
             <select {...hint('Pick your own fantasy team, so I know whose lineup to read. It is remembered for next time.')} value={myTeamIn(target, lineups)} onChange={(event) => { setStatus(''); if (event.target.value) setLeagueTeam(target.id, event.target.value); }}>
               <option value="">Choose your team</option>
@@ -225,7 +225,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
           <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>
         )}
         {!pending && hasTeam && (
-          <label className="check-row">
+          <label className="check-row" data-camp="starters-remove">
             <input type="checkbox" {...hint('Players you follow in this league who are not in the lineup are removed too. Off, nothing is removed.')} checked={removeOthers} onChange={(event) => targets.forEach((target) => setLeagueRemoveNonStarters(target.id, event.target.checked))} />
             Remove every non starter player
           </label>
@@ -248,7 +248,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         {teams.isError && <p className="error" role="alert">NFL team data is unavailable, so starters cannot be added right now.</p>}
         <div className="dlg-actions">
           <button type="button" className="btn" onClick={onClose}>{both ? 'Cancel' : 'Close'}</button>
-          <button type="button" className="btn btn-primary" disabled={!!pending || !canSync} onClick={add}>
+          <button type="button" className="btn btn-primary" data-camp="starters-sync" disabled={!!pending || !canSync} onClick={add}>
             {both ? 'Sync all starters' : 'Sync starters'}
           </button>
         </div>

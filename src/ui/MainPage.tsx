@@ -81,7 +81,7 @@ export function MainPage() {
         actions={
           <>
             <PauseButton />
-            {(hasImported || noLeagues) && <button type="button" className="btn press" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>Sync starters</button>}
+            {(hasImported || noLeagues) && <button type="button" className="btn press" data-camp="sync-starters" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>Sync starters</button>}
             {addButton(headerAdd)}
           </>
         }
