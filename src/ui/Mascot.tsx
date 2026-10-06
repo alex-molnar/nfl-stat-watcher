@@ -57,14 +57,27 @@ interface Props {
 export function Mascot({ size = 160, className, pointAt, entrance = true, seated = false }: Props) {
   const uid = useId().replace(/:/g, ''); // gradient and clip ids must be unique per instance, and colons break url(#...)
   const ref = useRef<SVGSVGElement>(null);
+  const placed = useRef<DOMRect | null>(null); // where it last was on screen
 
   // Where this mascot appears and leaves is remembered for a moment, so one that leaves a place as another shows up in a new one jumps across.
   useLayoutEffect(() => {
     const svg = ref.current;
     if (!svg) return;
     mascotAppeared(svg);
-    return () => mascotLeft(svg.getBoundingClientRect());
+    // Where it is is kept up to date as the page scrolls and resizes, because it cannot be read when it leaves: by then React has already
+    // removed the rest of the old page (the header, for one) and everything has shifted up, so the jump would start from the wrong place.
+    const measure = () => { placed.current = svg.getBoundingClientRect(); };
+    measure();
+    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+      mascotLeft(placed.current ?? svg.getBoundingClientRect());
+    };
   }, []);
+  // After each render too, since what changed may have moved it.
+  useLayoutEffect(() => { if (ref.current) placed.current = ref.current.getBoundingClientRect(); });
 
   // The eyes look towards the pointer. The glance is set on --lx and --ly, which the CSS turns into a small shift of the pupils.
   useEffect(() => {

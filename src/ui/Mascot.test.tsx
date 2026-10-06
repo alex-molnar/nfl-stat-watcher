@@ -2,6 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { Mascot, MascotSays } from './Mascot';
 import { TypedText } from './TypedText';
+import * as flight from './mascotFlight';
+
+vi.mock('./mascotFlight', () => ({ mascotAppeared: vi.fn(), mascotLeft: vi.fn(), resetMascotFlight: vi.fn() }));
 
 describe('Mascot', () => {
   it('is decorative: hidden from assistive technology', () => {
@@ -143,3 +146,36 @@ describe('TypedText', () => {
     expect(typed(container)).toBe('Hello there');
   });
 });
+
+describe('where the mascot says it left from', () => {
+  const box = (top: number) => ({ left: 300, top, width: 168, height: 168, right: 468, bottom: top + 168, x: 300, y: top, toJSON: () => ({}) }) as DOMRect;
+
+  it('is where it last was, not where it is by the time it is removed, when the rest of the page has already gone', () => {
+    vi.mocked(flight.mascotLeft).mockClear();
+    const { container, unmount } = render(<Mascot size={168} />);
+    const svg = container.querySelector('svg')!;
+    svg.getBoundingClientRect = () => box(130); // on screen, with the old page's header above it
+    act(() => { fireEvent.resize(window); }); // it notices that it is there
+    svg.getBoundingClientRect = () => box(64); // as React removes the old header first, everything shifts up
+    unmount();
+    expect(flight.mascotLeft).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(flight.mascotLeft).mock.calls[0]![0]!.top).toBe(130);
+  });
+
+  it('follows the page when it scrolls', () => {
+    vi.mocked(flight.mascotLeft).mockClear();
+    const { container, unmount } = render(<Mascot size={168} />);
+    const svg = container.querySelector('svg')!;
+    svg.getBoundingClientRect = () => box(80);
+    act(() => { fireEvent.scroll(window); });
+    unmount();
+    expect(vi.mocked(flight.mascotLeft).mock.calls[0]![0]!.top).toBe(80);
+  });
+
+  it('reports its place as it appears too', () => {
+    vi.mocked(flight.mascotAppeared).mockClear();
+    const { container } = render(<Mascot />);
+    expect(flight.mascotAppeared).toHaveBeenCalledWith(container.querySelector('svg'));
+  });
+});
+

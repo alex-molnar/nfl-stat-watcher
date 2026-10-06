@@ -6,7 +6,7 @@ const WINDOW_MS = 200; // how long a leaving, or an arrival, waits for its count
 const CROUCH_MS = 260; // the build-up before it leaves the ground: bend the legs, dip, throw the arms up
 
 interface Leaving { rect: DOMRect; at: number }
-interface Arrival { el: SVGSVGElement; at: number }
+interface Arrival { el: SVGSVGElement; rect: DOMRect; at: number }
 
 let leaving: Leaving | null = null;
 let arrival: Arrival | null = null;
@@ -17,21 +17,22 @@ const near = (a: DOMRect, b: DOMRect) => Math.abs(a.left - b.left) < 6 && Math.a
 
 /** A mascot has been placed on the page. */
 export function mascotAppeared(el: SVGSVGElement) {
+  const rect = el.getBoundingClientRect(); // read now, with the new page in place
   if (leaving && fresh(leaving.at)) {
     const from = leaving.rect;
     leaving = null;
-    fly(from, el);
+    fly(from, el, rect);
   } else {
-    arrival = { el, at: Date.now() };
+    arrival = { el, rect, at: Date.now() };
   }
 }
 
 /** A mascot has been taken off the page; `rect` is where it was. */
 export function mascotLeft(rect: DOMRect) {
   if (arrival && fresh(arrival.at) && arrival.el.isConnected) {
-    const el = arrival.el;
+    const { el, rect: to } = arrival;
     arrival = null;
-    fly(rect, el);
+    fly(rect, el, to);
   } else {
     leaving = { rect, at: Date.now() };
   }
@@ -82,9 +83,8 @@ function limbsForTheJump(copy: SVGSVGElement, flightMs: number) {
  * Jumps a copy of the mascot from where it was to where it now is, in an arc: up fast and slowing, then falling faster, then a
  * small squash on landing. The real mascot waits, hidden and with its own animations paused, until the copy arrives.
  */
-function fly(from: DOMRect, el: SVGSVGElement) {
+function fly(from: DOMRect, el: SVGSVGElement, to: DOMRect) {
   if (calm() || typeof el.animate !== 'function') return;
-  const to = el.getBoundingClientRect();
   if (near(from, to)) return; // it did not really move: the header is rebuilt on every page
 
   const copy = el.cloneNode(true) as SVGSVGElement;
