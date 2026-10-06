@@ -488,3 +488,4 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 
 /* Buttons inside a speech bubble sit side by side. */
 .bubble-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.empty:not(.mascot-says) .bubble-actions { justify-content: center; } /* plain text: the buttons sit under the centred sentence */

@@ -10,6 +10,7 @@ import { Header } from './Header';
 import { usePageTitle } from './usePageTitle';
 import { textOn } from './format';
 import { uniqueName } from '../scoring/uniqueName';
+import { mascotEnabledStore } from '../storage/mascot';
 import { DeleteLeagueDialog } from './DeleteLeagueDialog';
 import { ExportProfileDialog } from './ExportProfileDialog';
 import { ImportLeaguesDialog } from './ImportLeaguesDialog';
@@ -321,7 +322,11 @@ export function LeaguesPage() {
   }
 
   /** Hover and keyboard focus both make the mascot explain a button, and leaving it puts the greeting back. */
-  const hintOn = (key: MenuHint) => ({ onMouseEnter: () => setHint(key), onMouseLeave: () => setHint(null), onFocus: () => setHint(key), onBlur: () => setHint(null) });
+  // With the mascot off the hints are tooltips instead, so they are still there for anyone who wants them.
+  const mascotOn = useStore(mascotEnabledStore);
+  const hintOn = (key: MenuHint) => (mascotOn
+    ? { onMouseEnter: () => setHint(key), onMouseLeave: () => setHint(null), onFocus: () => setHint(key), onBlur: () => setHint(null) }
+    : { title: MENU_HINTS[key] });
 
   /** Leaving a league with unsaved changes asks first, so they are never lost by a stray click. */
   const mayLeave = () => !dirty || window.confirm(`Discard the unsaved changes to ${stored?.name}?`);

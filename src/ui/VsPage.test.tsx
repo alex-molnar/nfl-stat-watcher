@@ -104,7 +104,7 @@ describe('vs page', () => {
     expect(within(oppCol()).getByText('No opponent players yet')).toBeInTheDocument();
     expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00');
     const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
-    expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme', 'nflsw:v1:nameDisplay'].includes(k!))).toBe(true);
+    expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme', 'nflsw:v1:nameDisplay', 'nflsw:v1:mascot'].includes(k!))).toBe(true);
   });
 
   it('renders an empty matchup as a tie with both Add buttons, silent in the status line', async () => {

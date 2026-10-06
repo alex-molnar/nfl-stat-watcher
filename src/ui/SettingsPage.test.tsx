@@ -98,4 +98,37 @@ describe('settings page', () => {
       expect(screen.getByRole('status')).toHaveTextContent('Your data was cleared.');
     });
   });
+
+  describe('the mascot setting', () => {
+    const box = () => screen.getByRole('checkbox', { name: 'Show the mascot' });
+
+    it('is on by default and explained', () => {
+      renderAt('/settings');
+      expect(box()).toBeChecked();
+      expect(box()).toHaveAccessibleDescription(/plain text instead/);
+    });
+
+    it('is a working copy: Save stores it, Cancel puts it back', async () => {
+      renderAt('/settings');
+      await userEvent.click(box());
+      expect(box()).not.toBeChecked();
+      expect(localStorage.getItem('nflsw:v1:mascot')).toBe('true'); // not saved yet
+      expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(box()).toBeChecked();
+      await userEvent.click(box());
+      await userEvent.click(saveBtn()!);
+      expect(localStorage.getItem('nflsw:v1:mascot')).toBe('false');
+    });
+
+    it('takes the mascot out of the header at once when it is saved off', async () => {
+      renderAt('/settings');
+      expect(document.querySelector('.brand .mascot')).not.toBeNull();
+      await userEvent.click(box());
+      expect(document.querySelector('.brand .mascot')).not.toBeNull(); // still a working copy
+      await userEvent.click(saveBtn()!);
+      expect(document.querySelector('.brand .mascot')).toBeNull();
+    });
+  });
 });
+

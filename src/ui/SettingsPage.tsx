@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
+import { mascotEnabledStore } from '../storage/mascot';
 import { reloadAllStores } from '../storage/store';
 import { useStore } from '../storage/useStore';
 import { backdropClose } from './backdropClose';
@@ -14,11 +15,13 @@ const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery
 export function SettingsPage() {
   usePageTitle('Settings');
   const stored = useStore(nameDisplayStore);
-  const [draft, setDraft] = useState<NameDisplayMode | null>(null); // null: no unsaved change
+  const storedMascot = useStore(mascotEnabledStore);
+  const [draft, setDraft] = useState<{ mode: NameDisplayMode; mascot: boolean } | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
   const confirmRef = useRef<HTMLDialogElement>(null);
-  const mode = draft ?? stored;
-  const dirty = mode !== stored;
+  const mode = draft?.mode ?? stored;
+  const mascot = draft?.mascot ?? storedMascot;
+  const dirty = mode !== stored || mascot !== storedMascot;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -30,6 +33,7 @@ export function SettingsPage() {
 
   function save() {
     nameDisplayStore.set(mode);
+    mascotEnabledStore.set(mascot);
     setDraft(null);
     setNotice('Saved settings.');
   }
@@ -61,13 +65,21 @@ export function SettingsPage() {
                 <div key={m} className="choice-row">
                   {/* The example sits outside the label, so the radio's name stays "Full", "Initial" or "Formal". */}
                   <label className="choice">
-                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => setDraft(m)} />
+                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => setDraft({ mode: m, mascot })} />
                     {MODE_LABELS[m]}
                   </label>
                   <span id={`name-display-${m}`} className="muted">e.g. {MODE_EXAMPLES[m]}</span>
                 </div>
               ))}
             </div>
+          </fieldset>
+          <fieldset>
+            <legend>Mascot</legend>
+            <label className="choice">
+              <input type="checkbox" checked={mascot} aria-describedby="mascot-help" onChange={(event) => setDraft({ mode, mascot: event.target.checked })} />
+              Show the mascot
+            </label>
+            <p id="mascot-help" className="muted">The football in glasses that appears beside the title and says what to do next when a page is empty. Off, every page uses plain text instead, and the Leagues menu explains its buttons in tooltips.</p>
           </fieldset>
           <fieldset>
             <legend>Your data</legend>
