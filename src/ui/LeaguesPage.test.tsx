@@ -269,18 +269,28 @@ describe('leagues page', () => {
     expect(profiles().map((p: { name: string }) => p.name)).toEqual(['Friends league 2', 'Friends league']);
   });
 
-  it('adds a profile, selects it, and shows a rename only after Save', async () => {
+  it('opens a prefilled new league that is only added on Save', async () => {
     await open();
     await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
     const name = screen.getByLabelText('Name');
     expect(name).toHaveValue('New league');
-    expect(screen.getByRole('button', { name: 'New league' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByLabelText('Preset')).toHaveValue('ppr');
+    expect(screen.getAllByRole('group', { name: /Save or cancel changes/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Delete league' })).toBeNull();
+    expect(profiles().map((p: { name: string }) => p.name)).toEqual(['My league']); // nothing stored yet
     await userEvent.clear(name);
     await userEvent.type(name, 'Dynasty');
-    expect(screen.getByRole('button', { name: 'New league' })).toBeInTheDocument(); // the list still shows the saved name
     await save();
     expect(screen.getByRole('button', { name: 'Dynasty' })).toHaveAttribute('aria-current', 'true');
     expect(profiles().map((p: { name: string }) => p.name)).toEqual(['My league', 'Dynasty']);
+  });
+
+  it('throws a new league away on Cancel', async () => {
+    await open();
+    await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Cancel' })[0]);
+    expect(screen.queryByLabelText('Name')).toBeNull();
+    expect(profiles().map((p: { name: string }) => p.name)).toEqual(['My league']);
   });
 
   it('applies a preset to the working copy only after confirmation, and keeps it only on Save', async () => {
@@ -635,6 +645,7 @@ describe('with no league', () => {
     seed([], []);
     renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
+    await save();
     expect(profiles().map((p: { name: string }) => p.name)).toEqual(['New league']);
   });
 });

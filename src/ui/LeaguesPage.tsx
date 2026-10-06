@@ -3,7 +3,7 @@ import { FIELD_GROUPS, STEP_LABELS, isRuleOn, type FieldDef } from '../scoring/f
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
 import { followedStore, sideOf } from '../storage/followed';
-import { addProfile, profilesStore } from '../storage/profiles';
+import { newProfile, profilesStore } from '../storage/profiles';
 import { withBand, withColor, withName, withPreset, withRuleEnabled, withStepPoints, withTier, withValue, withoutBands } from '../scoring/edit';
 import { useStore } from '../storage/useStore';
 import { Header } from './Header';
@@ -294,7 +294,10 @@ export function LeaguesPage() {
   const [refreshProfileId, setRefreshProfileId] = useState<string | undefined>();
   const [notice, setNotice] = useState('');
   const pendingImportNotice = useRef('');
-  const stored = profiles.find((p) => p.id === selectedId) ?? null;
+  // "Add a league" starts a draft that is not in storage: Save adds it, Cancel throws it away.
+  const [adding, setAdding] = useState<Profile | null>(null);
+  const stored = profiles.find((p) => p.id === selectedId) ?? (adding?.id === selectedId ? adding : null);
+  const isNew = !!stored && stored === adding;
   const inProfile = stored ? followed.filter((f) => f.profileId === stored.id) : [];
   const opponents = inProfile.filter((f) => sideOf(f) === 'opponent').length;
 
@@ -304,7 +307,7 @@ export function LeaguesPage() {
   const base = stored ? editable(stored) : null;
   if (stored && base !== null && (!edit || edit.id !== stored.id || edit.base !== base)) setEdit({ id: stored.id, base, profile: stored });
   const draft = stored && edit?.id === stored.id ? edit.profile : stored;
-  const dirty = !!stored && !!edit && edit.id === stored.id && editable(edit.profile) !== edit.base;
+  const dirty = isNew || (!!stored && !!edit && edit.id === stored.id && editable(edit.profile) !== edit.base);
   const onEdit: Edit = (change) => setEdit((current) => (current ? { ...current, profile: change(current.profile) } : current));
   const others = stored ? profiles.filter((p) => p.id !== stored.id) : profiles;
 
@@ -313,11 +316,14 @@ export function LeaguesPage() {
     const taken = new Set(others.map((p) => p.name.toLowerCase()));
     let name = draft.name.trim() || 'Untitled league';
     for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${draft.name.trim() || 'Untitled league'} ${n}`;
-    profilesStore.set(profilesStore.get().map((p) => (p.id === stored.id ? { ...p, name, color: draft.color, preset: draft.preset, values: draft.values } : p)));
+    const saved = { ...stored, name, color: draft.color, preset: draft.preset, values: draft.values };
+    profilesStore.set(isNew ? [...profilesStore.get(), saved] : profilesStore.get().map((p) => (p.id === stored.id ? saved : p)));
+    if (isNew) setAdding(null);
     setNotice(`Saved ${name}.`);
   }
 
   function cancel() {
+    if (isNew) { setAdding(null); setSelectedId(null); return; }
     if (stored) setEdit({ id: stored.id, base: editable(stored), profile: stored });
   }
 
@@ -385,7 +391,7 @@ export function LeaguesPage() {
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn press" {...hintOn('add')} onClick={() => { if (mayLeave()) setSelectedId(addProfile('New league')); }}>
+            <button type="button" className="btn press" {...hintOn('add')} onClick={() => { if (mayLeave()) { const draft = newProfile('New league', profiles); setAdding(draft); setSelectedId(draft.id); } }}>
               Add a league
             </button>
             <button type="button" className="btn press" {...hintOn('import')} onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
@@ -397,7 +403,7 @@ export function LeaguesPage() {
             <button type="button" className="btn press" aria-disabled={profiles.length === 0 || undefined} title={profiles.length === 0 ? 'Add a league first: there is nothing to export yet' : undefined} onClick={() => { if (profiles.length > 0) setExportOpen(true); }}>
               Export profile
             </button>
-            {stored && <DeleteControl key={stored.id} profile={stored} profiles={profiles} usedBy={inProfile.length - opponents} opponents={opponents} onDeleted={(id) => { refocusProfile.current = id; setSelectedId(id); }} />}
+            {stored && !isNew && <DeleteControl key={stored.id} profile={stored} profiles={profiles} usedBy={inProfile.length - opponents} opponents={opponents} onDeleted={(id) => { refocusProfile.current = id; setSelectedId(id); }} />}
             {dirty && <SaveActions label="Save or cancel changes" onSave={save} onCancel={cancel} />}
           </aside>
           {stored && draft ? (
