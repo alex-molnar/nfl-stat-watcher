@@ -92,7 +92,7 @@ describe('settings page', () => {
       await userEvent.click(within(dialog).getByRole('button', { name: 'Clear my data' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(localStorage.getItem('nflsw:v1:followed')).toBe('[]'); // back to defaults, not the old entries
-      expect(JSON.parse(localStorage.getItem('nflsw:v1:profiles')!)).toHaveLength(1);
+      expect(JSON.parse(localStorage.getItem('nflsw:v1:profiles')!)).toEqual([]); // no league until the user adds one
       expect(radio('Full')).toBeChecked();
       expect(saveBtn()).not.toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('Your data was cleared.');

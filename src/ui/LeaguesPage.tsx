@@ -3,13 +3,14 @@ import { FIELD_GROUPS, STEP_LABELS, isRuleOn, type FieldDef } from '../scoring/f
 import { PRESET_LABELS } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
 import { followedStore, sideOf } from '../storage/followed';
-import { addProfile, deleteProfile, profilesStore } from '../storage/profiles';
+import { addProfile, profilesStore } from '../storage/profiles';
 import { withBand, withColor, withName, withPreset, withRuleEnabled, withStepPoints, withTier, withValue, withoutBands } from '../scoring/edit';
 import { useStore } from '../storage/useStore';
 import { Header } from './Header';
 import { usePageTitle } from './usePageTitle';
 import { textOn } from './format';
 import { uniqueName } from '../scoring/uniqueName';
+import { DeleteLeagueDialog } from './DeleteLeagueDialog';
 import { ExportProfileDialog } from './ExportProfileDialog';
 import { ImportLeaguesDialog } from './ImportLeaguesDialog';
 import { ImportProfileDialog } from './ImportProfileDialog';
@@ -251,74 +252,18 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
   );
 }
 
-/** Delete profile and its confirmation, in the left menu. Deleting is not an edit: it happens at once, after the question. */
-function DeleteControl({ profile, profiles, usedBy, opponents, onDeleted }: { profile: Profile; profiles: Profile[]; usedBy: number; opponents: number; onDeleted: (moveTo: string) => void }) {
+/** Delete league, in the left menu. Deleting is not an edit: it happens at once, after the dialog's question. */
+function DeleteControl({ profile, profiles, usedBy, opponents, onDeleted }: { profile: Profile; profiles: Profile[]; usedBy: number; opponents: number; onDeleted: (nextId: string) => void }) {
   const others = profiles.filter((p) => p.id !== profile.id);
-  const [deleting, setDeleting] = useState(false);
-  const [moveTo, setMoveTo] = useState(others[0]?.id ?? '');
-  const deleteBtn = useRef<HTMLButtonElement>(null);
-  const confirmRef = useRef<HTMLDivElement>(null);
-  const cancelBtn = useRef<HTMLButtonElement>(null);
-  // Set by the click handlers only, so mounting (or StrictMode re-running effects) never moves focus.
-  const pendingFocus = useRef<'confirm' | 'delete' | null>(null);
-  useEffect(() => {
-    const target = pendingFocus.current;
-    pendingFocus.current = null;
-    if (target === 'confirm') (confirmRef.current?.querySelector<HTMLElement>('select') ?? cancelBtn.current)?.focus();
-    if (target === 'delete') deleteBtn.current?.focus();
-  }, [deleting]);
-
+  const [open, setOpen] = useState(false);
   return (
     <>
-      {!deleting && (
-        <div className="delete-control">
-          <button ref={deleteBtn} type="button" className="btn btn-danger" disabled={others.length === 0} aria-describedby={others.length === 0 ? 'last-profile-note' : undefined} onClick={() => {
-              pendingFocus.current = 'confirm';
-              setDeleting(true);
-            }}>
-            Delete profile
-          </button>
-          {others.length === 0 && <p id="last-profile-note" className="muted">You need at least one profile.</p>}
-        </div>
-      )}
-      {deleting && (
-        <div ref={confirmRef} className="confirm" role="group" aria-label="Confirm delete">
-          {usedBy > 0 ? (
-            <label className="field-label">
-              {`Move ${usedBy} followed ${usedBy === 1 ? 'card' : 'cards'} to`}
-              <select value={moveTo} aria-describedby={opponents > 0 ? 'confirm-opponents' : undefined} onChange={(e) => setMoveTo(e.target.value)}>
-                {others.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </label>
-          ) : (
-            <p id="confirm-question">Delete {profile.name}? None of your cards use it.</p>
-          )}
-          {/* Opponent cards belong to this league, so they are removed with it, never moved. */}
-          {opponents > 0 && <p id="confirm-opponents">{`Also removes ${opponents} opponent ${opponents === 1 ? 'card' : 'cards'}.`}</p>}
-          <button
-            type="button"
-            className="btn btn-danger"
-            aria-describedby={[usedBy > 0 ? '' : 'confirm-question', opponents > 0 ? 'confirm-opponents' : ''].filter(Boolean).join(' ') || undefined}
-            onClick={() => {
-              if (deleteProfile(profile.id, moveTo)) onDeleted(moveTo);
-            }}
-          >
-            Delete {profile.name}
-          </button>
-          <button
-            ref={cancelBtn}
-            type="button"
-            aria-describedby={[usedBy > 0 ? '' : 'confirm-question', opponents > 0 ? 'confirm-opponents' : ''].filter(Boolean).join(' ') || undefined}
-            className="btn"
-            onClick={() => {
-              pendingFocus.current = 'delete';
-              setDeleting(false);
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+      <div className="delete-control">
+        <button type="button" className="btn btn-danger" onClick={() => setOpen(true)}>
+          Delete league
+        </button>
+      </div>
+      <DeleteLeagueDialog open={open} onClose={() => setOpen(false)} profile={profile} others={others} mine={usedBy} opponents={opponents} onDeleted={onDeleted} />
     </>
   );
 }
@@ -423,7 +368,7 @@ export function LeaguesPage() {
               ))}
             </ul>
             <button type="button" className="btn press" onClick={() => { if (mayLeave()) setSelectedId(addProfile('New league')); }}>
-              Add profile
+              Add a league
             </button>
             <button type="button" className="btn press" onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
               Import leagues
@@ -431,7 +376,7 @@ export function LeaguesPage() {
             <button type="button" className="btn press" onClick={() => setImportProfileOpen(true)}>
               Import StatWatch profile
             </button>
-            <button type="button" className="btn press" onClick={() => setExportOpen(true)}>
+            <button type="button" className="btn press" aria-disabled={profiles.length === 0 || undefined} title={profiles.length === 0 ? 'Add a league first: there is nothing to export yet' : undefined} onClick={() => { if (profiles.length > 0) setExportOpen(true); }}>
               Export profile
             </button>
             {stored && <DeleteControl key={stored.id} profile={stored} profiles={profiles} usedBy={inProfile.length - opponents} opponents={opponents} onDeleted={(id) => { refocusProfile.current = id; setSelectedId(id); }} />}
@@ -449,7 +394,7 @@ export function LeaguesPage() {
             />
           ) : (
             <section className="profile-form profile-empty" aria-label="No league selected">
-              <p>Select a league on the left to edit its scoring, or add or import one.</p>
+              <p>{profiles.length === 0 ? 'You have no leagues yet. Add or import one to start following players.' : 'Select a league on the left to edit its scoring, or add or import one.'}</p>
             </section>
           )}
         </div>

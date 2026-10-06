@@ -283,6 +283,48 @@ describe('opponent entries on the Players page', () => {
   });
 });
 
+describe('with no league yet', () => {
+  const NEED = 'Add a scoring league first to add players';
+
+  it('shows Add player and Sync starters as not clickable, with a message on hover', async () => {
+    seed([], []);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    for (const name of ['Add player', 'Sync starters']) {
+      const button = screen.getAllByRole('button', { name })[0]!; // the header ones
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      expect(button).toHaveAttribute('title', NEED);
+      await userEvent.click(button);
+    }
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // clicking did nothing
+    expect(screen.getByText('Add a scoring league first to start following players.')).toBeInTheDocument();
+  });
+
+  it('offers Go to Leagues in the empty state instead of a greyed-out Add player', () => {
+    seed([], []);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    const empty = document.querySelector('.empty') as HTMLElement;
+    expect(within(empty).getByRole('link', { name: 'Go to Leagues' })).toHaveAttribute('href', '/leagues');
+    expect(within(empty).queryByRole('button', { name: 'Add player' })).not.toBeInTheDocument();
+  });
+
+  it('does not mark them once a league exists', () => {
+    seed([], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    expect(screen.getAllByRole('button', { name: 'Add player' })[0]).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('shows a way to the Leagues page on the Vs screen instead of a matchup', () => {
+    seed([], []);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/vs');
+    expect(screen.getByText('Add a scoring league first to compare a matchup.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to Leagues' })).toHaveAttribute('href', '/leagues');
+  });
+});
+
 describe('live ordering', () => {
   const sf = (espnId: string, name: string, position: string, teamId = '25', teamAbbr = 'SF') =>
     ({ ...warren, espnId, name, position, teamId, teamAbbr, profileId: 'p1' });

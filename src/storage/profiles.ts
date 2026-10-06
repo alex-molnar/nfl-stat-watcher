@@ -1,6 +1,6 @@
 import { PRESETS, copyValues } from '../scoring/presets';
 import { VALUE_KEYS, isValidSteps, type PresetId, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
-import { followedStore, reassignProfile, withValidProfiles } from './followed';
+import { followedStore, reassignProfile, removeProfileEntries, withValidProfiles, type PlayersHandling } from './followed';
 import { createStore } from './store';
 import { isHexColor, nextLeagueColor } from '../scoring/leagueColor';
 import { withBand, withColor, withName, withPreset, withRuleEnabled, withStepPoints, withTier, withValue, withoutBands } from '../scoring/edit';
@@ -38,8 +38,8 @@ export function repairValues(stored: Partial<ScoringValues> & { fg50plus?: numbe
 
 export const profilesStore = createStore<Profile[]>({
   key: 'nflsw:v1:profiles',
-  fallback: () => [newProfile('My league')],
-  isValid: (v): v is Profile[] => Array.isArray(v) && v.length > 0 && v.every(isProfile),
+  fallback: () => [], // no league until the user adds or imports one
+  isValid: (v): v is Profile[] => Array.isArray(v) && v.every(isProfile),
   repair: (ps) => ps.reduce<Profile[]>((done, p) => {
     const values = repairValues(p.values);
     const rawSource = p.source as (Record<string, unknown> & { baselineValues?: Partial<ScoringValues> }) | undefined;
@@ -80,10 +80,15 @@ export function renameProfile(id: string, name: string) {
   update(id, (p) => withName(p, name));
 }
 
-export function deleteProfile(id: string, moveTo: string): boolean {
+export function deleteProfile(id: string, players: PlayersHandling): boolean {
   const list = profilesStore.get();
-  if (list.length <= 1 || id === moveTo || !list.some((p) => p.id === moveTo)) return false;
-  reassignProfile(id, moveTo);
+  if (!list.some((p) => p.id === id)) return false;
+  if (players === 'delete') {
+    removeProfileEntries(id);
+  } else {
+    if (id === players.moveTo || !list.some((p) => p.id === players.moveTo)) return false;
+    reassignProfile(id, players.moveTo, players.opponents);
+  }
   profilesStore.set(list.filter((p) => p.id !== id));
   return true;
 }

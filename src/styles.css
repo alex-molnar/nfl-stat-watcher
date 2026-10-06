@@ -183,7 +183,6 @@ dialog[open] { animation: dlg 180ms ease-out; }
 .field-wrap { display: grid; gap: 5px; }
 /* Empty status regions stay in the tree (no display toggle) but take no space. */
 .field-msg:empty, .page-note:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
-.confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--danger); border-radius: 12px; }
 .source-details { display: grid; gap: 8px; border: 1px solid var(--rule); border-radius: 12px; padding: 14px; }
 .source-details h3, .source-details p { margin: 0; }
 .source-modified { color: var(--danger); font-weight: 700; }
@@ -404,3 +403,13 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .icon-btn { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--panel); color: var(--ink); cursor: pointer; }
 .icon-btn:hover { border-color: var(--accent); }
 .field-label textarea.dragging { border-color: var(--accent); outline: 2px dashed var(--accent); }
+
+/* Delete league dialog. */
+.delete-choices { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+.delete-choices legend { font-weight: 700; padding: 0; margin-bottom: 4px; }
+.delete-choices select { font-size: 15px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--field-border); background: var(--bg); color: var(--ink); }
+.delete-choices select:disabled { opacity: .55; }
+
+/* A button that explains itself instead of acting: aria-disabled keeps the tooltip and the focus. */
+.btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.btn[aria-disabled="true"]:hover { border-color: var(--field-border); }

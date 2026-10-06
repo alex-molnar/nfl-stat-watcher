@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { Link } from 'react-router';
 import { ALL_LEAGUES, useMatchup } from '../hooks/useMatchup';
 import { entryKey, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
@@ -27,7 +28,7 @@ const COLUMNS = {
   opponent: { title: 'Opponent players', add: 'Add player to opponent side', empty: 'No opponent players yet' },
 } as const;
 
-export function VsPage() {
+function VsMatchup() {
   usePageTitle('Matchup');
   const profiles = useStore(profilesStore);
   const [pickedId, setPickedId] = useState(profiles[0]!.id); // memory only, never stored
@@ -177,6 +178,25 @@ export function VsPage() {
       </main>
       <ImportStartersDialog open={importSide !== null} side={importSide ?? 'mine'} profileId={all ? ALL_LEAGUES : profile.id} onClose={() => { setImportSide(null); focusVisible(opener.current); }} />
       <AddDialog open={adding} side={dialogSide} profileId={all ? undefined : profile.id} onClose={closeDialog} />
+    </>
+  );
+}
+
+/** Without a league there is no scoring to compare, so the page says where to start. */
+export function VsPage() {
+  const profiles = useStore(profilesStore);
+  usePageTitle('Matchup');
+  if (profiles.length > 0) return <VsMatchup />;
+  return (
+    <>
+      <Header />
+      <main className="wrap">
+        <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
+        <div className="empty">
+          <p>Add a scoring league first to compare a matchup.</p>
+          <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
+        </div>
+      </main>
     </>
   );
 }
