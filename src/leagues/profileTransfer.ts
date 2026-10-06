@@ -89,17 +89,20 @@ export interface MergeSummary {
   added: number;
   /** Players the file brings that are not followed yet. */
   players: number;
+  /** With override: what was here and is deleted. */
+  removed: { leagues: number; players: number } | null;
 }
 
 /**
  * Merges a profile file into what is here. A league with an id we already have is replaced (name, color, scoring, source)
  * and gains the players it was missing; any other league is added under its own id with a name nobody else has.
- * Nothing is ever removed.
+ * Nothing is removed, unless `override` is set: then every league and followed player here is deleted first and the
+ * file's take their place.
  */
-export function mergeProfile(file: ProfileFile, profiles: Profile[], followed: FollowedEntry[]): { profiles: Profile[]; followed: FollowedEntry[]; summary: MergeSummary } {
-  let nextProfiles = [...profiles];
-  const nextFollowed = [...followed];
-  const summary: MergeSummary = { leagues: [], updated: 0, added: 0, players: 0 };
+export function mergeProfile(file: ProfileFile, profiles: Profile[], followed: FollowedEntry[], override = false): { profiles: Profile[]; followed: FollowedEntry[]; summary: MergeSummary } {
+  let nextProfiles = override ? [] : [...profiles];
+  const nextFollowed = override ? [] : [...followed];
+  const summary: MergeSummary = { leagues: [], updated: 0, added: 0, players: 0, removed: override ? { leagues: profiles.length, players: followed.length } : null };
   for (const league of file.leagues) {
     const existing = nextProfiles.find((p) => p.id === league.id);
     const others = nextProfiles.filter((p) => p.id !== league.id);

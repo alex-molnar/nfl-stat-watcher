@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
-import { ProfileFileError, mergeProfile, parseProfileFile } from '../leagues/profileTransfer';
+import { ProfileFileError, mergeProfile, parseProfileFile, type MergeSummary } from '../leagues/profileTransfer';
 import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
@@ -14,6 +14,11 @@ interface Props {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+function headline({ removed, updated, added, players }: MergeSummary): string {
+  if (removed) return `Delete ${plural(removed.leagues, 'league')} and ${plural(removed.players, 'player')} here, then add ${plural(added, 'league')} and ${plural(players, 'player')}`;
+  return `Update ${plural(updated, 'league')}, add ${plural(added, 'league')}, add ${plural(players, 'player')}`;
+}
+
 /** Paste the JSON, drop a file or browse for one; the file is checked at once and previewed before anything changes. */
 export function ImportProfileDialog({ open, onClose, onImported }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -23,6 +28,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
   const [text, setText] = useState('');
   const [readError, setReadError] = useState('');
   const [dragging, setDragging] = useState(false);
+  const [override, setOverride] = useState(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -30,6 +36,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
     if (open && !dialog.open) {
       setText('');
       setReadError('');
+      setOverride(false);
       dialog.showModal();
     }
     if (!open && dialog.open) dialog.close();
@@ -38,11 +45,11 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
   const checked = useMemo(() => {
     if (!text.trim()) return null;
     try {
-      return { merged: mergeProfile(parseProfileFile(text), profiles, followed) };
+      return { merged: mergeProfile(parseProfileFile(text), profiles, followed, override) };
     } catch (cause) {
       return { error: cause instanceof ProfileFileError ? cause.message : 'Could not read that file.' };
     }
-  }, [text, profiles, followed]);
+  }, [text, profiles, followed, override]);
   const merged = checked && 'merged' in checked ? checked.merged : null;
   const problem = readError || (checked && 'error' in checked ? checked.error : '');
 
@@ -67,7 +74,11 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
     if (!merged) return;
     profilesStore.set(merged.profiles);
     followedStore.set(merged.followed);
-    const { updated, added, players } = merged.summary;
+    const { updated, added, players, removed } = merged.summary;
+    if (removed) {
+      onImported(`Replaced everything: deleted ${plural(removed.leagues, 'league')} and ${plural(removed.players, 'player')}, imported ${plural(added, 'league')} and ${plural(players, 'player')}.`);
+      return;
+    }
     onImported(`Imported ${plural(updated + added, 'league')}: ${updated} updated, ${added} added, ${plural(players, 'player')} added.`);
   }
 
@@ -104,10 +115,15 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
             onChange={(event) => { void load(event.target.files?.[0]); event.target.value = ''; }}
           />
         </div>
+        <label className="check-row">
+          <input type="checkbox" checked={override} onChange={(event) => setOverride(event.target.checked)} />
+          Override existing profiles
+        </label>
+        {override && <p className="error">Everything here is deleted first: every league and every followed player. Only what is in the file is kept.</p>}
         {problem && <p className="error" role="alert">{problem}</p>}
         {merged && (
           <section className="plan" aria-label="What this import will do">
-            <h3>{`Update ${plural(merged.summary.updated, 'league')}, add ${plural(merged.summary.added, 'league')}, add ${plural(merged.summary.players, 'player')}`}</h3>
+            <h3>{headline(merged.summary)}</h3>
             <ul className="starter-list">
               {merged.summary.leagues.map((league) => (
                 <li key={league.id}><b>{league.kind === 'update' ? 'Update' : 'Add'}</b> {league.name} ({plural(league.players, 'new player')})</li>
@@ -117,7 +133,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
         )}
         <div className="dlg-actions">
           <button type="button" className="btn" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={!merged} onClick={apply}>Import</button>
+          <button type="button" className={`btn ${override ? 'btn-danger' : 'btn-primary'}`} disabled={!merged} onClick={apply}>{override ? 'Replace everything' : 'Import'}</button>
         </div>
       </div>
     </dialog>

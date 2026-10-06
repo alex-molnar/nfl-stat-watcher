@@ -114,6 +114,22 @@ describe('import StatWatch profile', () => {
     expect(stored('followed')).toHaveLength(2); // warren was there, the opponent side was missing
   });
 
+  it('with "Override existing profiles" ticked deletes everything here first, and says so before and after', async () => {
+    seed([warren, opponent(warren), { ...warren, espnId: '7', name: 'Other' }], profilesFixture);
+    await open();
+    await userEvent.click(box());
+    await userEvent.paste(incoming());
+    expect(within(dialog()).getByRole('checkbox', { name: 'Override existing profiles' })).not.toBeChecked(); // off by default
+    await userEvent.click(within(dialog()).getByRole('checkbox', { name: 'Override existing profiles' }));
+    expect(within(dialog()).getByText(/Everything here is deleted first/)).toBeInTheDocument();
+    expect(within(dialog()).getByText('Delete 2 leagues and 3 players here, then add 1 league and 2 players')).toBeInTheDocument();
+    expect(stored('profiles')).toHaveLength(2); // nothing changed yet
+    await userEvent.click(within(dialog()).getByRole('button', { name: 'Replace everything' }));
+    expect(stored('profiles').map((p: { name: string }) => p.name)).toEqual(['Brought along']);
+    expect(stored('followed')).toHaveLength(2);
+    expect(await screen.findByText('Replaced everything: deleted 2 leagues and 3 players, imported 1 league and 2 players.')).toBeInTheDocument();
+  });
+
   it('Cancel changes nothing', async () => {
     seed([], profilesFixture);
     await open();

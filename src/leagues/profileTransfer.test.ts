@@ -98,4 +98,17 @@ describe('mergeProfile', () => {
     const incoming = file([profile('n', 'N')], [player('1', 'n'), player('1', 'n', { side: 'opponent' })]);
     expect(mergeProfile(incoming, [profile('a', 'A')], [player('1', 'a')]).followed).toHaveLength(3);
   });
+
+  it('with override deletes every league and player here and keeps only the file\'s', () => {
+    const incoming = file([profile('n', 'Newbies')], [player('1', 'n')]);
+    const merged = mergeProfile(incoming, [profile('a', 'Office'), profile('b', 'Friends')], [player('9', 'a'), player('8', 'b')], true);
+    expect(merged.profiles.map((p) => p.id)).toEqual(['n']);
+    expect(merged.followed.map((e) => e.espnId)).toEqual(['1']);
+    expect(merged.summary).toMatchObject({ added: 1, updated: 0, players: 1, removed: { leagues: 2, players: 2 } });
+  });
+
+  it('does not report removals without override', () => {
+    expect(mergeProfile(file([profile('n', 'N')], []), [profile('a', 'A')], []).summary.removed).toBeNull();
+  });
 });
+
