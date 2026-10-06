@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -563,6 +563,47 @@ describe('with no league', () => {
     const says = document.querySelector('.mascot-says') as HTMLElement;
     expect(says.querySelector('.mascot')).toHaveClass('pointing-left');
     expect(says.querySelector('.bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu');
+  });
+
+  describe('the mascot explains the menu buttons', () => {
+    const greeting = 'You have no leagues yet. Add or import one from the menu to start following players.';
+    const bubble = () => document.querySelector('.mascot-says .bubble') as HTMLElement;
+
+    it.each([
+      ['Add a league', 'Here you can add a new league from presets (PPR, half-PPR, non-PPR), or completely customize the league rules.'],
+      ['Import leagues', 'Import real life leagues directly here. Scoring rules are synced automatically from your fantasy league without you raising a finger. Warning: only ESPN leagues are supported for now!'],
+      ['Import StatWatch profile', 'Not exactly new here? Import your already existing leagues and players from another browser or device you own.'],
+    ])('while %s is hovered, and the greeting comes back after', async (name, text) => {
+      seed([], []);
+      renderAt('/leagues');
+      expect(bubble()).toHaveTextContent(greeting);
+      await userEvent.hover(screen.getByRole('button', { name }));
+      expect(bubble()).toHaveTextContent(text);
+      await userEvent.unhover(screen.getByRole('button', { name }));
+      expect(bubble()).toHaveTextContent(greeting);
+    });
+
+    it('also for keyboard users, on focus', async () => {
+      seed([], []);
+      renderAt('/leagues');
+      act(() => screen.getByRole('button', { name: 'Import leagues' }).focus());
+      expect(bubble()).toHaveTextContent('Import real life leagues directly here');
+      act(() => screen.getByRole('button', { name: 'Import leagues' }).blur());
+      expect(bubble()).toHaveTextContent(greeting);
+    });
+
+    it('is a polite live region, so a change is announced', () => {
+      seed([], []);
+      renderAt('/leagues');
+      expect(bubble().querySelector('p')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('says nothing new for Export profile, which has nothing to explain yet', async () => {
+      seed([], []);
+      renderAt('/leagues');
+      await userEvent.hover(screen.getByRole('button', { name: 'Export profile' }));
+      expect(bubble()).toHaveTextContent(greeting);
+    });
   });
 
   it('shows the plain prompt, not the mascot, once a league exists but none is selected', () => {
