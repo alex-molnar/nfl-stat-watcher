@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
 import { DEFAULT_MASCOT_NAME, MAX_MASCOT_NAME, mascotEnabledStore, mascotNameStore } from '../storage/mascot';
+import { startCamp } from '../storage/camp';
 import { reloadAllStores } from '../storage/store';
 import { useStore } from '../storage/useStore';
 import { backdropClose } from './backdropClose';
@@ -92,6 +93,11 @@ export function SettingsPage() {
               </label>
             </div>
             <p id="mascot-help" className="muted">The football in glasses that appears beside the title and says what to do next when a page is empty. Off, every page uses plain text instead, and the Leagues menu explains its buttons in tooltips.</p>
+          </fieldset>
+          <fieldset>
+            <legend>Rookie camp</legend>
+            <p id="camp-help" className="muted">{storedMascot ? `A short practice with ${storedName}: four drills, each done on the real pages, that show you around.` : 'Turn the mascot on and save to take the practice.'}</p>
+            <button type="button" className="btn press" aria-describedby="camp-help" disabled={!storedMascot} onClick={() => { startCamp(); setNotice(`Rookie camp started. ${storedName} will show you the first drill.`); }}>Start rookie camp</button>
           </fieldset>
           <fieldset>
             <legend>Your data</legend>
