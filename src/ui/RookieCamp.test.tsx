@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { warren, profilesFixture } from '../test/data';
 import { vi } from 'vitest';
@@ -17,6 +17,9 @@ const setCamp = (phase: string, step = 0) => {
   reloadAllStores();
 };
 const ring = () => document.querySelector('.camp-ring');
+// The welcome dialog opens a moment after the page has loaded.
+const welcomeEl = () => document.querySelector('dialog[aria-labelledby="welcome-title"]');
+const welcome = () => screen.findByRole('dialog', { name: /^Hi, I/ }, { timeout: 3000 });
 
 describe('placeCard', () => {
   const rect = (left: number, top: number, w = 100, h = 30) => ({ left, top, right: left + w, bottom: top + h, width: w, height: h }) as DOMRect;
@@ -48,22 +51,51 @@ describe('placeCard', () => {
 });
 
 describe('rookie camp', () => {
-  describe('the offer', () => {
-    it('is made to a user with no league, and declining is remembered', async () => {
+  describe('the welcome', () => {
+    it('is a dialog from the mascot, shown after a moment to a user with no league, and Skip is remembered', async () => {
       const { unmount } = renderAt('/');
-      expect(camp()).toHaveTextContent('Want a quick practice?');
-      expect(camp()).toHaveTextContent('Fumble');
-      await userEvent.click(screen.getByRole('button', { name: 'No thanks' }));
+      expect(welcomeEl()).not.toHaveAttribute('open'); // not slammed in with the page
+      const dialog = await welcome();
+      expect(dialog).toHaveAccessibleName('Hi, I’m Fumble!');
+      expect(dialog).toHaveAccessibleDescription(/football in glasses.*training camp/);
+      expect(within(dialog).getByRole('button', { name: 'Enter training camp' })).toBeInTheDocument();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Skip' }));
+      expect(welcomeEl()).toBeNull();
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument();
       expect(stored()).toEqual({ phase: 'declined', step: 0 });
       unmount();
       renderAt('/');
-      expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument();
+      expect(welcomeEl()).toBeNull();
+    });
+
+    it('treats Escape as Skip', async () => {
+      renderAt('/');
+      const dialog = await welcome();
+      await act(async () => { (dialog as HTMLDialogElement).close(); }); // what the browser does on Escape
+      expect(stored()).toEqual({ phase: 'declined', step: 0 });
+      expect(welcomeEl()).toBeNull();
+    });
+
+    it('starts the first drill when entering the camp, and the dialog is gone', async () => {
+      renderAt('/');
+      await userEvent.click(within(await welcome()).getByRole('button', { name: 'Enter training camp' }));
+      expect(stored()).toEqual({ phase: 'running', step: 0 });
+      expect(welcomeEl()).toBeNull();
+      expect(camp()).toHaveTextContent('First drill: a league');
+    });
+
+    it('has Enter training camp first, so it takes the focus, and a hint for each button from the mascot', async () => {
+      renderAt('/');
+      const dialog = await welcome();
+      expect(dialog.querySelector('button')).toHaveTextContent('Enter training camp');
+      expect(within(dialog).getByRole('button', { name: 'Skip' })).toHaveAttribute('data-hint', 'You can start it later from Settings.');
+      expect(within(dialog).getByRole('button', { name: 'Use a practice league' })).toHaveAttribute('data-hint');
     });
 
     it('is not made to a user who already has a league', () => {
       seed([], profilesFixture);
       renderAt('/');
+      expect(welcomeEl()).toBeNull();
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument();
     });
 
@@ -75,18 +107,18 @@ describe('rookie camp', () => {
       expect(screen.getByRole('button', { name: 'Start rookie camp' })).toBeDisabled();
     });
 
-    it('uses the name given to the mascot', () => {
+    it('uses the name given to the mascot', async () => {
       localStorage.setItem('nflsw:v1:mascotName', JSON.stringify('Gridley'));
       reloadAllStores();
       renderAt('/');
-      expect(camp()).toHaveTextContent('Gridley');
+      expect(await welcome()).toHaveAccessibleName('Hi, I’m Gridley!');
     });
   });
 
   describe('the drills', () => {
-    it('start from the offer and point at the Leagues tab while the user is elsewhere', async () => {
+    it('start from the welcome and point at the Leagues tab while the user is elsewhere', async () => {
       renderAt('/');
-      await userEvent.click(screen.getByRole('button', { name: 'Start' }));
+      await userEvent.click(within(await welcome()).getByRole('button', { name: 'Enter training camp' }));
       expect(stored()).toEqual({ phase: 'running', step: 0 });
       expect(camp()).toHaveTextContent('First drill: a league. Open Leagues');
       expect(camp()).toHaveTextContent('drill 1 of 4');
@@ -178,9 +210,9 @@ describe('rookie camp', () => {
   });
 
   describe('the practice league', () => {
-    it('is offered next to Start, and starts the camp with the league and players already there', async () => {
+    it('is offered in the welcome, and starts the camp with the league and players already there', async () => {
       renderAt('/');
-      await userEvent.click(screen.getByRole('button', { name: 'Use a practice league' }));
+      await userEvent.click(within(await welcome()).getByRole('button', { name: 'Use a practice league' }));
       expect(profilesStore.get().map((p) => p.name)).toEqual([DEMO_LEAGUE]);
       expect(followedStore.get().map((e) => e.name)).toEqual(['Patrick Mahomes', 'Jaylen Warren', 'Pittsburgh Steelers']);
       expect(camp()).toHaveTextContent('Third drill'); // the league and the player drills are done
@@ -215,13 +247,24 @@ describe('rookie camp', () => {
   describe('the mascot', () => {
     const mascots = () => document.querySelectorAll('.mascot');
 
-    it('is the only one on screen while the camp is on, and the page has its own again when it ends', async () => {
+    it('is the only one on screen in the welcome, goes to the camp card when entering, and is back on the page after Skip', async () => {
       renderAt('/');
+      const dialog = await welcome();
+      await waitFor(() => expect(dialog.querySelector('.mascot')).not.toBeNull()); // it jumps in once the dialog has settled
       expect(mascots()).toHaveLength(1);
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Skip' }));
+      expect(document.querySelector('dialog[open] .mascot')).toBeNull();
+      expect(mascots()).toHaveLength(1); // the page's own is back (here the empty Players page's)
+    });
+
+    it('goes from the welcome to the first drill\'s card without a mascot of the page in between', async () => {
+      renderAt('/');
+      const dialog = await welcome();
+      await waitFor(() => expect(dialog.querySelector('.mascot')).not.toBeNull());
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Enter training camp' }));
       expect(camp().querySelector('.mascot')).not.toBeNull();
-      await userEvent.click(screen.getByRole('button', { name: 'No thanks' }));
-      expect(mascots().length).toBeGreaterThan(0);
-      expect(camp).toThrow(); // the card went, and the page's mascots came back
+      expect(document.querySelector('.brand .mascot')).toBeNull();
+      expect(mascots()).toHaveLength(1);
     });
 
     it('is the only one during the drills too, on a page of its own', () => {

@@ -520,6 +520,7 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .camp .perch-say { width: auto; }
 .camp-td { font-weight: 800; font-size: 19px; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .camp:not(.waiting) { transition: none; } }
+.camp-practice { justify-self: start; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 .camp-body { display: grid; gap: 8px; min-width: 0; }
 .camp-body p { margin: 0; }
 .camp-name { font-weight: 800; }

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
-import { campStore, endCamp, startCamp } from '../storage/camp';
+import { campStore, endCamp } from '../storage/camp';
 import { addDemoLeague } from '../storage/demoLeague';
 import { followedStore, sideOf } from '../storage/followed';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
@@ -117,7 +117,7 @@ function hop(el: HTMLElement | null) {
 /**
  * Rookie camp: the mascot coaches a first practice of a few drills, each done by the user on the real page. A ring marks the control, the
  * mascot sits on the edge of its speech card beside it, and the next drill starts only once the user has really done the thing. It follows the user from page to page and
- * is offered once to a user with no league. The mascot is the one mascot: while the camp shows it the page's own step aside, it jumps from drill to drill (the card
+ * is offered once to a user with no league, by the welcome dialog (`CampWelcome`). The mascot is the one mascot: while the camp shows it the page's own step aside, it jumps from drill to drill (the card
  * moves, and a new mascot at the new place is matched with the one leaving the old, like between pages), looks pleased when a drill is done, worried when about to leave or skip,
  * and on finishing hops and says "Touchdown!". With the mascot off in Settings it is neither offered nor run.
  */
@@ -165,9 +165,8 @@ export function RookieCamp() {
   const here = !drill?.on || drill.on === pathname;
   const { selector: measured, rect } = useTarget(drill ? (here ? drill.target : navLink(drill.on!)) : null);
 
-  const offer = phase === 'idle' && profiles.length === 0;
   const finished = phase === 'finished' && mascotOn;
-  const wants = mascotOn && (offer || finished || !!drill);
+  const wants = mascotOn && (finished || !!drill);
   const visible = wants && !inDialog;
 
   useEffect(() => setWorried(false), [phase, step]); // the button that worried it is gone, and a mouse-leave will not be sent
@@ -191,22 +190,14 @@ export function RookieCamp() {
     return () => clearTimeout(timer);
   }, [finished, visible, measured, flying]);
 
-  if (!visible) return null;
+  // A drill's card waits for the first look at its control, or the mascot would land in the corner first and jump again.
+  if (!visible || (drill && measured === null)) return null;
 
   // Hovering or focusing what ends the practice early makes the mascot worried.
   const wary = { onMouseEnter: () => setWorried(true), onMouseLeave: () => setWorried(false), onFocus: () => setWorried(true), onBlur: () => setWorried(false) };
   let text: string;
   let buttons: ReactNode;
-  if (offer) {
-    text = 'Want a quick practice? Four short drills and you know your way around.';
-    buttons = (
-      <>
-        <button type="button" className="btn btn-primary press" onClick={startCamp}>Start</button>
-        <button type="button" className="btn press" onClick={() => { addDemoLeague(); startCamp(); }}>Use a practice league</button>
-        <button type="button" className="btn press" {...wary} onClick={() => endCamp('declined')}>No thanks</button>
-      </>
-    );
-  } else if (phase === 'finished') {
+  if (phase === 'finished') {
     text = 'That is practice done. You are on the team! You can take it again from Settings any time.';
     buttons = <button type="button" className="btn btn-primary press" onClick={() => endCamp('done')}>Done</button>;
   } else {
