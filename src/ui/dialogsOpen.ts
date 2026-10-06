@@ -9,6 +9,8 @@ const notify = () => listeners.forEach((l) => l());
 export const dialogsOpen = () => dialogs > 0;
 /** The mascot is in a dialog or in the camp's card: the page's own mascots step aside. */
 export const mascotAway = () => dialogs > 0 || camp > 0;
+/** Rookie camp has the mascot: an empty state has no one to talk, so it shows its sentence as plain text until the camp is over. */
+export const campOpen = () => camp > 0;
 export const subscribeDialogs = (listener: () => void) => {
   listeners.add(listener);
   return () => void listeners.delete(listener);

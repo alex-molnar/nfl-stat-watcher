@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
-import { mascotAway, subscribeDialogs } from './dialogsOpen';
+import { campOpen, mascotAway, subscribeDialogs } from './dialogsOpen';
 import { isMascotFlying, mascotAppeared, mascotLeft, subscribeMascotFlight } from './mascotFlight';
 import { mascotEnabledStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
@@ -156,7 +156,9 @@ export function Mascot({ size = 160, className, pointAt, entrance = true, seated
  * room for a longer text that may replace it. With the mascot switched off in Settings it is the same sentence and the same buttons as plain text.
  */
 export function MascotSays(props: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
-  return useStore(mascotEnabledStore) ? <Talking {...props} /> : <PlainSays {...props} />;
+  // The mascot is also not here while Rookie camp has him, so the same plain sentence stands in until the camp is over.
+  const inCamp = useSyncExternalStore(subscribeDialogs, campOpen, () => false);
+  return useStore(mascotEnabledStore) && !inCamp ? <Talking {...props} /> : <PlainSays {...props} />;
 }
 
 function PlainSays({ text, children }: { text: string; children?: ReactNode }) {
