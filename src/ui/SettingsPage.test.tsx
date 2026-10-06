@@ -85,6 +85,15 @@ describe('settings page', () => {
       expect(within(dialog).getByRole('button', { name: 'Clear my data' })).toHaveClass('btn-danger');
     });
 
+    it('Clear my data keeps how far Rookie camp got, so the training camp is not offered again', async () => {
+      localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'done', step: 0 }));
+      reloadAllStores();
+      renderAt('/settings');
+      await userEvent.click(within(await openConfirm()).getByRole('button', { name: 'Clear my data' }));
+      expect(JSON.parse(localStorage.getItem('nflsw:v1:camp')!)).toEqual({ phase: 'done', step: 0 });
+      expect(localStorage.getItem('nflsw:v1:followed')).toBe('[]'); // everything else is gone
+    });
+
     it('clears everything, resets the stores to defaults and drops an unsaved change', async () => {
       seed([warren, mahomes], profilesFixture);
       localStorage.setItem('nflsw:v1:nameDisplay', '"formal"');

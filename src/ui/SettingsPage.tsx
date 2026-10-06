@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
+import { CAMP_KEY } from '../storage/camp';
 import { DEFAULT_MASCOT_NAME, MAX_MASCOT_NAME, mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { startCamp } from '../storage/camp';
 import { reloadAllStores } from '../storage/store';
@@ -48,7 +49,10 @@ export function SettingsPage() {
   function clearData() {
     confirmRef.current?.close();
     try {
+      // How far the user got in Rookie camp is kept: wiping it would offer the training camp again straight after, and it can be started from here any time.
+      const camp = localStorage.getItem(CAMP_KEY);
       localStorage.clear();
+      if (camp !== null) localStorage.setItem(CAMP_KEY, camp);
     } catch {
       setNotice('Could not clear your data: browser storage is blocked.');
       return;

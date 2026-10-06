@@ -8,8 +8,10 @@ export interface CampState {
 
 const PHASES: readonly unknown[] = ['idle', 'running', 'finished', 'done', 'declined'];
 
+export const CAMP_KEY = 'nflsw:v1:camp';
+
 export const campStore = createStore<CampState>({
-  key: 'nflsw:v1:camp',
+  key: CAMP_KEY,
   fallback: () => ({ phase: 'idle', step: 0 }),
   isValid: (v): v is CampState => {
     const c = v as Partial<CampState> | null;
