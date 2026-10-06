@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router';
+import './storage/campLeague'; // keeps Rookie camp's practice players in step with the camp
 import { MainPage } from './ui/MainPage';
 import { CampFinish } from './ui/CampFinish';
 import { CampTour } from './ui/CampTour';

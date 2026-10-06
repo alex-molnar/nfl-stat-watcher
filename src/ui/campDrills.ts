@@ -71,6 +71,10 @@ const IMPORT_LINKS = '[data-camp="import-links"]';
 const IMPORT_SEASON = '[data-camp="import-season"]';
 const STARTERS_TITLE = '#starters-title';
 const STARTERS_TEAM = '[data-camp="starters-team"]';
+/** A practice card without its footer: the ring covers it, but its Remove and League controls stay dead. */
+const CARD_LIVE = ['[data-entry^="player:camp-live-qb:"] .hd', '[data-entry^="player:camp-live-qb:"] .stats'];
+const CARD_PRE = ['[data-entry^="player:camp-pre-rb:"] .hd', '[data-entry^="player:camp-pre-rb:"] .stats'];
+const CARD_FINAL = ['[data-entry^="player:camp-final-wr:"] .hd', '[data-entry^="player:camp-final-wr:"] .stats'];
 const addDialogOpen = (c: Ctx) => !!c.q(`dialog[open] ${SEARCH}`);
 
 export const DRILLS: Drill[] = [
@@ -178,6 +182,12 @@ export const DRILLS: Drill[] = [
   {
     on: '/',
     go: 'Last drill: watch a highlight. Open Players.',
-    steps: [{ target: ['.hl-btn'], press: '.hl-btn', dialog: true, text: 'Last drill: big plays get a ▶ Highlights button on a player’s card. Open one when you see it, or skip this drill.' }],
+    // The camp's league holds three practice players for this drill (`storage/campLeague.ts`): one playing now, one still to play, one with a final score and a clip.
+    steps: [
+      { target: CARD_LIVE, wait: true, optional: true, next: 'Next', text: 'Last drill: your cards. For the next few I have lent you some practice players. This one is playing right now: his points update live, and when his team gets inside the 20 a red zone flag shows up on the field.' },
+      { target: CARD_PRE, wait: true, optional: true, next: 'Next', text: 'This one’s game has not started yet. His card shows who they play and when the kickoff is, and fills in once the game begins.' },
+      { target: CARD_FINAL, wait: true, optional: true, next: 'Next', text: 'And this game is over: the card keeps the final score and his total fantasy points.' },
+      { target: ['.hl-btn'], press: '.hl-btn', dialog: true, text: 'Big plays get a ▶ Highlights button on a player’s card, like this one. Press it to watch the clip.' },
+    ],
   },
 ];

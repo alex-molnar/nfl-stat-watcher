@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { warren, profilesFixture } from '../test/data';
 import { vi } from 'vitest';
 import { reloadAllStores } from '../storage/store';
+import { mockFetch } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
 import { DEMO_LEAGUE, addDemoLeague } from '../storage/demoLeague';
 import { campStore } from '../storage/camp';
@@ -193,13 +194,13 @@ describe('rookie camp', () => {
 
     it('are done once the highlight dialog has the mascot, and the congratulation waits for that dialog to close', async () => {
       seed([warren], profilesFixture);
-      setCamp('running', 5);
+      setCamp('running', 5, 3);
       renderAt('/');
       const clip = document.createElement('button');
       clip.className = 'hl-btn';
       document.body.appendChild(clip);
       await userEvent.click(clip);
-      expect(stored()).toEqual({ phase: 'running', step: 5, sub: 0 }); // the card stays, with its mascot, until the dialog has its own
+      expect(stored()).toEqual({ phase: 'running', step: 5, sub: 3 }); // the card stays, with its mascot, until the dialog has its own
       let leave = () => {};
       act(() => { leave = registerOpenDialog(); }); // the highlights dialog's mascot is there
       expect(stored()).toEqual({ phase: 'finished', step: 0, sub: 0 });
@@ -212,15 +213,15 @@ describe('rookie camp', () => {
     it('forget a press that opened no dialog, and stay on the drill', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       seed([warren], profilesFixture);
-      setCamp('running', 5);
-      renderAt('/');
+      setCamp('running', 5, 3);
       const clip = document.createElement('button');
       clip.className = 'hl-btn';
       document.body.appendChild(clip);
+      renderAt('/');
       await userEvent.click(clip);
       await act(async () => { vi.advanceTimersByTime(2500); });
       act(() => { registerOpenDialog()(); });
-      expect(stored()).toEqual({ phase: 'running', step: 5, sub: 0 });
+      expect(stored()).toEqual({ phase: 'running', step: 5, sub: 3 });
       clip.remove();
       vi.useRealTimers();
     });
@@ -241,10 +242,11 @@ describe('rookie camp', () => {
 
     it('can be skipped one drill at a time, and the congratulation ends it', async () => {
       seed([], profilesFixture);
+      mockFetch({ scoreboard: { events: [] } });
       setCamp('running', 3);
       renderAt('/');
       await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
-      expect(camp()).toHaveTextContent('Last drill'); // the sync drill has no ESPN league to work on, so it is passed over
+      expect(await screen.findByRole('region', { name: 'Rookie camp' })).toHaveTextContent('Last drill'); // the sync drill has no ESPN league to work on, so it is passed over
       await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument(); // the card is gone
       const dialog = await screen.findByRole('dialog', { name: 'Touchdown!' });
@@ -396,7 +398,7 @@ describe('rookie camp', () => {
     afterEach(() => { delete (HTMLElement.prototype as { animate?: unknown }).animate; });
     const finish = async () => {
       seed([], profilesFixture);
-      setCamp('running', 5);
+      setCamp('running', 5, 3);
       renderAt('/');
       await userEvent.click(screen.getByRole('button', { name: 'Skip drill' }));
       return screen.findByRole('dialog', { name: 'Touchdown!' });
