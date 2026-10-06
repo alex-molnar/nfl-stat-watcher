@@ -107,7 +107,7 @@ describe('leagues page', () => {
     expect(screen.queryByText(/Select a league on the left/)).not.toBeInTheDocument();
     const menu = screen.getByRole('complementary', { name: 'Profile actions' });
     expect(within(menu).getByRole('button', { name: 'Delete league' })).toHaveClass('btn-danger');
-    expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add profile', 'Import leagues', 'Import StatWatch profile', 'Export profile', 'Delete league']);
+    expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add a league', 'Import leagues', 'Import StatWatch profile', 'Export profile', 'Delete league']);
     expect(screen.getAllByRole('button', { name: 'Delete league' })).toHaveLength(1); // moved from the bottom of the form, not repeated
   });
 
@@ -271,7 +271,7 @@ describe('leagues page', () => {
 
   it('adds a profile, selects it, and shows a rename only after Save', async () => {
     await open();
-    await userEvent.click(screen.getByRole('button', { name: 'Add profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
     const name = screen.getByLabelText('Name');
     expect(name).toHaveValue('New league');
     expect(screen.getByRole('button', { name: 'New league' })).toHaveAttribute('aria-current', 'true');
@@ -560,7 +560,7 @@ describe('with no league', () => {
   it('lets the first league be added', async () => {
     seed([], []);
     renderAt('/leagues');
-    await userEvent.click(screen.getByRole('button', { name: 'Add profile' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
     expect(profiles().map((p: { name: string }) => p.name)).toEqual(['New league']);
   });
 });

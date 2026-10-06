@@ -291,13 +291,22 @@ describe('with no league yet', () => {
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/');
     for (const name of ['Add player', 'Sync starters']) {
-      const button = screen.getAllByRole('button', { name })[0]!;
+      const button = screen.getAllByRole('button', { name })[0]!; // the header ones
       expect(button).toHaveAttribute('aria-disabled', 'true');
       expect(button).toHaveAttribute('title', NEED);
       await userEvent.click(button);
     }
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // clicking did nothing
     expect(screen.getByText('Add a scoring league first to start following players.')).toBeInTheDocument();
+  });
+
+  it('offers Go to Leagues in the empty state instead of a greyed-out Add player', () => {
+    seed([], []);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    const empty = document.querySelector('.empty') as HTMLElement;
+    expect(within(empty).getByRole('link', { name: 'Go to Leagues' })).toHaveAttribute('href', '/leagues');
+    expect(within(empty).queryByRole('button', { name: 'Add player' })).not.toBeInTheDocument();
   });
 
   it('does not mark them once a league exists', () => {

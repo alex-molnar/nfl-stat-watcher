@@ -368,7 +368,7 @@ export function LeaguesPage() {
               ))}
             </ul>
             <button type="button" className="btn press" onClick={() => { if (mayLeave()) setSelectedId(addProfile('New league')); }}>
-              Add profile
+              Add a league
             </button>
             <button type="button" className="btn press" onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
               Import leagues

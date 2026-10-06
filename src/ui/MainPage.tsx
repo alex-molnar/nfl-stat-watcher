@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
 import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfiles } from '../storage/followed';
@@ -89,7 +90,7 @@ export function MainPage() {
         {followed.length === 0 ? (
           <div className="empty">
             <p>{noLeagues ? 'Add a scoring league first to start following players.' : "You're not following anyone yet. Add players or team defenses from any of your leagues."}</p>
-            {addButton()}
+            {noLeagues ? <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link> : addButton()}
           </div>
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {
