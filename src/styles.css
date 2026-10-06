@@ -473,7 +473,7 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 
 /* The jump between the header's edge and an empty state (src/ui/mascotFlight.ts). The real mascot waits, hidden, with its animations held; a copy flies. */
 .mascot.in-flight, .mascot.in-flight * { animation-play-state: paused !important; }
-.mascot.flying .m-root { animation: none !important; }
+.mascot.flying, .mascot.flying * { animation: none !important; } /* the copy is moved by the script alone */
 .mascot.landed:not(.seated) .m-root { animation: mascot-land 280ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)), mascot-bob 3.4s ease-in-out 280ms infinite; }
 .mascot.landed.seated .m-root { animation: mascot-land 280ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
 @keyframes mascot-land { 0% { transform: scale(1.06, .88); } 55% { transform: scale(.98, 1.03); } 100% { transform: none; } }

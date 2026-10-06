@@ -114,4 +114,66 @@ describe('mascot flight', () => {
     expect(copies()).toHaveLength(0);
     expect(el.style.visibility).toBe('');
   });
+
+  describe('before it jumps', () => {
+    /** A mascot with the parts the real one has, so the copy has limbs to move. */
+    function mascotWithLimbs(at: DOMRect) {
+      const made = mascotAt(at);
+      for (const name of ['m-root', 'm-leg-l', 'm-leg-r', 'm-arm-l', 'm-arm-r']) {
+        const part = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        part.setAttribute('class', name);
+        made.el.appendChild(part);
+      }
+      return made;
+    }
+    const transforms = (run: Run) => run.keyframes.map((frame) => String(frame.transform));
+
+    it('waits where it was while it crouches, then makes the jump', () => {
+      const { el, animations } = mascotWithLimbs(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      expect(animations[0]!.options.delay).toBe(260); // the flight, held back by the crouch
+      expect(animations[0]!.options.fill).toBe('both');
+    });
+
+    it('bends the legs, dips the body and throws the arms up and flailing before it goes', () => {
+      const { el, animations } = mascotWithLimbs(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      const crouch = animations.filter((run) => run.options.duration === 260 && !run.options.delay); // the build-up of each part
+      expect(crouch).toHaveLength(5); // body, two legs, two arms
+      const all = crouch.flatMap(transforms).join(' ');
+      expect(all).toContain('scaleY(.72)'); // the legs shorten
+      expect(all).toMatch(/rotate\(14deg\)/); // and splay out, the left one one way
+      expect(all).toMatch(/rotate\(-14deg\)/); // and the right one the other
+      expect(all).toContain('translateY(10px)'); // the body dips
+      const arms = crouch.filter((run) => transforms(run).some((t) => /rotate\(1[2-9]\d(\.\d+)?deg\)|rotate\(-1[2-9]\d/.test(t)));
+      expect(arms.length).toBe(2); // both arms flung well above the shoulders
+      expect(crouch.filter((run) => run.keyframes.length > 3)).toHaveLength(2); // and each flails: several swings, not a single raise
+    });
+
+    it('keeps the limbs flailing in the air and brings every one back to rest before it lands', () => {
+      const { el, animations } = mascotWithLimbs(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      const air = animations.slice(1).filter((run) => run.options.delay === 260);
+      expect(air.length).toBeGreaterThanOrEqual(5);
+      for (const run of air) expect(String(run.keyframes[run.keyframes.length - 1]!.transform)).toMatch(/none|rotate\(0deg\)|rotate\(-0deg\)/); // ends in the normal pose
+    });
+
+    it('does not apply the air animations during the crouch, or they would cancel it', () => {
+      const { el, animations } = mascotWithLimbs(PAGE);
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      for (const run of animations.slice(1).filter((r) => r.options.delay === 260)) expect(run.options.fill).toBe('forwards'); // no backwards fill
+    });
+
+    it('skips parts a drawing does not have', () => {
+      const { el, animations } = mascotAt(PAGE); // no limbs
+      mascotLeft(HEADER);
+      mascotAppeared(el);
+      expect(animations).toHaveLength(1); // only the flight itself
+    });
+  });
 });
+
