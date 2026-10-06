@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { backdropClose } from './backdropClose';
+import { DialogMascot } from './DialogMascot';
 import type { Highlight } from '../stats/types';
 
 interface Props {
@@ -43,6 +44,7 @@ export function HighlightsDialog({ open, onClose, playerName, clips, onWatched }
 
   return (
     <dialog ref={ref} className="hl-dlg" aria-labelledby="hl-title" onClose={() => { setPlayingId(null); onClose(); }} {...backdropClose}>
+      <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="hl-title">Highlights, {playerName}</h2>
