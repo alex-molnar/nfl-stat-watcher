@@ -40,6 +40,10 @@ export interface Step {
   when?: (c: Ctx) => boolean;
   /** Passed over, at once, when this is true. */
   skipIf?: (c: Ctx) => boolean;
+  /** Back to the step before when this is true (the user undid what brought them here). */
+  back?: (c: Ctx) => boolean;
+  /** While `when` is true the user is doing something other than what is asked: the mascot says `text` instead, and looks worried. */
+  nudge?: { when: (c: Ctx) => boolean; text: (facts: Facts) => string };
 }
 
 export interface Drill {
@@ -97,6 +101,7 @@ export const changed = (selector: string) => (c: Ctx) => {
   return el.value !== c.memo.seed;
 };
 
+const HL_CLOSE = 'dialog.hl-dlg[open] .close';
 const SEARCH = '[data-camp="add-dialog-search"]';
 const IMPORT_LINKS = '[data-camp="import-links"]';
 const IMPORT_SEASON = '[data-camp="import-season"]';
@@ -106,6 +111,14 @@ const STARTERS_TEAM = '[data-camp="starters-team"]';
 const CARD_LIVE = ['[data-entry^="player:camp-live-qb:"] .hd', '[data-entry^="player:camp-live-qb:"] .stats'];
 const CARD_PRE = ['[data-entry^="player:camp-pre-rb:"] .hd', '[data-entry^="player:camp-pre-rb:"] .stats'];
 const CARD_FINAL = ['[data-entry^="player:camp-final-wr:"] .hd', '[data-entry^="player:camp-final-wr:"] .stats'];
+/** The player drill 2 asks for: the practice player with the practice league, else a real one. */
+const asked = (f: Facts) => (f.practice ? { full: 'jalen whitmore', surname: 'whitmore', say: 'Whitmore' } : { full: 'drake maye', surname: 'maye', say: 'Maye' });
+const typed = (c: Ctx) => ((c.q(`${SEARCH} input`) as HTMLInputElement | null)?.value ?? '').trim().toLowerCase();
+/** The search field holds the asked name's surname: done typing it. */
+const typedAsked = (c: Ctx) => typed(c).includes(asked(c.facts).surname);
+/** Something else is in the field: not the name, not a start of it (so typing "Whit" is fine), not a longer form of it. */
+const typedOther = (c: Ctx) => { const v = typed(c); return v !== '' && !asked(c.facts).full.includes(v) && !v.includes(asked(c.facts).surname); };
+const searchNudge = { when: typedOther, text: (f: Facts) => `That is a good one, but for this drill search for ${asked(f).say}.` };
 const addDialogOpen = (c: Ctx) => !!c.q(`dialog[open] ${SEARCH}`);
 
 export const DRILLS: Drill[] = [
@@ -131,13 +144,15 @@ export const DRILLS: Drill[] = [
       { target: ['[data-camp="add-player"]'], when: addDialogOpen, text: 'Second drill: follow a player. Press Add player.' },
       {
         target: [SEARCH, '[data-camp="add-dialog-league"]'],
-        when: (c) => /maye|whitmore/i.test((c.q(`${SEARCH} input`) as HTMLInputElement | null)?.value ?? ''),
+        when: typedAsked,
+        nudge: searchNudge,
         text: (f) => `Search for a player or a team defense here, and pick which league they count for below it${f.practice ? ': choose the Practice league' : ''}. Leagues matter because each one scores differently, so the same player is worth different points in each. Try searching for ${f.practice ? 'Whitmore' : 'Maye'}.`,
       },
       {
         target: ['.results button[data-result="Jalen Whitmore"], .results button[data-result="Drake Maye"], .results button.add:not([aria-disabled])'],
         needs: '[data-camp="add-dialog-results"]',
         when: (c) => !!c.q('.results button.add[aria-label$=" added"]'),
+        back: (c) => !typedAsked(c), // the query was changed away from the name: back to the search step, which says what to search for
         text: (f) => f.practice ? 'There he is, Jalen Whitmore. Press Add to follow him in the Practice league.' : 'There he is, Drake Maye. Press Add to follow him in the league you picked.',
       },
       {
@@ -219,6 +234,13 @@ export const DRILLS: Drill[] = [
       { target: CARD_PRE, wait: true, optional: true, next: 'Next', text: 'This one’s game has not started yet. His card shows who they play and when the kickoff is, and fills in once the game begins.' },
       { target: CARD_FINAL, wait: true, optional: true, next: 'Next', text: 'And this game is over: the card keeps the final score and his total fantasy points.' },
       { target: ['.hl-btn'], press: '.hl-btn', dialog: true, text: 'Big plays get a ▶ Highlights button on a player’s card, like this one. Press it to watch the clip.' },
+      {
+        target: [HL_CLOSE],
+        backdrop: true,
+        needs: HL_CLOSE,
+        when: (c) => !c.q('dialog.hl-dlg[open]'),
+        text: 'That is the highlight. Press the X to go back; clicking outside the dialog or Escape also works.',
+      },
     ],
   },
 ];

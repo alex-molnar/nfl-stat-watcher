@@ -129,6 +129,7 @@ export function RookieCamp() {
   const [cheer, setCheer] = useState(false); // a drill was just done
   const [worried, setWorried] = useState(false); // the pointer or focus is on Skip or Leave
   const [pressed, setPressed] = useState(false); // the step's button was pressed and its dialog is on its way
+  const [off, setOff] = useState(false); // the user is doing something else than the step asks (`nudge`)
   const running = phase === 'running' && mascotOn;
   const drill = running ? DRILLS[step] : undefined;
   const current = drill?.steps[sub];
@@ -146,7 +147,7 @@ export function RookieCamp() {
   const where = `${phase}:${step}:${sub}`;
   const memo = useRef<Record<string, unknown>>({});
   const moved = useRef('');
-  useEffect(() => { memo.current = {}; moved.current = ''; setPressed(false); }, [where]);
+  useEffect(() => { memo.current = {}; moved.current = ''; setPressed(false); setOff(false); }, [where]);
 
   // Done with the drill: on to the next, or to the congratulation. Several drills never move at once (two moves would send two mascots jumping).
   const nextDrill = (cheered: boolean) => {
@@ -179,6 +180,8 @@ export function RookieCamp() {
     const check = () => {
       if (current.skipIf?.(ctx)) nextStep(false);
       else if (current.when?.(ctx)) nextStep(true);
+      else if (current.back?.(ctx) && moved.current !== where) { moved.current = where; patchCamp({ sub: sub - 1 }); }
+      setOff(!!current.nudge?.when(ctx));
     };
     check();
     const timer = setInterval(check, 200);
@@ -244,6 +247,14 @@ export function RookieCamp() {
     return () => events.forEach((type) => document.removeEventListener(type, guard, true));
   }, [guarding, measured, current, here]); // eslint-disable-line react-hooks/exhaustive-deps -- `targets` is whatever `measured` says
 
+  // In a dialog the mascot is the dialog's own, which looks worried when the dialog says so (`data-worried`): the nudge says it for as long as it applies.
+  useEffect(() => {
+    const dialog = off ? topDialog() : null;
+    if (!dialog || dialog.hasAttribute('data-worried')) return;
+    dialog.setAttribute('data-worried', '');
+    return () => dialog.removeAttribute('data-worried');
+  }, [off]);
+
   const wants = mascotOn && !!current;
   const visible = wants && !(pressed && inDialog); // pressed and a dialog is up: the step is done in a moment, the card is not shown for a frame
 
@@ -264,7 +275,7 @@ export function RookieCamp() {
 
   // Hovering or focusing what ends the practice early makes the mascot worried.
   const wary = { onMouseEnter: () => setWorried(true), onMouseLeave: () => setWorried(false), onFocus: () => setWorried(true), onBlur: () => setWorried(false) };
-  const text = here ? stepText(current!, facts) : current!.go ?? drill!.go!;
+  const text = here ? (off && current!.nudge ? current!.nudge.text(facts) : stepText(current!, facts)) : current!.go ?? drill!.go!;
   const last = sub + 1 >= drill!.steps.length;
   const buttons = (
     <>
@@ -285,7 +296,7 @@ export function RookieCamp() {
         {/* The mascot is on the card when there is no dialog; in one he is on its edge. Keyed by where the card was measured for: a new place is a new mascot, matched with the old one, so it jumps. */}
         {!inDialog && (
           <div className="dialog-perch">
-            <Mascot key={measured} size={SIZE} seated entrance={false} worried={worried} happy={!worried && cheer} className="perch-mascot" style={{ top: -PERCH }} />
+            <Mascot key={measured} size={SIZE} seated entrance={false} worried={worried || off} happy={!worried && !off && cheer} className="perch-mascot" style={{ top: -PERCH }} />
           </div>
         )}
         <div className="camp-body">

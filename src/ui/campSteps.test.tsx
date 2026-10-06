@@ -159,6 +159,47 @@ describe('rookie camp steps', () => {
       expect(stored()).toEqual({ phase: 'running', step: 2, sub: 0 });
     });
 
+    describe('the nudge, when something else is searched for', () => {
+      const routes = { scoreboard: scoreboardFixture, 'search?query=Maye': { items: [{ id: '4431452', displayName: 'Drake Maye', league: 'nfl' }] }, 'search?query=Mahomes': { items: [] }, 'athletes/4431452': maye, standings };
+      const open = async () => {
+        mockFetch(routes);
+        seed([], profilesFixture);
+        setCamp('running', 1);
+        renderAt('/');
+        await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+        await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
+        return screen.getByLabelText('Search');
+      };
+
+      it('tells the user to search for the asked player when the field holds somebody else, worried, and goes back when it is cleared', async () => {
+        const field = await open();
+        await userEvent.type(field, 'Mahomes');
+        await waitFor(() => expect(camp()).toHaveTextContent('That is a good one, but for this drill search for Maye.'));
+        await waitFor(() => expect(document.querySelector('dialog .mascot')).toHaveClass('worried')); // the dialog's mascot
+        await userEvent.clear(field);
+        await waitFor(() => expect(camp()).toHaveTextContent('Try searching for Maye'));
+        await waitFor(() => expect(document.querySelector('dialog .mascot')).not.toHaveClass('worried'));
+      });
+
+      it.each(['', 'Ma', 'DRAKE', 'drake m', 'MAY'])('says nothing about “%s”, an empty field or a start of the name', async (text) => {
+        const field = await open();
+        if (text) await userEvent.type(field, text);
+        await new Promise((r) => setTimeout(r, 450)); // the camp looks at the field a few times a second
+        expect(camp()).not.toHaveTextContent('That is a good one');
+        expect(camp()).toHaveTextContent('Try searching for Maye');
+      });
+
+      it('goes back to the search step, with the nudge, when the query is changed away from the name on the Add step', async () => {
+        const field = await open();
+        await userEvent.type(field, 'Maye');
+        await waitFor(() => expect(camp()).toHaveTextContent('There he is, Drake Maye'), { timeout: 3000 });
+        await userEvent.clear(field);
+        await userEvent.type(field, 'Mahomes');
+        await waitFor(() => expect(camp()).toHaveTextContent('That is a good one, but for this drill search for Maye.'), { timeout: 3000 });
+        expect(stored()).toMatchObject({ step: 1, sub: 1 });
+      });
+    });
+
     describe('with the practice league, where the player to add is Jalen Whitmore', () => {
       const practice = (step = 1) => {
         localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'running', step, sub: 0, practice: true }));

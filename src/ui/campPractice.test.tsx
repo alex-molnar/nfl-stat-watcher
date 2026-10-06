@@ -65,9 +65,13 @@ describe('rookie camp, the last drill', () => {
   it('ends with the congratulation once the highlights are closed, and then leaves nothing of the practice players behind', async () => {
     await start(3);
     await userEvent.click(await screen.findByRole('button', { name: /highlights for Jalen Whitmore/i }));
-    await waitFor(() => expect(campStore.get().phase).toBe('finished'), { timeout: 3000 });
+    await waitFor(() => expect(campStore.get()).toMatchObject({ phase: 'running', step: 5, sub: 4 }), { timeout: 3000 }); // the video step: press the X to go back
+    await waitFor(() => expect(camp()).toHaveTextContent('Press the X to go back'));
+    expect(camp()).toHaveTextContent('clicking outside the dialog or Escape also works');
+    expect(document.querySelector('.camp-ring')).not.toBeNull();
     expect(screen.getByRole('heading', { name: 'Cole Harlan' })).toBeInTheDocument(); // still there behind the dialogs
     act(() => document.querySelector<HTMLDialogElement>('dialog.hl-dlg')!.close());
+    await waitFor(() => expect(campStore.get().phase).toBe('finished'));
     const finish = await screen.findByRole('dialog', { name: 'Touchdown!' });
     await userEvent.click(within(finish).getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Cole Harlan' })).not.toBeInTheDocument());
