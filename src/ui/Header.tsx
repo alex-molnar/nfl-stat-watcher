@@ -1,8 +1,18 @@
-import { useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { NavLink } from 'react-router';
-import { Mascot } from './Mascot';
+import { Mascot, SEAT_Y } from './Mascot';
 import { mascotsOnPage, subscribeMascots } from './mascotPresence';
 import { ThemeToggle } from './ThemeToggle';
+
+const SEAT_SIZE = 82; // px, the mascot's size when it sits on the edge
+const WIDE = '(min-width: 1000px)';
+const subscribeWide = (onChange: () => void) => {
+  if (typeof matchMedia !== 'function') return () => {};
+  const query = matchMedia(WIDE);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+};
+const isWide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
 
 /**
  * Brand on the left (the title, then the mascot, unless the page is already showing one), then the page's own buttons, then the tabs and theme switch pinned to the right edge, so
@@ -11,6 +21,8 @@ import { ThemeToggle } from './ThemeToggle';
 export function Header({ actions }: { actions?: ReactNode }) {
   const bar = useRef<HTMLElement>(null);
   const pageHasMascot = useSyncExternalStore(subscribeMascots, mascotsOnPage, mascotsOnPage) > 0;
+  // On a wide screen the mascot sits on the bottom edge of the header with its legs hanging over it; on a narrower one it stands beside the title.
+  const seated = useSyncExternalStore(subscribeWide, isWide, () => false);
   // The header is pinned to the top, so it publishes its height: other sticky parts and focus scrolling sit below it (WCAG 2.4.11).
   useLayoutEffect(() => {
     const el = bar.current;
@@ -28,7 +40,15 @@ export function Header({ actions }: { actions?: ReactNode }) {
   return (
     <header ref={bar} className="top-bar">
       <div className="wrap top">
-        <h1 className="brand">Stat Watch{!pageHasMascot && <Mascot size={46} className="brand-mascot" entrance={false} />}</h1>
+        <h1 className="brand">
+          Stat Watch
+          {!pageHasMascot && (
+            // The seat holds the space beside the title; the mascot is hung from the header's bottom edge by `--hang`, the part of the drawing below the body.
+            <span className={`brand-seat${seated ? ' is-seated' : ''}`} style={{ '--seat': `${SEAT_SIZE}px`, '--hang': `${(SEAT_SIZE * (200 - SEAT_Y)) / 200}px` } as CSSProperties}>
+              <Mascot size={seated ? SEAT_SIZE : 52} className="brand-mascot" entrance={false} seated={seated} />
+            </span>
+          )}
+        </h1>
         {actions}
         <div className="top-end">
           <nav className="nav" aria-label="Main">

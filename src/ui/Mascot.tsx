@@ -20,17 +20,22 @@ function Limb({ d, width }: { d: string; width: number }) {
 
 const Glove = ({ x, y }: { x: number; y: number }) => <circle cx={x} cy={y} r="9" fill={MINT} stroke={INK} strokeWidth="4.5" />;
 
-function Leg({ x, dir, className }: { x: number; dir: 1 | -1; className: string }) {
+/** `drop` makes the leg longer, for a mascot sitting on an edge with its legs hanging. */
+function Leg({ x, dir, className, drop }: { x: number; dir: 1 | -1; className: string; drop: number }) {
   const c = x - 4 * dir; // the cleat sits a little outside the leg
+  const y = (n: number) => n + drop;
   return (
     // Every limb turns about its own joint, which is what walking and pointing will use.
     <g className={`rig ${className}`} style={{ transformOrigin: `${x}px 124px` }}>
-      <Limb d={`M${x} 122V148`} width={10} />
-      <path className="detail" d={`M${x - 5} 136H${x + 5}M${x - 5} 142H${x + 5}`} stroke={MINT} strokeWidth="3.5" strokeLinecap="round" />
-      <path d={`M${c - 12 * dir} 160Q${c - 13 * dir} 150 ${c} 150H${c + 4 * dir}Q${c + 17 * dir} 152 ${c + 17 * dir} 158Q${c + 17 * dir} 162 ${c + 13 * dir} 162H${c - 10 * dir}Z`} fill={INK} stroke={CREAM} strokeWidth="3" strokeLinejoin="round" />
+      <Limb d={`M${x} 122V${y(148)}`} width={10} />
+      <path className="detail" d={`M${x - 5} ${y(136)}H${x + 5}M${x - 5} ${y(142)}H${x + 5}`} stroke={MINT} strokeWidth="3.5" strokeLinecap="round" />
+      <path d={`M${c - 12 * dir} ${y(160)}Q${c - 13 * dir} ${y(150)} ${c} ${y(150)}H${c + 4 * dir}Q${c + 17 * dir} ${y(152)} ${c + 17 * dir} ${y(158)}Q${c + 17 * dir} ${y(162)} ${c + 13 * dir} ${y(162)}H${c - 10 * dir}Z`} fill={INK} stroke={CREAM} strokeWidth="3" strokeLinejoin="round" />
     </g>
   );
 }
+
+/** Where the bottom of the body is in the 200-unit drawing: the line a seated mascot sits on. */
+export const SEAT_Y = 150;
 
 interface Props {
   /** Width and height in px. */
@@ -40,6 +45,8 @@ interface Props {
   pointAt?: 'left';
   /** Rises into place when it appears (the default). The header's mascot turns it off: it is rebuilt on every page. */
   entrance?: boolean;
+  /** Sits on an edge with its legs hanging and swinging gently: no shadow underneath, and no bobbing. */
+  seated?: boolean;
 }
 
 /**
@@ -47,7 +54,7 @@ interface Props {
  * hidden from assistive technology; whatever it "says" is real text next to it. Its eyes follow the pointer, and it blinks,
  * glances and bobs on its own. Every motion is CSS transform and opacity, and all of it stops under reduced motion.
  */
-export function Mascot({ size = 160, className, pointAt, entrance = true }: Props) {
+export function Mascot({ size = 160, className, pointAt, entrance = true, seated = false }: Props) {
   const uid = useId().replace(/:/g, ''); // gradient and clip ids must be unique per instance, and colons break url(#...)
   const ref = useRef<SVGSVGElement>(null);
 
@@ -78,17 +85,17 @@ export function Mascot({ size = 160, className, pointAt, entrance = true }: Prop
   );
 
   return (
-    <svg ref={ref} className={`mascot${size <= 48 ? ' sm' : ''}${entrance ? '' : ' no-entrance'}${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+    <svg ref={ref} className={`mascot${size <= 48 ? ' sm' : ''}${entrance ? '' : ' no-entrance'}${seated ? ' seated' : ''}${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id={`${uid}-leather`} cx="38%" cy="30%" r="80%">
           <stop offset="0" stopColor="#D98A4E" /><stop offset=".55" stopColor="#A9582B" /><stop offset="1" stopColor="#6A3114" />
         </radialGradient>
       </defs>
       <g className="m-root">
-        <ellipse className="detail" cx="100" cy="191" rx="52" ry="5" fill="#000" opacity=".25" />
+        {!seated && <ellipse className="detail" cx="100" cy="191" rx="52" ry="5" fill="#000" opacity=".25" />}
         <g transform="translate(0 14)">
-          <Leg x={86} dir={1} className="m-leg-l" />
-          <Leg x={114} dir={-1} className="m-leg-r" />
+          <Leg x={86} dir={1} className="m-leg-l" drop={seated ? 14 : 0} />
+          <Leg x={114} dir={-1} className="m-leg-r" drop={seated ? 14 : 0} />
           <g className="rig m-arm-l" style={{ transformOrigin: '36px 98px' }}><Limb d="M36 98Q14 106 18 128" width={9} /><Glove x={18} y={134} /></g>
           <g transform="translate(20 4) scale(.8)">
             <g transform="rotate(-12 100 100)">
