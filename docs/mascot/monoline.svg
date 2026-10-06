@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mascot d mono" color="#86EFAC" style="color:#86EFAC" width="240" height="240" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Stat Watch mascot, a football wearing glasses">
+<g class="m-root">
+<g transform="rotate(-32 100 100)">
+<path d="M10 100C38 36 162 36 190 100C162 164 38 164 10 100Z"/>
+<path class="detail" d="M46 70Q56 100 46 130M154 70Q144 100 154 130"/>
+<path d="M82 60H118M90 55V65M100 54V66M110 55V65"/>
+</g>
+<g fill="#122319">
+<circle cx="73" cy="114" r="21"/><circle cx="127" cy="114" r="21"/>
+</g>
+<path d="M94 110Q100 103 106 110"/>
+<g class="m-look" stroke="none" fill="currentColor"><g class="m-glance"><circle class="m-pupil-d" cx="75" cy="115" r="6.5"/><circle class="m-pupil-d" cx="125" cy="115" r="6.5"/></g></g>
+</g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="mascot b " width="240" height="240" viewBox="0 0 200 200" role="img" aria-label="Stat Watch mascot, a football wearing glasses">
+<g class="m-root"><g transform="rotate(8 100 100)">
+<path d="M10 100C38 36 162 36 190 100C162 164 38 164 10 100Z" fill="#B8501F"/>
+<path class="detail" d="M10 100C38 164 162 164 190 100C150 120 50 120 10 100Z" fill="#8F3A14"/>
+<g class="detail" fill="none" stroke="#F6EBDD" stroke-width="9" stroke-linecap="round"><path d="M42 68Q54 100 42 132"/><path d="M158 68Q146 100 158 132"/></g>
+<g fill="none" stroke="#86EFAC" stroke-width="5.5" stroke-linecap="round"><path d="M78 61H122"/><path d="M88 54V68M100 53V69M112 54V68"/></g>
+<g fill="none" stroke="#F6EBDD" stroke-width="5" stroke-linecap="round"><path d="M40 102L22 98M160 102L178 98"/><path d="M92 104H108"/></g>
+<g fill="#0B1810" stroke="#F6EBDD" stroke-width="5.5" stroke-linejoin="round"><rect x="38" y="82" width="56" height="48" rx="19"/><rect x="106" y="82" width="56" height="48" rx="19"/></g>
+<path class="detail" d="M48 94Q58 89 72 90M116 94Q126 89 140 90" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="3.5" stroke-linecap="round"/>
+<g class="m-look"><g class="m-glance">
+<rect class="m-eye" x="54" y="97" width="24" height="18" rx="9" fill="#86EFAC"/><rect class="m-eye" x="122" y="97" width="24" height="18" rx="9" fill="#86EFAC"/>
+</g></g>
+</g></g>
+</svg>
