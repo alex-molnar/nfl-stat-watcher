@@ -170,11 +170,12 @@ export function RookieCamp() {
   const { selector: measured, rect } = useTarget(drill ? (here ? drill.target : navLink(drill.on!)) : null, here ? drill?.also : undefined);
 
   // While a drill waits, the page is dead except for the control it points at (and the other way of doing the same job) and the camp's own card.
+  // Save and Cancel stay live too: a new league is only a draft until it is saved, so the league drill could never finish without them.
   // A dialog that opens from there is the user's to use freely: the guard stands down while one is open.
   const guarding = !!drill && measured !== null && !inDialog;
   useEffect(() => {
     if (!guarding) return;
-    const allowed = ['.camp', measured, drill?.also].filter(Boolean).join(', ');
+    const allowed = ['.camp', '.save-actions', measured, drill?.also].filter(Boolean).join(', ');
     const guard = (event: Event) => {
       if (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') return; // only what would press something
       if ((event.target as Element | null)?.closest?.(allowed)) return;

@@ -145,11 +145,12 @@ describe('rookie camp', () => {
       expect(ring()).not.toBeNull();
     });
 
-    it('ask for the Add a league button on the Leagues page, and move on when a league exists', async () => {
+    it('ask for the Add a league button on the Leagues page, and move on once a league is saved', async () => {
       setCamp('running', 0);
       renderAt('/leagues');
       expect(camp()).toHaveTextContent('Press Add a league');
       await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
+      await userEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]);
       expect(camp()).toHaveTextContent('Second drill');
       expect(stored()).toEqual({ phase: 'running', step: 1 });
     });
@@ -372,6 +373,7 @@ describe('rookie camp', () => {
       const face = () => camp().querySelector('.mascot')!;
       expect(face()).not.toHaveClass('happy');
       await userEvent.click(screen.getByRole('button', { name: 'Add a league' }));
+      await userEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]);
       expect(face()).toHaveClass('happy');
     });
 
