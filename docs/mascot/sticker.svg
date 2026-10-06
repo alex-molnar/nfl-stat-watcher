@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff) drop-shadow(3px 5px 0 rgba(0,0,0,.35))" class="mascot c " width="240" height="240" viewBox="0 0 200 200" role="img" aria-label="Stat Watch mascot, a football wearing glasses">
+<g class="m-root">
+<g class="detail" stroke="#142018" stroke-width="7" stroke-linecap="round"><path d="M84 166V184M116 166V184"/></g>
+<g class="detail" fill="#142018"><rect x="66" y="182" width="28" height="11" rx="5.5"/><rect x="106" y="182" width="28" height="11" rx="5.5"/></g>
+<g fill="none" stroke="#142018" stroke-width="7" stroke-linecap="round">
+<path d="M58 116Q34 112 42 90"/>
+<g class="m-arm-r"><path d="M142 116Q166 108 158 84"/><circle cx="158" cy="80" r="8.5" fill="#fff" stroke-width="5"/></g>
+</g>
+<circle cx="42" cy="86" r="8.5" fill="#fff" stroke="#142018" stroke-width="5"/>
+<path d="M100 8C148 34 158 120 100 172C42 120 52 34 100 8Z" fill="#A8582B" stroke="#142018" stroke-width="6.5" stroke-linejoin="round"/>
+<path class="detail" d="M74 42C66 70 68 98 78 124" fill="none" stroke="#D9894F" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+<g class="detail" fill="none" stroke="#F6EBDD" stroke-width="8" stroke-linecap="round"><path d="M72 44Q100 56 128 44"/><path d="M76 146Q100 158 124 146"/></g>
+<g fill="none" stroke="#F6EBDD" stroke-width="5" stroke-linecap="round"><path d="M100 60V82"/><path d="M92 66H108M92 72H108M92 78H108"/></g>
+<g fill="#fff" stroke="#142018" stroke-width="6" stroke-linejoin="round"><rect x="60" y="86" width="33" height="29" rx="12"/><rect x="107" y="86" width="33" height="29" rx="12"/></g>
+<path d="M93 98H107" stroke="#142018" stroke-width="5" stroke-linecap="round"/>
+<g class="m-look"><g class="m-glance">
+<g class="m-pupil"><circle cx="78" cy="102" r="7" fill="#142018"/><circle cx="80.5" cy="99.5" r="2.2" fill="#fff"/></g>
+<g class="m-pupil"><circle cx="124" cy="102" r="7" fill="#142018"/><circle cx="126.5" cy="99.5" r="2.2" fill="#fff"/></g>
+</g></g>
+<g class="detail"><path d="M80 132Q100 156 120 132Z" fill="#142018" stroke="#142018" stroke-width="4" stroke-linejoin="round"/><path d="M92 143Q100 151 108 143Q100 139 92 143Z" fill="#F27A8E"/></g>
+</g>
+</svg>

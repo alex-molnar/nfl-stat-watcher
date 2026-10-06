@@ -13,6 +13,7 @@ import { uniqueName } from '../scoring/uniqueName';
 import { DeleteLeagueDialog } from './DeleteLeagueDialog';
 import { ExportProfileDialog } from './ExportProfileDialog';
 import { ImportLeaguesDialog } from './ImportLeaguesDialog';
+import { MascotSays } from './Mascot';
 import { ImportProfileDialog } from './ImportProfileDialog';
 import { disconnectLeagueSource, isLocallyModified } from '../leagues/import';
 import { ESPN_SCORING_MAP_VERSION } from '../leagues/espn/statMap';
@@ -271,6 +272,14 @@ function DeleteControl({ profile, profiles, usedBy, opponents, onDeleted }: { pr
 /** What can be edited and saved; everything else on a profile (its ESPN source, saved team) is left alone by Save. */
 const editable = (p: Profile) => JSON.stringify({ name: p.name, color: p.color, preset: p.preset, values: p.values });
 
+/** What the mascot says about a menu button while it is hovered or focused, when there is no league yet. */
+const MENU_HINTS = {
+  add: 'Here you can add a new league from presets (PPR, half-PPR, non-PPR), or completely customize the league rules.',
+  import: 'Import real life leagues directly here. Scoring rules are synced automatically from your fantasy league without you raising a finger. Warning: only ESPN leagues are supported for now!',
+  profile: 'Not exactly new here? Import your already existing leagues and players from another browser or device you own.',
+} as const;
+type MenuHint = keyof typeof MENU_HINTS;
+
 export function LeaguesPage() {
   usePageTitle('Leagues');
   const profiles = useStore(profilesStore);
@@ -278,6 +287,7 @@ export function LeaguesPage() {
   // No league is selected until the user picks one.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [hint, setHint] = useState<MenuHint | null>(null); // the menu button the mascot is explaining
   const [exportOpen, setExportOpen] = useState(false);
   const [importProfileOpen, setImportProfileOpen] = useState(false);
   const [refreshProfileId, setRefreshProfileId] = useState<string | undefined>();
@@ -309,6 +319,9 @@ export function LeaguesPage() {
   function cancel() {
     if (stored) setEdit({ id: stored.id, base: editable(stored), profile: stored });
   }
+
+  /** Hover and keyboard focus both make the mascot explain a button, and leaving it puts the greeting back. */
+  const hintOn = (key: MenuHint) => ({ onMouseEnter: () => setHint(key), onMouseLeave: () => setHint(null), onFocus: () => setHint(key), onBlur: () => setHint(null) });
 
   /** Leaving a league with unsaved changes asks first, so they are never lost by a stray click. */
   const mayLeave = () => !dirty || window.confirm(`Discard the unsaved changes to ${stored?.name}?`);
@@ -346,7 +359,7 @@ export function LeaguesPage() {
 
   return (
     <>
-      <Header />
+      <Header pageMascot={!stored} />
       <main className="wrap">
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}
@@ -367,13 +380,13 @@ export function LeaguesPage() {
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn press" onClick={() => { if (mayLeave()) setSelectedId(addProfile('New league')); }}>
+            <button type="button" className="btn press" {...hintOn('add')} onClick={() => { if (mayLeave()) setSelectedId(addProfile('New league')); }}>
               Add a league
             </button>
-            <button type="button" className="btn press" onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
+            <button type="button" className="btn press" {...hintOn('import')} onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
               Import leagues
             </button>
-            <button type="button" className="btn press" onClick={() => setImportProfileOpen(true)}>
+            <button type="button" className="btn press" {...hintOn('profile')} onClick={() => setImportProfileOpen(true)}>
               Import StatWatch profile
             </button>
             <button type="button" className="btn press" aria-disabled={profiles.length === 0 || undefined} title={profiles.length === 0 ? 'Add a league first: there is nothing to export yet' : undefined} onClick={() => { if (profiles.length > 0) setExportOpen(true); }}>
@@ -393,9 +406,7 @@ export function LeaguesPage() {
               footer={dirty ? <SaveActions label="Save or cancel changes, end of form" onSave={save} onCancel={cancel} /> : null}
             />
           ) : (
-            <section className="profile-form profile-empty" aria-label="No league selected">
-              <p>{profiles.length === 0 ? 'You have no leagues yet. Add or import one to start following players.' : 'Select a league on the left to edit its scoring, or add or import one.'}</p>
-            </section>
+            <MascotSays pointAt="left" minLines={6} text={hint ? MENU_HINTS[hint] : profiles.length === 0 ? 'You have no leagues yet. Add or import one from the menu to start following players.' : 'Select a league from the menu to edit its scoring, or add or import one.'} />
           )}
         </div>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>

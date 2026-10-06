@@ -7,6 +7,9 @@ import summary from '../test/fixtures/summary-pit-cle.json';
 import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warren } from '../test/data';
 import { mockFetch, status } from '../test/mockFetch';
 import { renderAt, seed } from '../test/render';
+import { normalizeEspnLeague } from '../leagues/espn/scoring';
+import { parseEspnLeagueSettings } from '../leagues/espn/parse';
+import settings from '../test/fixtures/espn-fantasy/public-settings-1900128084-2026.json';
 
 const card = (name: string) => screen.getByText(name).closest('li')!;
 
@@ -84,7 +87,7 @@ describe('main page', () => {
     seed([], profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/');
-    expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent(/not following anyone yet/);
   });
 
   it('keeps the last numbers and shows an updated note when a live refetch fails', async () => {
@@ -278,8 +281,58 @@ describe('opponent entries on the Players page', () => {
     seed([opponent(warren)], profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/');
-    expect(screen.getByText(/not following anyone yet/)).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent(/not following anyone yet/);
     expect(screen.queryByText('Loading games')).not.toBeInTheDocument();
+  });
+});
+
+describe('with leagues but nobody followed yet', () => {
+  it('has the mascot say so in a bubble, with Add player inside it, instead of plain text', async () => {
+    seed([], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    const says = document.querySelector('.mascot-says') as HTMLElement;
+    expect(says.querySelector('.mascot')).not.toBeNull();
+    expect(says.querySelector('.bubble')).toHaveTextContent("You're not following anyone yet. Add players or team defenses from any of your leagues.");
+    expect(document.querySelector('.brand .mascot')).toBeNull(); // the mascot is on the page, not also in the header
+    await userEvent.click(within(says).getByRole('button', { name: 'Add player' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument(); // and the button works
+  });
+
+  describe('with an imported league', () => {
+    const draft = normalizeEspnLeague(parseEspnLeagueSettings(settings));
+    const imported = { id: 'p1', name: 'Tapai', preset: 'custom' as const, values: draft.values, source: draft.source };
+
+    it('also offers to sync the starters, in the text and with a button next to Add player', async () => {
+      seed([], [imported]);
+      mockFetch({ scoreboard: scoreboardFixture });
+      renderAt('/');
+      const says = document.querySelector('.mascot-says') as HTMLElement;
+      expect(says.querySelector('.bubble')).toHaveTextContent("You're not following anyone yet. Add players or team defenses from any of your leagues. Alternatively sync your starters from your imported leagues.");
+      const actions = says.querySelector('.bubble-actions') as HTMLElement;
+      expect([...actions.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Add player', 'Sync starters']);
+      await userEvent.click(within(actions).getByRole('button', { name: 'Sync starters' }));
+      expect(await screen.findByRole('dialog', { name: 'Sync your starters' })).toBeInTheDocument();
+    });
+  });
+
+  it('does not talk about syncing, or show the button, when no league is imported', () => {
+    seed([], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    const bubble = document.querySelector('.mascot-says .bubble') as HTMLElement;
+    expect(bubble).not.toHaveTextContent('sync your starters');
+    expect(within(bubble).queryByRole('button', { name: 'Sync starters' })).not.toBeInTheDocument();
+    expect(within(bubble).getByRole('button', { name: 'Add player' })).toBeInTheDocument();
+  });
+
+  it('goes up into the header once somebody is followed', async () => {
+    seed([warren], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    await screen.findByText('Jaylen Warren');
+    expect(document.querySelector('.mascot-says')).toBeNull();
+    expect(document.querySelector('.brand .mascot')).not.toBeNull();
   });
 });
 
@@ -297,7 +350,16 @@ describe('with no league yet', () => {
       await userEvent.click(button);
     }
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // clicking did nothing
-    expect(screen.getByText('Add a scoring league first to start following players.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Add a scoring league first to start following players.');
+  });
+
+  it('has the mascot say it in a speech bubble instead of plain text', () => {
+    seed([], []);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/');
+    const says = document.querySelector('.mascot-says') as HTMLElement;
+    expect(says.querySelector('.mascot')).not.toBeNull();
+    expect(says.querySelector('.bubble')).toHaveTextContent('Add a scoring league first to start following players.');
   });
 
   it('offers Go to Leagues in the empty state instead of a greyed-out Add player', () => {
@@ -320,7 +382,8 @@ describe('with no league yet', () => {
     seed([], []);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/vs');
-    expect(screen.getByText('Add a scoring league first to compare a matchup.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Add a scoring league first to compare a matchup.');
+    expect(document.querySelector('.mascot-says .mascot')).not.toBeNull();
     expect(screen.getByRole('link', { name: 'Go to Leagues' })).toHaveAttribute('href', '/leagues');
   });
 });

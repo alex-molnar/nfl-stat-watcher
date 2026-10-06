@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -27,7 +27,7 @@ const open = async (name = 'My league') => { renderAt('/leagues'); await pick(na
 describe('leagues page', () => {
   it('opens with no league selected and asks the user to pick one', () => {
     renderAt('/leagues');
-    expect(screen.getByText(/Select a league on the left to edit its scoring/)).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Select a league from the menu to edit its scoring');
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete league' })).not.toBeInTheDocument();
     expect(saveButtons()).toEqual([]);
@@ -104,7 +104,7 @@ describe('leagues page', () => {
     seed([], profilesFixture);
     await open('Office league');
     expect(screen.getByRole('button', { name: 'Office league' })).toHaveAttribute('aria-current', 'true');
-    expect(screen.queryByText(/Select a league on the left/)).not.toBeInTheDocument();
+    expect(document.querySelector('.mascot-says')).toBeNull();
     const menu = screen.getByRole('complementary', { name: 'Profile actions' });
     expect(within(menu).getByRole('button', { name: 'Delete league' })).toHaveClass('btn-danger');
     expect(within(menu).getAllByRole('button').map((b) => b.textContent)).toEqual(['Office league', 'Friends league', 'Add a league', 'Import leagues', 'Import StatWatch profile', 'Export profile', 'Delete league']);
@@ -545,7 +545,7 @@ describe('delete league dialog', () => {
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
     expect(profiles()).toEqual([]);
     expect(remaining()).toEqual([]);
-    expect(screen.getByText('You have no leagues yet. Add or import one to start following players.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu to start following players.');
   });
 });
 
@@ -553,8 +553,82 @@ describe('with no league', () => {
   it('says to add or import one, and has nothing to export yet', () => {
     seed([], []);
     renderAt('/leagues');
-    expect(screen.getByText('You have no leagues yet. Add or import one to start following players.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu to start following players.');
     expect(screen.getByRole('button', { name: 'Export profile' })).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('has the mascot say so in a speech bubble, pointing at the menu on the left', () => {
+    seed([], []);
+    renderAt('/leagues');
+    const says = document.querySelector('.mascot-says') as HTMLElement;
+    expect(says.querySelector('.mascot')).toHaveClass('pointing-left');
+    expect(says.querySelector('.bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu');
+  });
+
+  describe('the mascot explains the menu buttons', () => {
+    const greeting = 'You have no leagues yet. Add or import one from the menu to start following players.';
+    const bubble = () => document.querySelector('.mascot-says .bubble') as HTMLElement;
+
+    it.each([
+      ['Add a league', 'Here you can add a new league from presets (PPR, half-PPR, non-PPR), or completely customize the league rules.'],
+      ['Import leagues', 'Import real life leagues directly here. Scoring rules are synced automatically from your fantasy league without you raising a finger. Warning: only ESPN leagues are supported for now!'],
+      ['Import StatWatch profile', 'Not exactly new here? Import your already existing leagues and players from another browser or device you own.'],
+    ])('while %s is hovered, and the greeting comes back after', async (name, text) => {
+      seed([], []);
+      renderAt('/leagues');
+      expect(bubble()).toHaveTextContent(greeting);
+      await userEvent.hover(screen.getByRole('button', { name }));
+      expect(bubble()).toHaveTextContent(text);
+      await userEvent.unhover(screen.getByRole('button', { name }));
+      expect(bubble()).toHaveTextContent(greeting);
+    });
+
+    it('also for keyboard users, on focus', async () => {
+      seed([], []);
+      renderAt('/leagues');
+      act(() => screen.getByRole('button', { name: 'Import leagues' }).focus());
+      expect(bubble()).toHaveTextContent('Import real life leagues directly here');
+      act(() => screen.getByRole('button', { name: 'Import leagues' }).blur());
+      expect(bubble()).toHaveTextContent(greeting);
+    });
+
+    it('is a polite live region, so a change is announced', () => {
+      seed([], []);
+      renderAt('/leagues');
+      expect(bubble().querySelector('p')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('says nothing new for Export profile, which has nothing to explain yet', async () => {
+      seed([], []);
+      renderAt('/leagues');
+      await userEvent.hover(screen.getByRole('button', { name: 'Export profile' }));
+      expect(bubble()).toHaveTextContent(greeting);
+    });
+  });
+
+  describe('with leagues, but none selected', () => {
+    it('has the mascot say to pick one from the menu, pointing at it, instead of plain text', () => {
+      renderAt('/leagues');
+      const says = document.querySelector('.mascot-says') as HTMLElement;
+      expect(says.querySelector('.mascot')).toHaveClass('pointing-left');
+      expect(says.querySelector('.bubble')).toHaveTextContent('Select a league from the menu to edit its scoring, or add or import one.');
+      expect(document.querySelector('.brand .mascot')).toBeNull(); // it is on the page, so not in the header too
+    });
+
+    it('explains the menu buttons as they are hovered here too', async () => {
+      renderAt('/leagues');
+      await userEvent.hover(screen.getByRole('button', { name: 'Add a league' }));
+      expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Here you can add a new league from presets');
+      await userEvent.unhover(screen.getByRole('button', { name: 'Add a league' }));
+      expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Select a league from the menu');
+    });
+
+    it('goes up into the header when a league is picked', async () => {
+      renderAt('/leagues');
+      await pick();
+      expect(document.querySelector('.mascot-says')).toBeNull();
+      expect(document.querySelector('.brand .mascot')).not.toBeNull();
+    });
   });
 
   it('lets the first league be added', async () => {
