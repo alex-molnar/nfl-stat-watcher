@@ -440,3 +440,11 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
   .bubble::before { left: 50%; top: -8px; margin: 0 0 0 -7px; border: 0; border-left: 1px solid var(--rule); border-top: 1px solid var(--rule); }
 }
 .bubble a.btn { text-decoration: none; }
+
+/* The mascot pointing at the menu: the arm on that side lifts after the entrance and stays up; the eyes look the same way. */
+.mascot { --arm: 95deg; --gx: -6; --gy: 0; }
+.mascot.pointing-left .m-arm-l { transform: rotate(var(--arm)); animation: mascot-point 420ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)) 480ms both; }
+@keyframes mascot-point { from { transform: none; } to { transform: rotate(var(--arm)); } }
+.mascot.pointing-left .m-look { transform: translate(calc(var(--gx) * 1px), calc(var(--gy) * 1px)); }
+@media (max-width: 760px) { .mascot { --arm: 150deg; --gx: -2; --gy: -5; } }
+@media (prefers-reduced-motion: reduce) { .mascot.pointing-left .m-arm-l { animation: none !important; } }

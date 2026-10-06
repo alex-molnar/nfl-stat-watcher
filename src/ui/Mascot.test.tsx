@@ -45,6 +45,21 @@ describe('Mascot', () => {
   });
 });
 
+describe('Mascot pointing', () => {
+  it('points the arm at the menu on that side and keeps its eyes there instead of following the pointer', () => {
+    const { container } = render(<Mascot pointAt="left" size={200} />);
+    const svg = container.querySelector('svg')!;
+    expect(svg).toHaveClass('pointing-left');
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 200, height: 200, right: 200, bottom: 200, x: 0, y: 0, toJSON: () => ({}) });
+    act(() => { fireEvent.pointerMove(window, { clientX: 700, clientY: 100 }); });
+    expect(svg.style.getPropertyValue('--lx')).toBe('');
+  });
+
+  it('does not point unless asked', () => {
+    expect(render(<Mascot />).container.querySelector('svg')).not.toHaveClass('pointing-left');
+  });
+});
+
 describe('MascotSays', () => {
   it('puts the mascot beside a bubble whose text is real, readable text', () => {
     const { container } = render(<MascotSays><p>Add a scoring league first.</p></MascotSays>);

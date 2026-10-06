@@ -34,6 +34,8 @@ interface Props {
   /** Width and height in px. */
   size?: number;
   className?: string;
+  /** Points one arm at the menu on that side (on narrow screens, where the menu is above, it points up) and looks the same way. */
+  pointAt?: 'left';
 }
 
 /**
@@ -41,13 +43,14 @@ interface Props {
  * hidden from assistive technology; whatever it "says" is real text next to it. Its eyes follow the pointer, and it blinks,
  * glances and bobs on its own. Every motion is CSS transform and opacity, and all of it stops under reduced motion.
  */
-export function Mascot({ size = 160, className }: Props) {
+export function Mascot({ size = 160, className, pointAt }: Props) {
   const uid = useId().replace(/:/g, ''); // gradient and clip ids must be unique per instance, and colons break url(#...)
   const ref = useRef<SVGSVGElement>(null);
 
   // The eyes look towards the pointer. The glance is set on --lx and --ly, which the CSS turns into a small shift of the pupils.
   useEffect(() => {
     const calm = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+    if (pointAt) return; // it is looking at what it points to, not at the pointer
     const look = (event: PointerEvent) => {
       const svg = ref.current;
       if (!svg || calm?.matches) return;
@@ -61,7 +64,7 @@ export function Mascot({ size = 160, className }: Props) {
     };
     window.addEventListener('pointermove', look);
     return () => window.removeEventListener('pointermove', look);
-  }, []);
+  }, [pointAt]);
 
   const eye = (cx: number, id: string): ReactNode => (
     <>
@@ -71,7 +74,7 @@ export function Mascot({ size = 160, className }: Props) {
   );
 
   return (
-    <svg ref={ref} className={`mascot${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+    <svg ref={ref} className={`mascot${pointAt ? ` pointing-${pointAt}` : ''}${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true" focusable="false">
       <defs>
         <radialGradient id={`${uid}-leather`} cx="38%" cy="30%" r="80%">
           <stop offset="0" stopColor="#D98A4E" /><stop offset=".55" stopColor="#A9582B" /><stop offset="1" stopColor="#6A3114" />
@@ -109,10 +112,10 @@ export function Mascot({ size = 160, className }: Props) {
 }
 
 /** The mascot telling the user something in a speech bubble. The bubble's content is real text, so it is what assistive technology reads. */
-export function MascotSays({ children }: { children: ReactNode }) {
+export function MascotSays({ children, pointAt }: { children: ReactNode; pointAt?: 'left' }) {
   return (
     <div className="empty mascot-says">
-      <Mascot size={168} />
+      <Mascot size={168} pointAt={pointAt} />
       <div className="bubble">{children}</div>
     </div>
   );

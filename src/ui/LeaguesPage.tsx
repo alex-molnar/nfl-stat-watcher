@@ -13,6 +13,7 @@ import { uniqueName } from '../scoring/uniqueName';
 import { DeleteLeagueDialog } from './DeleteLeagueDialog';
 import { ExportProfileDialog } from './ExportProfileDialog';
 import { ImportLeaguesDialog } from './ImportLeaguesDialog';
+import { MascotSays } from './Mascot';
 import { ImportProfileDialog } from './ImportProfileDialog';
 import { disconnectLeagueSource, isLocallyModified } from '../leagues/import';
 import { ESPN_SCORING_MAP_VERSION } from '../leagues/espn/statMap';
@@ -393,9 +394,15 @@ export function LeaguesPage() {
               footer={dirty ? <SaveActions label="Save or cancel changes, end of form" onSave={save} onCancel={cancel} /> : null}
             />
           ) : (
-            <section className="profile-form profile-empty" aria-label="No league selected">
-              <p>{profiles.length === 0 ? 'You have no leagues yet. Add or import one to start following players.' : 'Select a league on the left to edit its scoring, or add or import one.'}</p>
-            </section>
+            profiles.length === 0 ? (
+              <MascotSays pointAt="left">
+                <p>You have no leagues yet. Add or import one from the menu to start following players.</p>
+              </MascotSays>
+            ) : (
+              <section className="profile-form profile-empty" aria-label="No league selected">
+                <p>Select a league on the left to edit its scoring, or add or import one.</p>
+              </section>
+            )
           )}
         </div>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>

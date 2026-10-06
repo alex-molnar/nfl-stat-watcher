@@ -545,7 +545,7 @@ describe('delete league dialog', () => {
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
     expect(profiles()).toEqual([]);
     expect(remaining()).toEqual([]);
-    expect(screen.getByText('You have no leagues yet. Add or import one to start following players.')).toBeInTheDocument();
+    expect(screen.getByText('You have no leagues yet. Add or import one from the menu to start following players.')).toBeInTheDocument();
   });
 });
 
@@ -553,8 +553,22 @@ describe('with no league', () => {
   it('says to add or import one, and has nothing to export yet', () => {
     seed([], []);
     renderAt('/leagues');
-    expect(screen.getByText('You have no leagues yet. Add or import one to start following players.')).toBeInTheDocument();
+    expect(screen.getByText('You have no leagues yet. Add or import one from the menu to start following players.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export profile' })).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('has the mascot say so in a speech bubble, pointing at the menu on the left', () => {
+    seed([], []);
+    renderAt('/leagues');
+    const says = document.querySelector('.mascot-says') as HTMLElement;
+    expect(says.querySelector('.mascot')).toHaveClass('pointing-left');
+    expect(says.querySelector('.bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu');
+  });
+
+  it('shows the plain prompt, not the mascot, once a league exists but none is selected', () => {
+    renderAt('/leagues');
+    expect(document.querySelector('.mascot-says')).toBeNull();
+    expect(screen.getByText(/Select a league on the left to edit its scoring/)).toBeInTheDocument();
   });
 
   it('lets the first league be added', async () => {
