@@ -175,12 +175,14 @@ function Talking({ text, pointAt, minLines, children }: { text: string; pointAt?
   const flying = useSyncExternalStore(subscribeMascotFlight, isMascotFlying, () => false);
   // While a dialog has the mascot it is not here: it jumped in there, and comes back when the dialog closes. Its space stays, so nothing moves.
   const inDialog = useSyncExternalStore(subscribeDialogs, mascotAway, () => false);
+  // A bubble with no one beside it would hang there, so it waits out the mascot's absence like it waits out a jump, and starts over when he is back.
+  const quiet = flying || inDialog;
   return (
     <div className="empty mascot-says">
       {inDialog ? <div aria-hidden="true" style={{ width: 168, height: 168, flex: 'none' }} /> : <Mascot size={168} pointAt={pointAt} />}
-      <div className={`bubble${flying ? ' waiting' : ''}`}>
+      <div className={`bubble${quiet ? ' waiting' : ''}`} aria-hidden={inDialog || undefined}>
         {/* A polite live region: a changed text is announced once, whole, however it is typed on screen. */}
-        <p aria-live="polite" style={minLines ? { minHeight: `${minLines * 1.45}em` } : undefined}><TypedText text={text} delay={350} hold={flying} /></p>
+        <p aria-live="polite" style={minLines ? { minHeight: `${minLines * 1.45}em` } : undefined}><TypedText text={text} delay={350} hold={quiet} /></p>
         {children}
       </div>
     </div>
