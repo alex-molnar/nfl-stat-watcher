@@ -500,3 +500,10 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .perch-bubble::before { content: ""; position: absolute; left: -7px; bottom: 14px; width: 12px; height: 12px; background: var(--panel); border-left: 1px solid var(--rule); border-bottom: 1px solid var(--rule); transform: rotate(45deg); }
 /* The copy of the mascot that jumps between its places is a popover (the top layer, above any dialog) with all of the browser's popover styling taken off. */
 .mascot-flight { position: fixed; inset: 0 auto auto 0; width: 0; height: 0; margin: 0; padding: 0; border: 0; background: none; overflow: visible; pointer-events: none; }
+
+/* Worried: the brows slant up in the middle and the smile turns into a frown. It eases in, as a face does. */
+.mascot .m-brow, .mascot .m-mouth { transform-box: fill-box; transform-origin: center; transition: transform 220ms var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
+.mascot.worried .m-brow-l { transform: translateY(-3px) rotate(-17deg); }
+.mascot.worried .m-brow-r { transform: translateY(-3px) rotate(17deg); }
+.mascot.worried .m-mouth { transform: translateY(5px) scaleY(-.8); }
+@media (prefers-reduced-motion: reduce) { .mascot .m-brow, .mascot .m-mouth { transition: none; } }

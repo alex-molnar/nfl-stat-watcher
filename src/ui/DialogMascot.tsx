@@ -21,13 +21,15 @@ export function useHint() {
  * The mascot in a dialog, put as its first child. It sits on the dialog's top edge near the left corner, seated like in the header, with its legs
  * hanging into the dialog. Since it hangs from the corner it does not matter how the dialog's size changes. It jumps there from where it was
  * once the dialog has settled, and back when it closes. When a control with a hint (`data-hint`, see `useHint`) is hovered or focused, a bubble
- * beside it types the hint. Without the mascot (the setting) this renders nothing.
+ * beside it types the hint. A dialog about something that cannot be undone has `data-worried` (it can come and go while it is open): the mascot then looks worried.
+ * Without the mascot (the setting) this renders nothing.
  */
 export function DialogMascot() {
   const mascotOn = useStore(mascotEnabledStore);
   const perch = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false); // the dialog is open and has settled
   const [hint, setHint] = useState('');
+  const [worried, setWorried] = useState(false); // the dialog is about something that cannot be undone
 
   useEffect(() => {
     const dialog = perch.current?.closest('dialog');
@@ -35,6 +37,7 @@ export function DialogMascot() {
     const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const sync = () => {
+      setWorried(dialog.hasAttribute('data-worried'));
       clearTimeout(timer);
       if (dialog.open) {
         timer = setTimeout(() => setReady(true), calm ? 0 : SETTLE_MS);
@@ -45,7 +48,7 @@ export function DialogMascot() {
     };
     sync();
     const observer = new MutationObserver(sync);
-    observer.observe(dialog, { attributes: true, attributeFilter: ['open'] });
+    observer.observe(dialog, { attributes: true, attributeFilter: ['open', 'data-worried'] });
     const say = (event: Event) => setHint((event.target as Element).closest?.('[data-hint]')?.getAttribute('data-hint') ?? '');
     const hush = () => setHint('');
     dialog.addEventListener('mouseover', say);
@@ -68,7 +71,7 @@ export function DialogMascot() {
   if (!mascotOn) return null;
   return (
     <div ref={perch} className="dialog-perch">
-      {ready && <Mascot size={SIZE} seated entrance={false} className="perch-mascot" style={{ top: -(SEAT_Y / 200) * SIZE }} />}
+      {ready && <Mascot size={SIZE} seated entrance={false} worried={worried} className="perch-mascot" style={{ top: -(SEAT_Y / 200) * SIZE }} />}
       {/* The live region is always there, so a hint that appears is announced; the bubble is its content. */}
       <div className="perch-say" aria-live="polite">
         {ready && hint && <div className="perch-bubble"><TypedText text={hint} /></div>}

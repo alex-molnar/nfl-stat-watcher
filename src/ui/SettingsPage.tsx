@@ -92,7 +92,7 @@ export function SettingsPage() {
         </section>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>
       </main>
-      <dialog ref={confirmRef} aria-labelledby="clear-title" aria-describedby="clear-warning" {...backdropClose}>
+      <dialog ref={confirmRef} data-worried aria-labelledby="clear-title" aria-describedby="clear-warning" {...backdropClose}>
         <DialogMascot />
         <div className="dlg">
           <h2 id="clear-title">Clear all your data?</h2>

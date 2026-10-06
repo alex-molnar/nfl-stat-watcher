@@ -59,7 +59,7 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
   const bothText = [mine > 0 && plural(mine, 'player'), `${plural(opponents, 'opponent player')}`].filter(Boolean).join(' and ');
 
   return (
-    <dialog ref={ref} aria-labelledby="delete-league-title" onClose={onClose} {...backdropClose}>
+    <dialog ref={ref} data-worried aria-labelledby="delete-league-title" onClose={onClose} {...backdropClose}>
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">

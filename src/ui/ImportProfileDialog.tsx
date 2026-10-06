@@ -85,7 +85,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
   }
 
   return (
-    <dialog ref={ref} className="transfer-dialog" aria-labelledby="import-profile-title" onClose={onClose} {...backdropClose}>
+    <dialog ref={ref} className="transfer-dialog" data-worried={override ? '' : undefined} aria-labelledby="import-profile-title" onClose={onClose} {...backdropClose}>
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
