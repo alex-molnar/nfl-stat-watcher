@@ -193,8 +193,7 @@ export function VsPage() {
       <Header />
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
-        <MascotSays>
-          <p>Add a scoring league first to compare a matchup.</p>
+        <MascotSays text="Add a scoring league first to compare a matchup.">
           <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
         </MascotSays>
       </main>

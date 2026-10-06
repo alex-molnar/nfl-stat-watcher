@@ -297,7 +297,7 @@ describe('with no league yet', () => {
       await userEvent.click(button);
     }
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // clicking did nothing
-    expect(screen.getByText('Add a scoring league first to start following players.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Add a scoring league first to start following players.');
   });
 
   it('has the mascot say it in a speech bubble instead of plain text', () => {
@@ -306,7 +306,7 @@ describe('with no league yet', () => {
     renderAt('/');
     const says = document.querySelector('.mascot-says') as HTMLElement;
     expect(says.querySelector('.mascot')).not.toBeNull();
-    expect(within(says.querySelector('.bubble') as HTMLElement).getByText('Add a scoring league first to start following players.')).toBeInTheDocument();
+    expect(says.querySelector('.bubble')).toHaveTextContent('Add a scoring league first to start following players.');
   });
 
   it('offers Go to Leagues in the empty state instead of a greyed-out Add player', () => {
@@ -329,7 +329,7 @@ describe('with no league yet', () => {
     seed([], []);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/vs');
-    expect(within(document.querySelector('.mascot-says .bubble') as HTMLElement).getByText('Add a scoring league first to compare a matchup.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('Add a scoring league first to compare a matchup.');
     expect(document.querySelector('.mascot-says .mascot')).not.toBeNull();
     expect(screen.getByRole('link', { name: 'Go to Leagues' })).toHaveAttribute('href', '/leagues');
   });

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { TypedText } from './TypedText';
 
 const INK = '#14231A';
 const CREAM = '#F6EBDD';
@@ -111,12 +112,16 @@ export function Mascot({ size = 160, className, pointAt }: Props) {
   );
 }
 
-/** The mascot telling the user something in a speech bubble. The bubble's content is real text, so it is what assistive technology reads. */
-export function MascotSays({ children, pointAt }: { children: ReactNode; pointAt?: 'left' }) {
+/** The mascot telling the user something in a speech bubble. The text types itself out, while assistive technology reads it whole; `minLines` keeps room for a longer text that may replace it. */
+export function MascotSays({ text, pointAt, minLines, children }: { text: string; pointAt?: 'left'; minLines?: number; children?: ReactNode }) {
   return (
     <div className="empty mascot-says">
       <Mascot size={168} pointAt={pointAt} />
-      <div className="bubble">{children}</div>
+      <div className="bubble">
+        {/* A polite live region: a changed text is announced once, whole, however it is typed on screen. */}
+        <p aria-live="polite" style={minLines ? { minHeight: `${minLines * 1.45}em` } : undefined}><TypedText text={text} delay={350} /></p>
+        {children}
+      </div>
     </div>
   );
 }

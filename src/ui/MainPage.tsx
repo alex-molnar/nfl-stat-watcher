@@ -90,8 +90,7 @@ export function MainPage() {
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
           noLeagues ? (
-            <MascotSays>
-              <p>Add a scoring league first to start following players.</p>
+            <MascotSays text="Add a scoring league first to start following players.">
               <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
             </MascotSays>
           ) : (

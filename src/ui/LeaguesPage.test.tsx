@@ -545,7 +545,7 @@ describe('delete league dialog', () => {
     await userEvent.click(within(dialog()).getByRole('button', { name: 'Delete league' }));
     expect(profiles()).toEqual([]);
     expect(remaining()).toEqual([]);
-    expect(screen.getByText('You have no leagues yet. Add or import one from the menu to start following players.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu to start following players.');
   });
 });
 
@@ -553,7 +553,7 @@ describe('with no league', () => {
   it('says to add or import one, and has nothing to export yet', () => {
     seed([], []);
     renderAt('/leagues');
-    expect(screen.getByText('You have no leagues yet. Add or import one from the menu to start following players.')).toBeInTheDocument();
+    expect(document.querySelector('.mascot-says .bubble')).toHaveTextContent('You have no leagues yet. Add or import one from the menu to start following players.');
     expect(screen.getByRole('button', { name: 'Export profile' })).toHaveAttribute('aria-disabled', 'true');
   });
 

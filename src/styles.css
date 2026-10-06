@@ -449,5 +449,7 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 @media (max-width: 760px) { .mascot { --arm: 150deg; --gx: -2; --gy: -5; } }
 @media (prefers-reduced-motion: reduce) { .mascot.pointing-left .m-arm-l { animation: none !important; } }
 
-/* The bubble keeps room for the longest hint, so the panel does not jump as the text changes. */
-.bubble .hint { min-height: calc(1.45em * 6); }
+/* Typed text: the whole text sits invisible to hold its space, and the typed part is laid over it. */
+.typed { display: grid; }
+.typed > span { grid-area: 1 / 1; }
+.typed-ghost { visibility: hidden; }

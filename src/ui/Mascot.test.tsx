@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import { Mascot, MascotSays } from './Mascot';
+import { TypedText } from './TypedText';
 
 describe('Mascot', () => {
   it('is decorative: hidden from assistive technology', () => {
@@ -62,8 +63,83 @@ describe('Mascot pointing', () => {
 
 describe('MascotSays', () => {
   it('puts the mascot beside a bubble whose text is real, readable text', () => {
-    const { container } = render(<MascotSays><p>Add a scoring league first.</p></MascotSays>);
+    const { container } = render(<MascotSays text="Add a scoring league first."><button type="button">Go</button></MascotSays>);
     expect(container.querySelector('.mascot')).not.toBeNull();
-    expect(screen.getByText('Add a scoring league first.').closest('.bubble')).not.toBeNull();
+    expect(container.querySelector('.bubble')).toHaveTextContent('Add a scoring league first.');
+    expect(screen.getByRole('button', { name: 'Go' }).closest('.bubble')).not.toBeNull();
+  });
+});
+
+describe('TypedText', () => {
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+  const typed = (c: HTMLElement) => c.querySelector('.typed-live')!.textContent;
+
+  it('types the text out letter by letter, ending with all of it', () => {
+    vi.useFakeTimers();
+    const { container } = render(<TypedText text="Add a league first." />);
+    expect(typed(container)).toBe('');
+    act(() => { vi.advanceTimersByTime(200); });
+    const part = typed(container)!;
+    expect(part.length).toBeGreaterThan(0);
+    expect(part.length).toBeLessThan('Add a league first.'.length);
+    expect('Add a league first.'.startsWith(part)).toBe(true);
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(typed(container)).toBe('Add a league first.');
+  });
+
+  it('gives assistive technology the whole sentence at once, and hides the typed copy', () => {
+    vi.useFakeTimers();
+    const { container } = render(<TypedText text="Hello there" />);
+    expect(container.querySelector('.sr')).toHaveTextContent('Hello there');
+    expect(container.querySelector('.typed')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps room for the whole text from the first moment', () => {
+    vi.useFakeTimers();
+    const { container } = render(<TypedText text="Hello there" />);
+    expect(container.querySelector('.typed-ghost')).toHaveTextContent('Hello there');
+  });
+
+  it('never makes the reader wait more than about a second and a half, however long the text', () => {
+    vi.useFakeTimers();
+    const long = 'word '.repeat(60).trim();
+    const { container } = render(<TypedText text={long} />);
+    act(() => { vi.advanceTimersByTime(1700); });
+    expect(typed(container)).toBe(long);
+  });
+
+  it('starts again when the text changes', () => {
+    vi.useFakeTimers();
+    const { container, rerender } = render(<TypedText text="First" />);
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(typed(container)).toBe('First');
+    rerender(<TypedText text="Second text" />);
+    expect(typed(container)).toBe('');
+    act(() => { vi.advanceTimersByTime(1500); });
+    expect(typed(container)).toBe('Second text');
+  });
+
+  it('waits for its delay before the first text only, a replacement starts at once', () => {
+    vi.useFakeTimers();
+    const { container, rerender } = render(<TypedText text="Hello" delay={500} />);
+    act(() => { vi.advanceTimersByTime(2000); });
+    rerender(<TypedText text="Another text" delay={500} />);
+    act(() => { vi.advanceTimersByTime(100); });
+    expect(typed(container)!.length).toBeGreaterThan(0);
+  });
+
+  it('waits for its delay before the first letter', () => {
+    vi.useFakeTimers();
+    const { container } = render(<TypedText text="Hello" delay={500} />);
+    act(() => { vi.advanceTimersByTime(400); });
+    expect(typed(container)).toBe('');
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(typed(container)).toBe('Hello');
+  });
+
+  it('just shows the text when the reader prefers less motion', () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { container } = render(<TypedText text="Hello there" />);
+    expect(typed(container)).toBe('Hello there');
   });
 });

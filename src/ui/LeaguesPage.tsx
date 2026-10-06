@@ -407,9 +407,7 @@ export function LeaguesPage() {
             />
           ) : (
             profiles.length === 0 ? (
-              <MascotSays pointAt="left">
-                <p className="hint" aria-live="polite">{hint ? MENU_HINTS[hint] : 'You have no leagues yet. Add or import one from the menu to start following players.'}</p>
-              </MascotSays>
+              <MascotSays pointAt="left" minLines={6} text={hint ? MENU_HINTS[hint] : 'You have no leagues yet. Add or import one from the menu to start following players.'} />
             ) : (
               <section className="profile-form profile-empty" aria-label="No league selected">
                 <p>Select a league on the left to edit its scoring, or add or import one.</p>
