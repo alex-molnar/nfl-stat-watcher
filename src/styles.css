@@ -403,9 +403,23 @@ dialog { overflow: visible; max-height: none; }
 .profile-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
 @media (forced-colors: active) { .chip, .profile-dot { forced-color-adjust: none; } }
 
-.bm-help { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px dashed var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.private-rosters { display: grid; gap: 10px; }
+.private-method-title { margin: 0; font-size: 15px; }
+.private-method { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid var(--accent); border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.private-method p { margin: 0; }
+.bm-help { display: grid; gap: 8px; }
 .bm-help p { margin: 0; }
-.bm-link { display: inline-block; text-decoration: none; cursor: grab; border-color: var(--accent); font-weight: 800; }
+.bm-link, .private-method-link { display: inline-block; text-decoration: none; background: #86EFAC; color: #0B1810; border-color: #86EFAC; font-weight: 800; }
+.bm-link { cursor: grab; }
+.bm-link:active { cursor: grabbing; }
+.bm-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.bm-or { font-size: 12px; }
+.bookmark-drag-guide { position: fixed; inset: 0; width: 100vw; height: 100dvh; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; pointer-events: none; }
+.bookmark-drag-guide::backdrop { background: transparent; pointer-events: none; }
+.bookmark-drag-copy { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
+.bookmark-drag-copy .btn { display: flex; align-items: center; justify-content: center; width: var(--drag-width); height: var(--drag-height); box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.bookmark-drag-cursor { position: absolute; left: 60%; top: 65%; }
+@media (prefers-reduced-motion: reduce) { .bookmark-drag-guide { display: none !important; } }
 
 /* The header stays visible on every page, on screens with room for it: wide enough, and tall enough. A phone wraps it to several rows and a very short window would lose most of its height to it (WCAG 1.4.10), so there it scrolls away like any content.
    Whatever else is sticky sits just below it, and focus scrolling clears both. */

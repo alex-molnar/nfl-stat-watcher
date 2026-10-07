@@ -93,7 +93,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       (cause: unknown) => {
         if (controller.signal.aborted) return;
         const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
-        setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private. Copy its rosters from your signed-in ESPN tab to continue.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
+        setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private, and the requested data cannot be obtained automatically. There are two ways to set it up. Via a bookmark, or copying the data manually.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
       },
     );
     return () => controller.abort();
@@ -178,7 +178,6 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
     ref.current?.close(); // the native close runs onClose and returns focus to the button that opened the dialog
   }
 
-  const label = everyLeague ? `all ${imported.length} leagues` : profile ? `${profile.name}${profile.source ? `, league ${profile.source.leagueId}` : ''}` : '';
   const heading = both ? 'Sync all starters' : side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
   const mineHere = panels.find((panel) => panel.side === 'mine');
   const opponentHere = panels.find((panel) => panel.side === 'opponent');
@@ -202,12 +201,11 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
             </select>
           </label>
         )}
-        {targets.length > 0 && <p className="muted">Starters in the current matchup of {label}, season {profile?.source?.season}{both ? ', for both sides' : ''}. Players already followed are skipped. Nothing is removed unless you tick the box below.</p>}
         {pending && everyLeague && <p className="muted" role="status">League {targets.indexOf(pending) + 1} of {targets.length}: {pending.name}</p>}
         {pending && !failed && <p role="status">Loading rosters…</p>}
         {failed && pending && (
           <>
-            <p className="error" role="alert">{failed.message}</p>
+            <p className={failed.needsAccess ? undefined : 'error'} role={failed.needsAccess ? 'status' : 'alert'}>{failed.message}</p>
             {failed.needsAccess && leagueId && season && <PrivateLeagueHelp key={pending.id} url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
             {everyLeague && <button type="button" className="btn" onClick={() => setSkipped((current) => [...current, pending.id])}>Skip {pending.name}</button>}
           </>

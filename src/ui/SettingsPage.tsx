@@ -13,10 +13,11 @@ import { usePageTitle } from './usePageTitle';
 import { DEFAULT_POSITION_ORDER, type PositionGroup } from '../stats/positionOrder';
 import { positionOrderStore } from '../storage/positionOrder';
 import { PositionOrderInput } from './PositionOrderInput';
+import { bookmarkHelpStore } from '../storage/bookmarkHelp';
 
 const MODE_LABELS: Record<NameDisplayMode, string> = { full: 'Full', initial: 'Initial', formal: 'Formal' };
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
-type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[] };
+type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean };
 const CATEGORIES = ['General', 'Position order', 'Site settings'] as const;
 type Category = (typeof CATEGORIES)[number];
 
@@ -28,6 +29,7 @@ export function SettingsPage() {
   const storedMascot = useStore(mascotEnabledStore);
   const storedName = useStore(mascotNameStore);
   const storedPositions = useStore(positionOrderStore);
+  const storedBookmarkHelp = useStore(bookmarkHelpStore);
   const [category, setCategory] = useState<Category>('General');
   const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
@@ -36,8 +38,9 @@ export function SettingsPage() {
   const mascot = draft?.mascot ?? storedMascot;
   const name = draft?.name ?? storedName;
   const positions = draft?.positions ?? storedPositions;
-  const change = (patch: Partial<SettingsDraft>) => setDraft({ mode, mascot, name, positions, ...patch });
-  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]);
+  const bookmarkHelp = draft?.bookmarkHelp ?? storedBookmarkHelp;
+  const change = (patch: Partial<SettingsDraft>) => setDraft({ mode, mascot, name, positions, bookmarkHelp, ...patch });
+  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -52,6 +55,7 @@ export function SettingsPage() {
     mascotEnabledStore.set(mascot);
     mascotNameStore.set(name.trim() || DEFAULT_MASCOT_NAME);
     positionOrderStore.set([...positions]);
+    bookmarkHelpStore.set(bookmarkHelp);
     setDraft(null);
     setNotice('Saved settings.');
   }
@@ -133,6 +137,14 @@ export function SettingsPage() {
                 <legend>Rookie camp</legend>
                 <p id="camp-help" className="muted">{storedMascot ? `A short practice with ${storedName}: four drills, each done on the real pages, that show you around.` : 'Turn the mascot on and save to take the practice.'}</p>
                 <button type="button" className="btn press" aria-describedby="camp-help" disabled={!storedMascot} onClick={() => { startCamp(); setNotice(`Rookie camp started. ${storedName} will show you the first drill.`); }}>Start rookie camp</button>
+              </fieldset>
+              <fieldset>
+                <legend>Private league sync</legend>
+                <label className="choice">
+                  <input type="checkbox" checked={bookmarkHelp} aria-describedby="bookmark-help" onChange={(event) => change({ bookmarkHelp: event.target.checked })} />
+                  Show bookmark setup for private leagues
+                </label>
+                <p id="bookmark-help" className="muted">Show the bookmark option when syncing private league starters. Turn this on to restore it after choosing Don&rsquo;t show this option again.</p>
               </fieldset>
               <fieldset>
                 <legend>Your data</legend>
