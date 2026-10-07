@@ -38,8 +38,7 @@ main.wrap { padding-bottom: 48px; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .private-settings { display: grid; gap: 10px; }
 .private-settings p { margin: 0; }
-.private-settings-open { display: inline-block; text-decoration: none; background: #357F40; border-color: #357F40; color: #FFFFFF; }
-.private-settings-how { background: #14532D; border-color: #14532D; color: #FFFFFF; }
+.private-settings-open { display: inline-block; text-decoration: none; }
 .private-settings-guide { position: fixed; inset: auto; margin: 0; width: min(300px, calc(100vw - 24px)); padding: 12px 14px; border: 1px solid var(--rule); border-radius: 14px; background: var(--panel); color: var(--ink); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); font-size: 13px; line-height: 1.45; pointer-events: none; }
 .private-settings-guide-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .private-settings-guide p { margin: 0; }
