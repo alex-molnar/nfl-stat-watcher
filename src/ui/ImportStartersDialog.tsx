@@ -93,7 +93,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       (cause: unknown) => {
         if (controller.signal.aborted) return;
         const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
-        setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private. Copy its rosters from your signed-in ESPN tab to continue.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
+        setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private and needs a few extra steps to sync your starters.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
       },
     );
     return () => controller.abort();
@@ -207,7 +207,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         {pending && !failed && <p role="status">Loading rosters…</p>}
         {failed && pending && (
           <>
-            <p className="error" role="alert">{failed.message}</p>
+            <p className={failed.needsAccess ? undefined : 'error'} role={failed.needsAccess ? 'status' : 'alert'}>{failed.message}</p>
             {failed.needsAccess && leagueId && season && <PrivateLeagueHelp key={pending.id} url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
             {everyLeague && <button type="button" className="btn" onClick={() => setSkipped((current) => [...current, pending.id])}>Skip {pending.name}</button>}
           </>

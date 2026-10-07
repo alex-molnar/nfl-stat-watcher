@@ -62,8 +62,15 @@ describe('sync starters', () => {
     seed([], [league]);
     renderAt('/');
     await userEvent.click(opener());
-    expect(await screen.findByText(/This league is private/)).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: 'Copy lineups from ESPN' });
+    const notice = await screen.findByText(/This league is private/);
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice).not.toHaveClass('error');
+    expect(screen.getByText(/drag the Sync button to your bookmarks bar/)).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Sync' });
+    expect(link).toHaveClass('btn-primary');
+    expect(link).toHaveAttribute('draggable', 'true');
+    expect(screen.getByRole('button', { name: 'Copy bookmark' })).toBeInTheDocument();
+    expect(screen.getByText('or')).toBeInTheDocument();
     expect(link.getAttribute('href')).toMatch(/^javascript:/);
     expect(decodeURIComponent(link.getAttribute('href')!)).toContain('leagues/1900128084?view=mRoster');
     await userEvent.click(link); // clicking it on our own page must not run it
@@ -77,6 +84,26 @@ describe('sync starters', () => {
     await userEvent.click(area);
     await userEvent.paste(JSON.stringify(lineups)); // a valid paste goes straight on, replacing the bad text
     expect(await screen.findByLabelText('Your team in this league')).toBeInTheDocument();
+  });
+
+  it('copies the same Sync bookmark and pauses the demonstration while the real bookmark is dragged', async () => {
+    const user = userEvent.setup();
+    mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
+    seed([], [league]);
+    renderAt('/');
+    await user.click(opener());
+    const bookmark = await screen.findByRole('link', { name: 'Sync' });
+    await user.click(screen.getByRole('button', { name: 'Copy bookmark' }));
+    expect(await navigator.clipboard.readText()).toBe(bookmark.getAttribute('href'));
+    expect(await screen.findByText('Copied. Create a bookmark and paste this as its address.')).toBeInTheDocument();
+    expect(document.querySelector('.bookmark-drag-guide')).toHaveAttribute('aria-hidden', 'true');
+    fireEvent.dragStart(bookmark);
+    expect(document.querySelector('.bookmark-drag-guide')).not.toBeInTheDocument();
+    expect(bookmark).toHaveAttribute('draggable', 'true');
+    fireEvent.dragEnd(bookmark);
+    expect(document.querySelector('.bookmark-drag-guide')).toBeInTheDocument();
+    await user.click(screen.getByText(/Import league .* from your own ESPN session/));
+    expect(document.querySelector('.bookmark-drag-guide')).not.toBeInTheDocument();
   });
 
   describe('removing non starters', () => {

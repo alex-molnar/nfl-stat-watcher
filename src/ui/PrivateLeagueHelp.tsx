@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { PrivateSettingsGuide } from './PrivateSettingsGuide';
+import { BookmarkDragGuide } from './BookmarkDragGuide';
 
 interface Props {
   url: string | null;
@@ -22,6 +23,9 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   const [guideOpen, setGuideOpen] = useState(false);
   const guideId = useId();
   const guideAnchor = useRef<HTMLButtonElement>(null);
+  const bookmarkAnchor = useRef<HTMLAnchorElement>(null);
+  const [rostersHelpOpen, setRostersHelpOpen] = useState(true);
+  const [dragging, setDragging] = useState(false);
   const kept = what === 'settings' ? 'Only scoring and lineup settings are kept' : 'Only starting lineups and matchup pairings are kept';
 
   /** Pasting is the whole action: the text is checked and imported at once, and a problem is shown right under the box. */
@@ -77,24 +81,27 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   );
 
   return (
-    <details className="private-help" open>
+    <details className="private-help" open={rostersHelpOpen} onToggle={(event) => setRostersHelpOpen(event.currentTarget.open)}>
       <summary>Import {leagueLabel} from your own ESPN session</summary>
       {bookmarklet && (
         <div className="bm-help">
-          <p><b>Quick way, once per browser:</b> drag this button to your bookmarks bar.</p>
-          <p>
+          <p><b>Once per browser:</b> drag the Sync button to your bookmarks bar, or copy it to create a bookmark manually.</p>
+          <div className="bm-actions">
             {/* React refuses javascript: URLs in an href prop, so the link is set on the element itself. */}
             <a
-              className="btn bm-link"
+              className="btn btn-primary bm-link"
               draggable
-              ref={(el) => { el?.setAttribute('href', bookmarklet); }}
+              ref={(el) => { bookmarkAnchor.current = el; el?.setAttribute('href', bookmarklet); }}
+              onDragStart={() => setDragging(true)}
+              onDragEnd={() => setDragging(false)}
               onClick={(event) => { event.preventDefault(); setNote('Do not click it here: drag it to your bookmarks bar, then click that bookmark on the ESPN tab.'); }}
             >
-              Copy lineups from ESPN
+              Sync
             </a>
-            {' '}
-            <button type="button" className="btn" onClick={() => void copyCode()}>Copy the bookmark code instead</button>
-          </p>
+            <span className="muted bm-or">or</span>
+            <button type="button" className="btn" onClick={() => void copyCode()}>Copy bookmark</button>
+          </div>
+          {rostersHelpOpen && !dragging && <BookmarkDragGuide anchor={bookmarkAnchor} />}
           <p>Then {espnPage ? <><a href={espnPage} target="_blank" rel="noreferrer">open the league on ESPN</a> (signed in)</> : 'open the league on ESPN (signed in)'}, click the bookmark, come back here and paste below. The bookmark runs on ESPN&rsquo;s page and only copies lineups to your clipboard.</p>
           {note && <p className="muted" role="status">{note}</p>}
           <p className="muted">Or the manual way:</p>
