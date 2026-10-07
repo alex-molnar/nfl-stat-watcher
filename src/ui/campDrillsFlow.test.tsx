@@ -97,6 +97,7 @@ describe('drill 4: importing a league', () => {
     mockFetch({ 'seasons/2026/segments/0/leagues/1900128084?view=mSettings': { __status: 401 } });
     await openAndClickLinks();
     await cardSays('This league is private');
+    await userEvent.click(screen.getByRole('link', { name: 'Open Settings' }));
     const area = await screen.findByLabelText('Settings JSON for league 1900128084, season 2026');
     await userEvent.click(area);
     await userEvent.paste(JSON.stringify(settings));
