@@ -1,6 +1,8 @@
-import { useId, useRef, useState } from 'react';
-import { PrivateSettingsGuide } from './PrivateSettingsGuide';
+import { useRef, useState } from 'react';
+import { PrivateHelpButton } from './PrivateHelpButton';
 import { BookmarkDragGuide } from './BookmarkDragGuide';
+import { bookmarkHelpStore } from '../storage/bookmarkHelp';
+import { useStore } from '../storage/useStore';
 
 interface Props {
   url: string | null;
@@ -20,12 +22,9 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   const [problem, setProblem] = useState('');
   const [note, setNote] = useState('');
   const [settingsOpened, setSettingsOpened] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const guideId = useId();
-  const guideAnchor = useRef<HTMLButtonElement>(null);
   const bookmarkAnchor = useRef<HTMLAnchorElement>(null);
   const [dragging, setDragging] = useState(false);
-  const kept = what === 'settings' ? 'Only scoring and lineup settings are kept' : 'Only starting lineups and matchup pairings are kept';
+  const showBookmarkHelp = useStore(bookmarkHelpStore);
 
   /** Pasting is the whole action: the text is checked and imported at once, and a problem is shown right under the box. */
   function submit(value: string) {
@@ -45,11 +44,12 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   const pasteBox = (
     <>
       <label className="field-label">
-        {what === 'settings' ? 'Settings' : 'Rosters'} JSON for {leagueLabel}
+        {what === 'settings' && <>Settings JSON for {leagueLabel}</>}
         <textarea
+          aria-label={what === 'rosters' ? 'Roster data' : undefined}
           rows={4}
           value={text}
-          onChange={(event) => { setText(event.target.value); setProblem(''); }}
+          onChange={(event) => { if (what === 'rosters') submit(event.target.value); else { setText(event.target.value); setProblem(''); } }}
           onPaste={(event) => {
             const pasted = event.clipboardData.getData('text');
             if (!pasted.trim()) return;
@@ -60,7 +60,7 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
         />
       </label>
       {problem && <p className="error" role="alert">{problem}</p>}
-      <button type="button" className="btn" disabled={!text.trim()} onClick={() => submit(text)}>Import these {what}</button>
+      {what === 'settings' && <button type="button" className="btn" disabled={!text.trim()} onClick={() => submit(text)}>Import these settings</button>}
     </>
   );
 
@@ -69,20 +69,21 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
       <p role="status">This league is private you need to copy the settings manually</p>
       <div className="bubble-actions">
         {url && <a className="btn btn-primary private-settings-open" href={url} target="_blank" rel="noreferrer" onClick={() => setSettingsOpened(true)} onAuxClick={(event) => { if (event.button === 1) setSettingsOpened(true); }}>Open Settings</a>}
-        <button ref={guideAnchor} type="button" className="btn" aria-describedby={guideOpen ? guideId : undefined} onMouseEnter={() => setGuideOpen(true)} onMouseLeave={() => setGuideOpen(false)} onFocus={() => setGuideOpen(true)} onBlur={() => setGuideOpen(false)} onClick={() => setGuideOpen(true)} onKeyDown={(event) => { if (event.key === 'Escape' && guideOpen) { event.preventDefault(); event.stopPropagation(); setGuideOpen(false); } }}>How?</button>
+        <PrivateHelpButton mode="settings" />
       </div>
       {settingsOpened && <>
         <p className="muted">Paste the copied settings text below. It is imported straight away.</p>
         {pasteBox}
       </>}
-      {guideOpen && <PrivateSettingsGuide id={guideId} anchor={guideAnchor} />}
     </div>
   );
 
   return (
     <div className="private-help private-rosters">
-      {bookmarklet && (
-        <div className="bm-help">
+      {bookmarklet && showBookmarkHelp && <>
+        <h3 className="private-method-title">Create bookmark</h3>
+        <section className="bm-help private-method" aria-label="Create bookmark">
+          <p>Drag the below button to your bookmarks bar, if you have one. Alternatively create a new bookmark, and paste the below copied text to the address. This is a harmless script, that copies the current roster information of your league</p>
           <div className="bm-actions">
             {/* React refuses javascript: URLs in an href prop, so the link is set on the element itself. */}
             <a
@@ -97,18 +98,25 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
             </a>
             <span className="muted bm-or">or</span>
             <button type="button" className="btn" onClick={() => void copyCode()}>Copy bookmark</button>
+            <PrivateHelpButton mode="bookmark" />
           </div>
-          <p>Drag the Sync button to your bookmarks bar, or copy it to create a bookmark manually.</p>
           {!dragging && <BookmarkDragGuide anchor={bookmarkAnchor} />}
-          <p>Then {espnPage ? <><a href={espnPage} target="_blank" rel="noreferrer">open the league on ESPN</a> (signed in)</> : 'open the league on ESPN (signed in)'}, click the bookmark, come back here and paste below. The bookmark runs on ESPN&rsquo;s page and only copies lineups to your clipboard.</p>
+          <p>Now if you go to any page on ESPN, within your league, and click the bookmark you just saved you should be set! You can go ahead and paste the info in the input below</p>
           {note && <p className="muted" role="status">{note}</p>}
-          <p className="muted">Or the manual way:</p>
+          <div className="bm-actions">
+            {espnPage && <a className="btn private-method-link" href={espnPage} target="_blank" rel="noreferrer">Go to league</a>}
+            <button type="button" className="btn" onClick={() => bookmarkHelpStore.set(false)}>Don&rsquo;t show this option again</button>
+          </div>
+        </section>
+        <p className="muted">Or the manual way:</p>
+      </>}
+      <section className="private-method" aria-label="Copy roster data manually">
+        <p>Sign in to your league in this browser, then copy the roster data from the league source</p>
+        <div className="bm-actions">
+          {url && <a className="btn private-method-link" href={url} target="_blank" rel="noreferrer">Go to league source</a>}
+          <PrivateHelpButton mode="rosters" />
         </div>
-      )}
-      <ol>
-        <li>Stay signed in to ESPN in this browser{url ? <>, then <a href={url} target="_blank" rel="noreferrer">open this league&rsquo;s {what} data</a> in a new tab</> : ''}.</li>
-        <li>Select everything on that page (Cmd or Ctrl plus A), copy it and paste it below. {kept}; nothing leaves your browser.</li>
-      </ol>
+      </section>
       {pasteBox}
     </div>
   );

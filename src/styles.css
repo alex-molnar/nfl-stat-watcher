@@ -404,9 +404,13 @@ dialog { overflow: visible; max-height: none; }
 @media (forced-colors: active) { .chip, .profile-dot { forced-color-adjust: none; } }
 
 .private-rosters { display: grid; gap: 10px; }
+.private-method-title { margin: 0; font-size: 15px; }
+.private-method { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid var(--accent); border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.private-method p { margin: 0; }
 .bm-help { display: grid; gap: 8px; }
 .bm-help p { margin: 0; }
-.bm-link { display: inline-block; text-decoration: none; cursor: grab; background: #86EFAC; color: #0B1810; border-color: #86EFAC; font-weight: 800; }
+.bm-link, .private-method-link { display: inline-block; text-decoration: none; background: #86EFAC; color: #0B1810; border-color: #86EFAC; font-weight: 800; }
+.bm-link { cursor: grab; }
 .bm-link:active { cursor: grabbing; }
 .bm-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .bm-or { font-size: 12px; }

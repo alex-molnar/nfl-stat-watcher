@@ -22,6 +22,21 @@ function renderCategory(category = 'General') {
 const renderSettings = () => renderCategory();
 
 describe('settings page', () => {
+  it('keeps the bookmark setup preference in a draft until saved and can cancel it', async () => {
+    renderCategory('Site settings');
+    const preference = screen.getByRole('checkbox', { name: 'Show bookmark setup for private leagues' });
+    expect(preference).toBeChecked();
+    await userEvent.click(preference);
+    expect(localStorage.getItem('nflsw:v1:bookmarkHelp')).toBe('true');
+    await userEvent.click(cancelBtn());
+    expect(preference).toBeChecked();
+    await userEvent.click(preference);
+    await userEvent.click(saveBtn()!);
+    expect(localStorage.getItem('nflsw:v1:bookmarkHelp')).toBe('false');
+    reloadAllStores();
+    expect(preference).not.toBeChecked();
+    expect(saveBtn()).not.toBeInTheDocument();
+  });
   describe('category sidebar', () => {
     it('defaults to General and shows the settings for the selected category', async () => {
       renderSettings();
