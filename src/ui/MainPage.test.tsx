@@ -10,10 +10,53 @@ import { renderAt, seed, declineCamp } from '../test/render';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { parseEspnLeagueSettings } from '../leagues/espn/parse';
 import settings from '../test/fixtures/espn-fantasy/public-settings-1900128084-2026.json';
+import { positionOrderStore } from '../storage/positionOrder';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
 
 beforeEach(declineCamp);
 
 const card = (name: string) => screen.getByText(name).closest('li')!;
+
+describe('position order outside live games', () => {
+  const entries = (teamId: string) => ['RB', 'QB', 'WR'].map((position) => ({ ...warren, espnId: `${teamId}-${position}`, name: `${teamId} ${position}`, teamId, position }));
+  const names = (region: HTMLElement) => [...region.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('uses the default and saved position order in Later, Final and Bye week', async () => {
+    seed([...entries('25'), ...entries('23'), ...entries('12')], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    const later = await screen.findByRole('region', { name: 'Later' });
+    const final = screen.getByRole('region', { name: 'Final' });
+    const bye = screen.getByRole('region', { name: 'Bye week' });
+    expect(names(later)).toEqual(['25 QB', '25 RB', '25 WR']);
+    expect(names(final)).toEqual(['23 QB', '23 RB', '23 WR']);
+    expect(names(bye)).toEqual(['12 QB', '12 RB', '12 WR']);
+    act(() => positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse()));
+    expect(names(later)).toEqual(['25 WR', '25 RB', '25 QB']);
+    expect(names(final)).toEqual(['23 WR', '23 RB', '23 QB']);
+    expect(names(bye)).toEqual(['12 WR', '12 RB', '12 QB']);
+  });
+
+  it('uses a preference saved in Settings after navigating back to Players', async () => {
+    seed(entries('25'), profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Players' }));
+    const later = await screen.findByRole('region', { name: 'Later' });
+    expect(names(later)).toEqual(['25 WR', '25 QB', '25 RB']);
+  });
+
+  it('sorts by position when the game schedule is unavailable, preserving ties', async () => {
+    seed([...entries('25'), { ...entries('25')[0], espnId: 'second-rb', name: 'Second RB' }], profilesFixture);
+    mockFetch({ scoreboard: status(500) });
+    renderAt('/');
+    const followed = await screen.findByRole('region', { name: 'Followed' });
+    expect(names(followed)).toEqual(['25 QB', '25 RB', 'Second RB', '25 WR']);
+  });
+});
 
 describe('main page', () => {
   beforeEach(() => seed([warren, pitDefense, mahomes], profilesFixture));
@@ -404,6 +447,14 @@ describe('live ordering', () => {
   };
   const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
 
+  it('applies a saved position order on Players without changing activity priority', async () => {
+    seed([sf('1', 'SF quarterback', 'QB'), sf('2', 'SF runner', 'RB'), sf('3', 'DEN receiver', 'WR', '7', 'DEN')], profilesFixture);
+    positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'DEN receiver']));
+  });
+
   it('orders live cards red zone first, then the side with the ball, then the rest, by position within each', async () => {
     seed([
       sf('1', 'DEN receiver', 'WR', '7', 'DEN'),
@@ -416,7 +467,7 @@ describe('live ordering', () => {
     mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
     renderAt('/');
     await screen.findByText('SF runner');
-    await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
+    await waitFor(() => expect(names()).toEqual(['SF quarterback', 'SF runner', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
   });
 
   it('styles the right side of the ball, and pulses a red zone card only until the page is paused', async () => {
@@ -462,7 +513,7 @@ describe('injury designations', () => {
     expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
     expect(screen.getByText('Questionable · Hamstring').parentElement).toHaveClass('inj-row'); // its own row, not squeezed beside the name
     expect(within(screen.getByText('Healthy quarterback').closest('.card') as HTMLElement).queryByText(/Questionable|Out/)).not.toBeInTheDocument(); // no row when healthy
-    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    await waitFor(() => expect(names()).toEqual(['Healthy quarterback', 'Iffy receiver', 'Hurt runner']));
     const hurt = screen.getByText('Hurt runner').closest('.card')!;
     expect(hurt).not.toHaveClass('is-rz');
     expect(hurt).not.toHaveClass('on-field');
@@ -501,7 +552,7 @@ describe('injury designations from the league report', () => {
     renderAt('/');
     await waitFor(() => expect(screen.getByText('Out · Toe')).toBeInTheDocument());
     expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
-    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    await waitFor(() => expect(names()).toEqual(['Healthy quarterback', 'Iffy receiver', 'Hurt runner']));
     expect(screen.getByText('Hurt runner').closest('.card')).not.toHaveClass('is-rz');
   });
 

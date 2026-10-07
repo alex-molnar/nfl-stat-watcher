@@ -6,6 +6,9 @@ import type { GameInfo } from '../stats/scoreboard';
 import type { GameStats } from '../stats/types';
 import { entryKey } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
+import { positionOrderStore } from '../storage/positionOrder';
+import { useStore } from '../storage/useStore';
+import { positionRank } from '../stats/positionOrder';
 import { SHOW_MS } from './useCelebration';
 import { summaryQuery, useLeagueInjuries } from './queries';
 
@@ -14,13 +17,14 @@ const UNKNOWN = 40; // after every ranked card, until the game's situation arriv
 type Row = { entry: FollowedEntry; game: GameInfo | null };
 
 /**
- * A comparator that orders live cards by liveRank, from the latest data: when the ball changes hands the
+ * A comparator that uses position order for non-live cards and liveRank for live cards, from the latest data: when the ball changes hands the
  * order follows on the next refresh. A card whose own play is being celebrated keeps the rank it had before
  * that play until the celebration is over, then rises to the top of its group for BOOST_MS (never past the group
  * above it), except after a big bad play, which only holds; cards not involved in the play move at once.
  * Shares the summary cache entries the cards already subscribe to, so it adds no requests.
  */
 export function useLiveOrder(rows: Row[], paused: boolean) {
+  const positionOrder = useStore(positionOrderStore);
   const unique = [...new Map(rows.flatMap(({ game }) => (game?.state === 'in' ? [[game.eventId, game] as const] : []))).values()];
   const summaries = useQueries({ queries: unique.map((game) => summaryQuery(game, paused)) });
   const stats = new Map(unique.map((game, i) => [game.eventId, summaries[i]?.data]));
@@ -43,7 +47,7 @@ export function useLiveOrder(rows: Row[], paused: boolean) {
       if (!event) continue;
       const key = entryKey(row.entry);
       // The rank to hold is where the card sits right now, including any boost from an earlier play.
-      holds.current.hold(key, holds.current.rank(key, liveRank(row.entry, game, before, league) ?? UNKNOWN, now), now + SHOW_MS, now);
+      holds.current.hold(key, holds.current.rank(key, liveRank(row.entry, game, before, league, positionOrder) ?? UNKNOWN, now), now + SHOW_MS, now);
       // A big bad play (an interception thrown, a fumble lost, a touchdown allowed) is held for its celebration and then
       // moves down by the normal rules; every other celebrated play, good or small, lifts the card for a while.
       if (event.tier === 'small' || event.tone === 'good') holds.current.boost(key, now + BOOST_MS);
@@ -59,8 +63,8 @@ export function useLiveOrder(rows: Row[], paused: boolean) {
   });
 
   const rankOf = ({ entry, game }: Row) => {
-    const current = (game?.state === 'in' ? liveRank(entry, game, stats.get(game.eventId), league) : null) ?? UNKNOWN;
+    const current = (game?.state === 'in' ? liveRank(entry, game, stats.get(game.eventId), league, positionOrder) : null) ?? UNKNOWN;
     return holds.current.rank(entryKey(entry), current, now);
   };
-  return <T extends Row>(a: T, b: T) => rankOf(a) - rankOf(b);
+  return <T extends Row>(a: T, b: T) => rankOf(a) - rankOf(b) || positionRank(a.entry, positionOrder) - positionRank(b.entry, positionOrder);
 }

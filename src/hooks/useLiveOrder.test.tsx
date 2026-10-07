@@ -7,6 +7,11 @@ import type { GameStats, PlayerStats } from '../stats/types';
 import type { FollowedEntry } from '../storage/types';
 import { BOOST_MS } from '../stats/liveOrder';
 import { useLiveOrder } from './useLiveOrder';
+import { positionOrderStore } from '../storage/positionOrder';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
+
+// Put QB behind RB/WR so these celebration tests exercise a visible lift with a user-selected order.
+beforeEach(() => positionOrderStore.set(['RB', 'WR', 'TE', 'QB', 'K', 'DL', 'LB', 'DB', 'D/ST']));
 
 const game = { eventId: 'g1', state: 'in' } as GameInfo;
 const person = (espnId: string, position: string, teamId: string): FollowedEntry => ({ kind: 'player', espnId, name: espnId, teamId, teamAbbr: teamId, position, profileId: 'p1' });
@@ -32,6 +37,16 @@ describe('useLiveOrder after a score', () => {
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+
+  it('updates the comparator when the saved position order changes, keeping activity first', () => {
+    positionOrderStore.set([...DEFAULT_POSITION_ORDER]);
+    const { result } = renderHook(() => useLiveOrder(rows, false), { wrapper });
+    expect(order(result.current)).toEqual(['qb', 'rb', 'wr']);
+    act(() => positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse()));
+    expect(order(result.current)).toEqual(['rb', 'qb', 'wr']); // off-field WR stays behind the red zone
+    act(() => { client.setQueryData(['summary', 'g1'], stats(0, true)); vi.advanceTimersByTime(1); });
+    expect(order(result.current)).toEqual(['wr', 'rb', 'qb']); // all inactive: use configured order
+  });
 
   it('moves players not involved back at once, keeps the scorer in place while the celebration plays, then moves the scorer back', () => {
     const { result } = renderHook(() => useLiveOrder(rows, false), { wrapper });
@@ -143,4 +158,3 @@ describe('useLiveOrder after a bad play', () => {
     expect(names(result.current)).toEqual(['rb', 'qb', 'wr']);
   });
 });
-

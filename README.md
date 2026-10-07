@@ -17,6 +17,8 @@ Stats come from ESPN's public, unofficial JSON API, called directly from the bro
 
 Everything you follow and every scoring profile is stored in your browser's localStorage. There is no account and no server-side storage.
 
+In Settings, drag positions by their dotted handles (with a mouse or touch), or use the arrow buttons under **Position order**, then Save. This preference orders cards within every game-status group on Players and Vs, including Later, Final and Bye week. Live cards still sort by activity first (red zone, on the field, inactive), then by position. The default is QB, RB, WR, TE, K, DL, LB, DB, then team defenses. DE/DT/NT share DL, ILB/OLB/MLB share LB, and CB/safeties share DB; FB uses RB and PK uses K. Reset position order restores the default after Save.
+
 Known limits: forced fumbles are not scored (ESPN's box score has no forced fumbles), and team defense points allowed is the opponent's full score.
 
 ## ESPN league scoring import

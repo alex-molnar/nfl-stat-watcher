@@ -10,9 +10,13 @@ import { DialogMascot, useHint } from './DialogMascot';
 import { Header } from './Header';
 import { SaveActions } from './LeaguesPage';
 import { usePageTitle } from './usePageTitle';
+import { DEFAULT_POSITION_ORDER, type PositionGroup } from '../stats/positionOrder';
+import { positionOrderStore } from '../storage/positionOrder';
+import { PositionOrderInput } from './PositionOrderInput';
 
 const MODE_LABELS: Record<NameDisplayMode, string> = { full: 'Full', initial: 'Initial', formal: 'Formal' };
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
+type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[] };
 
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
@@ -21,14 +25,16 @@ export function SettingsPage() {
   const stored = useStore(nameDisplayStore);
   const storedMascot = useStore(mascotEnabledStore);
   const storedName = useStore(mascotNameStore);
-  const [draft, setDraft] = useState<{ mode: NameDisplayMode; mascot: boolean; name: string } | null>(null); // null: no unsaved change
+  const storedPositions = useStore(positionOrderStore);
+  const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
   const confirmRef = useRef<HTMLDialogElement>(null);
   const mode = draft?.mode ?? stored;
   const mascot = draft?.mascot ?? storedMascot;
   const name = draft?.name ?? storedName;
-  const change = (patch: Partial<{ mode: NameDisplayMode; mascot: boolean; name: string }>) => setDraft({ mode, mascot, name, ...patch });
-  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName;
+  const positions = draft?.positions ?? storedPositions;
+  const change = (patch: Partial<SettingsDraft>) => setDraft({ mode, mascot, name, positions, ...patch });
+  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]);
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -42,6 +48,7 @@ export function SettingsPage() {
     nameDisplayStore.set(mode);
     mascotEnabledStore.set(mascot);
     mascotNameStore.set(name.trim() || DEFAULT_MASCOT_NAME);
+    positionOrderStore.set([...positions]);
     setDraft(null);
     setNotice('Saved settings.');
   }
@@ -83,6 +90,14 @@ export function SettingsPage() {
                 </div>
               ))}
             </div>
+          </fieldset>
+          <fieldset>
+            <legend>Position order</legend>
+            <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
+            <p id="position-drag-help" className="muted">Drag the dotted handle to move a position, or use the arrow buttons. Save to apply your order.</p>
+            <PositionOrderInput positions={positions} onChange={(next) => change({ positions: next })} />
+            <p className="muted">DL includes DE, DT and NT; LB includes ILB, OLB and MLB; DB includes CB and safeties. Fullbacks use RB; PK uses K.</p>
+            <button type="button" className="btn" disabled={positions.every((p, i) => p === DEFAULT_POSITION_ORDER[i])} onClick={() => change({ positions: [...DEFAULT_POSITION_ORDER] })}>Reset position order</button>
           </fieldset>
           <fieldset>
             <legend>Mascot</legend>

@@ -7,6 +7,8 @@ import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warr
 import { mockFetch, status } from '../test/mockFetch';
 import { addEntry } from '../storage/followed';
 import { renderAt, seed } from '../test/render';
+import { positionOrderStore } from '../storage/positionOrder';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
 
 const routes = { scoreboard: scoreboardFixture, 'summary?event=401872964': summary };
 const column = (name: 'Your players' | 'Opponent players') => screen.getByRole('region', { name });
@@ -24,6 +26,21 @@ describe('vs page grouping', () => {
   const live = {
     events: scoreboardFixture.events.map((event) => event.id === '401872975' ? { ...event, status: { ...event.status, type: { ...event.status.type, state: 'in' as const } } } : event),
   };
+
+  it('applies saved position order to every non-live group in both columns', async () => {
+    const entries = ['25', '23', '12'].flatMap((teamId) => ['QB', 'RB', 'WR'].map((position) => ({ ...warren, espnId: `${teamId}-${position}`, name: `${teamId} ${position}`, teamId, position })));
+    seed([...entries, ...entries.map(opponent)], profilesFixture);
+    positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
+    mockFetch(routes);
+    renderAt('/vs');
+    await within(mineCol()).findByRole('region', { name: 'Later' });
+    for (const col of [mineCol(), oppCol()]) {
+      for (const [group, team] of [['Later', '25'], ['Final', '23'], ['Bye week', '12']]) {
+        const region = within(col).getByRole('region', { name: group });
+        expect([...region.querySelectorAll('.card .nm')].map((n) => n.textContent)).toEqual([`${team} WR`, `${team} RB`, `${team} QB`]);
+      }
+    }
+  });
 
   it('puts live games first with bigger cards, then the rest under their own headings, in each column', async () => {
     seed([warren, sf, opponent(pitDefense), opponent({ ...sf, espnId: '2', name: 'Bo Nix', teamId: '7', teamAbbr: 'DEN' })], profilesFixture);
@@ -51,6 +68,20 @@ describe('vs page live ordering', () => {
     drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
   };
   const names = (col: HTMLElement) => [...col.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('uses the saved order in both columns and updates when the preference is saved', async () => {
+    seed([
+      player('1', 'SF runner', 'RB', '25', 'SF'), player('2', 'SF quarterback', 'QB', '25', 'SF'),
+      opponent(player('3', 'SF receiver', 'WR', '25', 'SF')), opponent(player('4', 'SF tight end', 'TE', '25', 'SF')),
+    ], profilesFixture);
+    mockFetch({ ...routes, scoreboard: board, 'summary?event=401872975': liveSummary });
+    renderAt('/vs');
+    await waitFor(() => expect(names(mineCol())).toEqual(['SF quarterback', 'SF runner']));
+    expect(names(oppCol())).toEqual(['SF receiver', 'SF tight end']);
+    act(() => positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse()));
+    await waitFor(() => expect(names(mineCol())).toEqual(['SF runner', 'SF quarterback']));
+    expect(names(oppCol())).toEqual(['SF tight end', 'SF receiver']);
+  });
 
   it('orders each column on its own: red zone, then the side with the ball, then the rest', async () => {
     seed([
@@ -104,7 +135,7 @@ describe('vs page', () => {
     expect(within(oppCol()).getByText('No opponent players yet')).toBeInTheDocument();
     expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00');
     const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
-    expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme', 'nflsw:v1:nameDisplay', 'nflsw:v1:mascot', 'nflsw:v1:mascotName', 'nflsw:v1:camp'].includes(k!))).toBe(true);
+    expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme', 'nflsw:v1:nameDisplay', 'nflsw:v1:positionOrder', 'nflsw:v1:mascot', 'nflsw:v1:mascotName', 'nflsw:v1:camp'].includes(k!))).toBe(true);
   });
 
   it('renders an empty matchup as a tie with both Add buttons, silent in the status line', async () => {

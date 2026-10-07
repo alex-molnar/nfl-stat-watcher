@@ -1,8 +1,10 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mahomes, profilesFixture, warren } from '../test/data';
 import { reloadAllStores } from '../storage/store';
 import { renderAt, seed, declineCamp } from '../test/render';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
+import { positionOrderStore } from '../storage/positionOrder';
 
 beforeEach(declineCamp);
 
@@ -11,6 +13,125 @@ const radio = (name: string) => screen.getByRole('radio', { name });
 const saveBtn = () => screen.queryByRole('button', { name: 'Save' });
 
 describe('settings page', () => {
+  describe('position order', () => {
+    const positions = () => within(screen.getByRole('list', { name: 'Position order' })).getAllByRole('listitem').map((li) => li.querySelector('span')!.textContent);
+
+    it('shows all nine positions in default order and disables moving past either end', () => {
+      renderAt('/settings');
+      expect(positions()).toEqual(['QB', 'RB', 'WR', 'TE', 'K', 'DL', 'LB', 'DB', 'Team defenses']);
+      expect(screen.getByRole('button', { name: 'Move QB up' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Move Team defenses down' })).toBeDisabled();
+    });
+
+    it('supports moving both ways, Cancel, Save and restoring the saved order on the next visit', async () => {
+      const { unmount } = renderAt('/settings');
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+      expect(positions().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+      expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR down' }));
+      expect(saveBtn()).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Move RB up' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(positions()[0]).toBe('QB');
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+      await userEvent.click(saveBtn()!);
+      expect(positionOrderStore.get().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+      unmount();
+      reloadAllStores();
+      renderAt('/settings');
+      expect(positions().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+    });
+
+    it('resets a custom order only after Save', async () => {
+      positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
+      renderAt('/settings');
+      await userEvent.click(screen.getByRole('button', { name: 'Reset position order' }));
+      expect(positions()[0]).toBe('QB');
+      expect(positionOrderStore.get()[0]).toBe('D/ST');
+      await userEvent.click(saveBtn()!);
+      expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+    });
+
+    describe('dragging positions', () => {
+      const pointer = (target: Element, type: string, x: number, y: number, pointerType = 'mouse') => {
+        const event = new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button: 0 });
+        Object.defineProperties(event, { pointerId: { value: 1 }, pointerType: { value: pointerType } });
+        fireEvent(target, event);
+      };
+      function layout() {
+        const list = screen.getByRole('list', { name: 'Position order' });
+        const rect = (top: number, height: number) => ({ top, bottom: top + height, left: 0, right: 360, width: 360, height, x: 0, y: top, toJSON() {} });
+        vi.spyOn(list, 'getBoundingClientRect').mockReturnValue(rect(0, 450));
+        within(list).getAllByRole('listitem').forEach((row, index) => vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(rect(index * 50, 50)));
+        return list;
+      }
+      function handle(position: string) {
+        const button = screen.getByRole('button', { name: `Drag ${position} to reorder` });
+        button.setPointerCapture = vi.fn();
+        return button;
+      }
+
+      it('drags a position across multiple rows, previews the drop, then saves the draft', async () => {
+        renderAt('/settings');
+        layout();
+        const button = handle('QB');
+        pointer(button, 'pointerdown', 20, 25);
+        pointer(button, 'pointermove', 20, 190);
+        expect(document.querySelector('.drop-before')).toHaveTextContent('K');
+        expect(positions()).toEqual(['QB', 'RB', 'WR', 'TE', 'K', 'DL', 'LB', 'DB', 'Team defenses']); // preview only
+        pointer(button, 'pointerup', 20, 190);
+        expect(positions().slice(0, 4)).toEqual(['RB', 'WR', 'TE', 'QB']);
+        expect(document.querySelector('.drop-before')).toBeNull();
+        expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+        await userEvent.click(saveBtn()!);
+        positionOrderStore.reload();
+        expect(positionOrderStore.get().slice(0, 4)).toEqual(['RB', 'WR', 'TE', 'QB']);
+      });
+
+      it('supports touch dragging to the top, and Cancel restores the saved order', async () => {
+        renderAt('/settings');
+        layout();
+        const button = handle('Team defenses');
+        pointer(button, 'pointerdown', 20, 425, 'touch');
+        pointer(button, 'pointermove', 20, 5, 'touch');
+        pointer(button, 'pointerup', 20, 5, 'touch');
+        expect(positions()[0]).toBe('Team defenses');
+        expect(new Set(positions()).size).toBe(9);
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(positions()[0]).toBe('QB');
+      });
+
+      it('can drop at the bottom while preserving other unsaved settings', async () => {
+        renderAt('/settings');
+        await userEvent.click(radio('Formal'));
+        layout();
+        const button = handle('QB');
+        pointer(button, 'pointerdown', 20, 25);
+        pointer(button, 'pointermove', 20, 445);
+        expect(document.querySelector('.drop-after')).toHaveTextContent('Team defenses');
+        pointer(button, 'pointerup', 20, 445);
+        expect(positions().at(-1)).toBe('QB');
+        expect(radio('Formal')).toBeChecked();
+        await userEvent.click(saveBtn()!);
+        expect(stored()).toBe('"formal"');
+        expect(positionOrderStore.get().at(-1)).toBe('QB');
+      });
+
+      it.each(['pointercancel', 'lostpointercapture', 'escape', 'outside', 'click'])('leaves the draft unchanged after %s', (ending) => {
+        renderAt('/settings');
+        layout();
+        const button = handle('QB');
+        pointer(button, 'pointerdown', 20, 25);
+        if (ending !== 'click') pointer(button, 'pointermove', 20, 190);
+        if (ending === 'escape') fireEvent.keyDown(button, { key: 'Escape' });
+        else if (ending !== 'outside' && ending !== 'click') pointer(button, ending, 20, 190);
+        pointer(button, 'pointerup', ending === 'outside' ? 400 : 20, ending === 'click' ? 25 : 190);
+        expect(positions()[0]).toBe('QB');
+        expect(saveBtn()).not.toBeInTheDocument();
+        expect(document.querySelector('.drop-before')).toBeNull();
+      });
+    });
+  });
   it('offers Full, Initial and Formal, with Full selected by default', () => {
     renderAt('/settings');
     expect(screen.getAllByRole('radio').map((r) => (r as HTMLInputElement).labels?.[0]?.textContent)).toEqual(['Full', 'Initial', 'Formal']);
@@ -163,4 +284,3 @@ describe('settings page', () => {
     });
   });
 });
-

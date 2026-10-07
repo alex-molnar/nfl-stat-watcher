@@ -114,7 +114,7 @@ function VsMatchup() {
       ) : loading ? null : ( // Wait for the schedule so cards do not reorder after mounting.
         GROUPS.map(({ key, title }, slot) => {
           const group = rows[side].filter((r) => (r.game?.state ?? 'none') === key);
-          if (key === 'in') group.sort(liveOrder);
+          group.sort(liveOrder); // non-live cards use the saved position order too
           if (group.length === 0) return null;
           return (
             // One fixed row per group, shared by both columns, so each group starts at the same height on either side.

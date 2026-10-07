@@ -3,6 +3,7 @@ import type { FollowedEntry } from '../storage/types';
 import { BOOST_MS, RankHolds, boostedRank, liveRank } from './liveOrder';
 import type { GameInfo } from './scoreboard';
 import type { GameStats } from './types';
+import { DEFAULT_POSITION_ORDER } from './positionOrder';
 
 const game = { state: 'in' } as GameInfo;
 const entry = (over: Partial<FollowedEntry>): FollowedEntry => ({ kind: 'player', espnId: '1', name: 'X', teamId: '25', teamAbbr: 'SF', position: 'WR', profileId: 'p1', ...over });
@@ -32,20 +33,25 @@ describe('liveRank', () => {
     expect(Math.floor(rank(entry({ kind: 'defense', position: 'D/ST' }), stats('25', 8))! / 10)).toBe(2);
   });
 
-  it('orders a bucket by skill players, then quarterbacks, then kickers, then defenses and IDP', () => {
-    const order = ['RB', 'WR', 'TE', 'QB', 'K', 'LB'].map((position) => rank(entry({ position, teamId: position === 'LB' ? '7' : '25' }))!);
-    expect(order[0]).toBe(order[1]);
-    expect(order[1]).toBe(order[2]);
-    expect(order[2]).toBeLessThan(order[3]!);
-    expect(order[3]).toBeLessThan(order[4]!);
-    expect(order[4]).toBeLessThan(order[5]!);
+  it('orders all nine position groups separately within the same activity bucket', () => {
+    const ranks = DEFAULT_POSITION_ORDER.map((position) => rank(entry({ position, kind: position === 'D/ST' ? 'defense' : 'player', teamId: ['DL', 'LB', 'DB', 'D/ST'].includes(position) ? '7' : '25' }))!);
+    expect(ranks).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 18]);
     expect(rank(entry({ position: 'PK' }))).toBe(rank(entry({ position: 'K' })));
   });
 
-  it('puts a quarterback with the ball ahead of a running back whose defense is on the field, and a skill player ahead of a quarterback on the field', () => {
+  it('uses a custom position order without overriding activity or injury priority', () => {
+    const order = [...DEFAULT_POSITION_ORDER].reverse();
+    const custom = (e: FollowedEntry, s = stats('25', 60)) => liveRank(e, game, s, undefined, order)!;
+    expect(custom(entry({ position: 'WR' }))).toBeLessThan(custom(entry({ position: 'RB' })));
+    expect(custom(entry({ position: 'QB' }), stats('25', 8))).toBeLessThan(custom(entry({ kind: 'defense', position: 'D/ST', teamId: '7' }), stats('25', 8)));
+    expect(custom(entry({ position: 'QB' }))).toBeLessThan(custom(entry({ position: 'WR', teamId: '7' })));
+    expect(custom(entry({ position: 'QB' }))).toBeLessThan(custom(entry({ position: 'WR' }), { ...stats('25', 8), injuries: { '1': { status: 'Out' } } }));
+  });
+
+  it('puts a quarterback with the ball ahead of a running back on either side', () => {
     const sf = (position: string, teamId = '25') => rank(entry({ position, teamId }))!; // SF has the ball at midfield
     expect(sf('QB')).toBeLessThan(sf('RB', '7'));
-    expect(sf('RB')).toBeLessThan(sf('QB'));
+    expect(sf('QB')).toBeLessThan(sf('RB'));
     expect(sf('K')).toBeLessThan(sf('RB', '7'));
     // A defense on the field is still ahead of any offensive player stuck on the wrong side.
     expect(rank(entry({ teamId: '7', kind: 'defense', position: 'D/ST' }))).toBeLessThan(sf('RB', '7'));
@@ -115,6 +121,14 @@ describe('RankHolds', () => {
 });
 
 describe('boosts', () => {
+  it('keeps boosts below the previous activity bucket even with all positions and unknown ones', () => {
+    for (let position = 0; position <= 9; position++) {
+      expect(boostedRank(10 + position)).toBeGreaterThan(9);
+      expect(boostedRank(10 + position)).toBeLessThan(10);
+      expect(boostedRank(20 + position)).toBeGreaterThan(19);
+      expect(boostedRank(20 + position)).toBeLessThan(20);
+    }
+  });
   it('lifts a rank to the top of its own group and never into the group above', () => {
     // Groups: red zone 0-3, on the field 10-13, the rest 20-23.
     expect(boostedRank(11)).toBeLessThan(10); // a quarterback on the field passes the skill players (10)...
