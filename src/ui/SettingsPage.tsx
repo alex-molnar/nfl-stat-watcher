@@ -17,6 +17,8 @@ import { PositionOrderInput } from './PositionOrderInput';
 const MODE_LABELS: Record<NameDisplayMode, string> = { full: 'Full', initial: 'Initial', formal: 'Formal' };
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
 type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[] };
+const CATEGORIES = ['General', 'Position order', 'Site settings'] as const;
+type Category = (typeof CATEGORIES)[number];
 
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
@@ -26,6 +28,7 @@ export function SettingsPage() {
   const storedMascot = useStore(mascotEnabledStore);
   const storedName = useStore(mascotNameStore);
   const storedPositions = useStore(positionOrderStore);
+  const [category, setCategory] = useState<Category>('General');
   const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
   const confirmRef = useRef<HTMLDialogElement>(null);
@@ -73,58 +76,73 @@ export function SettingsPage() {
     <>
       <Header />
       <main className="wrap settings-page">
-        <h2 className="section-title" tabIndex={-1} data-page-title>Settings</h2>
-        <section className="profile-form" aria-label="Settings">
-          <fieldset>
-            <legend>Name display mode</legend>
-            <p className="muted">How player names are shown on cards and in lists.</p>
-            <div className="choice-list">
-              {NAME_DISPLAY_MODES.map((m) => (
-                <div key={m} className="choice-row">
-                  {/* The example sits outside the label, so the radio's name stays "Full", "Initial" or "Formal". */}
-                  <label className="choice">
-                    <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => change({ mode: m })} />
-                    {MODE_LABELS[m]}
-                  </label>
-                  <span id={`name-display-${m}`} className="muted">e.g. {MODE_EXAMPLES[m]}</span>
-                </div>
+        <div className="settings-grid">
+          <aside className="settings-side" aria-label="Settings categories">
+            <h2 className="section-title" tabIndex={-1} data-page-title>Settings</h2>
+            <ul className="profile-list" aria-label="Categories">
+              {CATEGORIES.map((name) => (
+                <li key={name}>
+                  <button type="button" aria-current={category === name ? 'true' : undefined} aria-controls="settings-category" onClick={() => setCategory(name)}>{name}</button>
+                </li>
               ))}
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Position order</legend>
-            <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
-            <p id="position-drag-help" className="muted">Drag the dotted handle to move a position, or use the arrow buttons. Save to apply your order.</p>
-            <PositionOrderInput positions={positions} onChange={(next) => change({ positions: next })} />
-            <p className="muted">DL includes DE, DT and NT; LB includes ILB, OLB and MLB; DB includes CB and safeties. Fullbacks use RB; PK uses K.</p>
-            <button type="button" className="btn" disabled={positions.every((p, i) => p === DEFAULT_POSITION_ORDER[i])} onClick={() => change({ positions: [...DEFAULT_POSITION_ORDER] })}>Reset position order</button>
-          </fieldset>
-          <fieldset>
-            <legend>Mascot</legend>
-            <label className="choice">
-              <input type="checkbox" checked={mascot} aria-describedby="mascot-help" onChange={(event) => change({ mascot: event.target.checked })} />
-              Show the mascot
-            </label>
-            <div className="field-wrap">
-              <label className="field-label">
-                Name
-                <input value={name} maxLength={MAX_MASCOT_NAME} placeholder={DEFAULT_MASCOT_NAME} onChange={(event) => change({ name: event.target.value })} />
-              </label>
-            </div>
-            <p id="mascot-help" className="muted">The football in glasses that appears beside the title and says what to do next when a page is empty. Off, every page uses plain text instead, and the Leagues menu explains its buttons in tooltips.</p>
-          </fieldset>
-          <fieldset>
-            <legend>Rookie camp</legend>
-            <p id="camp-help" className="muted">{storedMascot ? `A short practice with ${storedName}: four drills, each done on the real pages, that show you around.` : 'Turn the mascot on and save to take the practice.'}</p>
-            <button type="button" className="btn press" aria-describedby="camp-help" disabled={!storedMascot} onClick={() => { startCamp(); setNotice(`Rookie camp started. ${storedName} will show you the first drill.`); }}>Start rookie camp</button>
-          </fieldset>
-          <fieldset>
-            <legend>Your data</legend>
-            <p className="muted">Followed players, leagues, scoring and every other setting are kept in this browser only.</p>
-            <button type="button" className="btn btn-danger" onClick={() => confirmRef.current?.showModal()}>Clear my data</button>
-          </fieldset>
-          {dirty && <SaveActions label="Save or cancel changes" onSave={save} onCancel={() => setDraft(null)} />}
-        </section>
+            </ul>
+            {dirty && <SaveActions label="Save or cancel changes" onSave={save} onCancel={() => setDraft(null)} />}
+          </aside>
+          <section id="settings-category" className="profile-form" aria-labelledby="settings-category-title">
+            <h3 id="settings-category-title" className="settings-category-title">{category}</h3>
+            {category === 'General' && <fieldset>
+              <legend>Name display mode</legend>
+              <p className="muted">How player names are shown on cards and in lists.</p>
+              <div className="choice-list">
+                {NAME_DISPLAY_MODES.map((m) => (
+                  <div key={m} className="choice-row">
+                    {/* The example sits outside the label, so the radio's name stays "Full", "Initial" or "Formal". */}
+                    <label className="choice">
+                      <input type="radio" name="name-display" value={m} checked={mode === m} aria-describedby={`name-display-${m}`} onChange={() => change({ mode: m })} />
+                      {MODE_LABELS[m]}
+                    </label>
+                    <span id={`name-display-${m}`} className="muted">e.g. {MODE_EXAMPLES[m]}</span>
+                  </div>
+                ))}
+              </div>
+            </fieldset>}
+            {category === 'Position order' && <fieldset>
+              <legend>Position order</legend>
+              <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
+              <p id="position-drag-help" className="muted">Drag the dotted handle to move a position, or use the arrow buttons. Save to apply your order.</p>
+              <PositionOrderInput positions={positions} onChange={(next) => change({ positions: next })} />
+              <p className="muted">DL includes DE, DT and NT; LB includes ILB, OLB and MLB; DB includes CB and safeties. Fullbacks use RB; PK uses K.</p>
+              <button type="button" className="btn" disabled={positions.every((p, i) => p === DEFAULT_POSITION_ORDER[i])} onClick={() => change({ positions: [...DEFAULT_POSITION_ORDER] })}>Reset position order</button>
+            </fieldset>}
+            {category === 'Site settings' && <>
+              <fieldset>
+                <legend>Mascot</legend>
+                <label className="choice">
+                  <input type="checkbox" checked={mascot} aria-describedby="mascot-help" onChange={(event) => change({ mascot: event.target.checked })} />
+                  Show the mascot
+                </label>
+                <div className="field-wrap">
+                  <label className="field-label">
+                    Name
+                    <input value={name} maxLength={MAX_MASCOT_NAME} placeholder={DEFAULT_MASCOT_NAME} onChange={(event) => change({ name: event.target.value })} />
+                  </label>
+                </div>
+                <p id="mascot-help" className="muted">The football in glasses that appears beside the title and says what to do next when a page is empty. Off, every page uses plain text instead, and the Leagues menu explains its buttons in tooltips.</p>
+              </fieldset>
+              <fieldset>
+                <legend>Rookie camp</legend>
+                <p id="camp-help" className="muted">{storedMascot ? `A short practice with ${storedName}: four drills, each done on the real pages, that show you around.` : 'Turn the mascot on and save to take the practice.'}</p>
+                <button type="button" className="btn press" aria-describedby="camp-help" disabled={!storedMascot} onClick={() => { startCamp(); setNotice(`Rookie camp started. ${storedName} will show you the first drill.`); }}>Start rookie camp</button>
+              </fieldset>
+              <fieldset>
+                <legend>Your data</legend>
+                <p className="muted">Followed players, leagues, scoring and every other setting are kept in this browser only.</p>
+                <button type="button" className="btn btn-danger" onClick={() => confirmRef.current?.showModal()}>Clear my data</button>
+              </fieldset>
+            </>}
+            {dirty && <SaveActions label="Save or cancel changes, end of form" onSave={save} onCancel={() => setDraft(null)} />}
+          </section>
+        </div>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>
       </main>
       <dialog ref={confirmRef} data-worried aria-labelledby="clear-title" aria-describedby="clear-warning" {...backdropClose}>

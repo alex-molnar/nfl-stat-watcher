@@ -158,7 +158,7 @@ dialog { overflow: visible; max-height: none; }
 
 /* Settings */
 /* The top padding equals the sticky menu's offset below the header, so the menu starts in the same place whether or not the form beside it is tall enough to let it slide into that offset. */
-.settings-page { max-width: 720px; }
+.settings-category-title { margin: 0; font: 800 18px/1.3 Anybody, sans-serif; }
 .choice-list { display: grid; gap: 10px; }
 .position-order { max-width: 360px; list-style: none; padding: 0; }
 .position-order li { display: flex; position: relative; align-items: center; gap: 8px; padding: 6px 0; }

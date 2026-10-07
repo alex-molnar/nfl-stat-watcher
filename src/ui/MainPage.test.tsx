@@ -41,9 +41,10 @@ describe('position order outside live games', () => {
     seed(entries('25'), profilesFixture);
     mockFetch({ scoreboard: scoreboardFixture });
     renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Position order' }));
     await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
     await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(within(screen.getByRole('complementary', { name: 'Settings categories' })).getByRole('button', { name: 'Save' }));
     await userEvent.click(screen.getByRole('link', { name: 'Players' }));
     const later = await screen.findByRole('region', { name: 'Later' });
     expect(names(later)).toEqual(['25 WR', '25 QB', '25 RB']);

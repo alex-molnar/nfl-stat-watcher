@@ -10,41 +10,105 @@ beforeEach(declineCamp);
 
 const stored = () => localStorage.getItem('nflsw:v1:nameDisplay');
 const radio = (name: string) => screen.getByRole('radio', { name });
-const saveBtn = () => screen.queryByRole('button', { name: 'Save' });
+const sidebar = () => screen.getByRole('complementary', { name: 'Settings categories' });
+const saveBtn = () => within(sidebar()).queryByRole('button', { name: 'Save' });
+const cancelBtn = () => within(sidebar()).getByRole('button', { name: 'Cancel' });
+const pickCategory = (name: string) => fireEvent.click(within(sidebar()).getByRole('button', { name }));
+function renderCategory(category = 'General') {
+  const result = renderAt('/settings');
+  pickCategory(category);
+  return result;
+}
+const renderSettings = () => renderCategory();
 
 describe('settings page', () => {
+  describe('category sidebar', () => {
+    it('defaults to General and shows the settings for the selected category', async () => {
+      renderSettings();
+      expect(within(sidebar()).getAllByRole('button').map((button) => button.textContent)).toEqual(['General', 'Position order', 'Site settings']);
+      const general = within(sidebar()).getByRole('button', { name: 'General' });
+      expect(general).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByRole('region', { name: 'General' })).toContainElement(radio('Full'));
+      expect(screen.queryByRole('list', { name: 'Position order' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('checkbox', { name: 'Show the mascot' })).not.toBeInTheDocument();
+      await userEvent.click(within(sidebar()).getByRole('button', { name: 'Position order' }));
+      expect(general).not.toHaveAttribute('aria-current');
+      expect(screen.getByRole('region', { name: 'Position order' })).toContainElement(screen.getByRole('list', { name: 'Position order' }));
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+      await userEvent.click(within(sidebar()).getByRole('button', { name: 'Site settings' }));
+      const site = screen.getByRole('region', { name: 'Site settings' });
+      expect(within(site).getByRole('checkbox', { name: 'Show the mascot' })).toBeInTheDocument();
+      expect(within(site).getByRole('button', { name: 'Start rookie camp' })).toBeInTheDocument();
+      expect(within(site).getByRole('button', { name: 'Clear my data' })).toBeInTheDocument();
+      expect(saveBtn()).not.toBeInTheDocument();
+    });
+
+    it('keeps drafts when changing category and saves every changed category from the sidebar', async () => {
+      renderSettings();
+      await userEvent.click(radio('Formal'));
+      await userEvent.click(within(sidebar()).getByRole('button', { name: 'Position order' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+      await userEvent.click(within(sidebar()).getByRole('button', { name: 'Site settings' }));
+      await userEvent.click(screen.getByRole('checkbox', { name: 'Show the mascot' }));
+      expect(stored()).toBe('"full"');
+      expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+      await userEvent.click(within(sidebar()).getByRole('button', { name: 'General' }));
+      expect(radio('Formal')).toBeChecked();
+      expect(screen.getAllByRole('button', { name: 'Save' })).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: 'Cancel' })).toHaveLength(2);
+      await userEvent.click(saveBtn()!);
+      expect(stored()).toBe('"formal"');
+      expect(positionOrderStore.get().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+      expect(localStorage.getItem('nflsw:v1:mascot')).toBe('false');
+      expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    });
+
+    it('Cancel at the end of a category discards changes across categories', async () => {
+      renderSettings();
+      await userEvent.click(radio('Initial'));
+      pickCategory('Position order');
+      await userEvent.click(screen.getByRole('button', { name: 'Move RB up' }));
+      const formActions = screen.getByRole('group', { name: 'Save or cancel changes, end of form' });
+      await userEvent.click(within(formActions).getByRole('button', { name: 'Cancel' }));
+      expect(screen.getByRole('button', { name: 'Move QB up' })).toBeDisabled();
+      pickCategory('General');
+      expect(radio('Full')).toBeChecked();
+      expect(saveBtn()).not.toBeInTheDocument();
+    });
+  });
   describe('position order', () => {
+    const renderSettings = () => renderCategory('Position order');
     const positions = () => within(screen.getByRole('list', { name: 'Position order' })).getAllByRole('listitem').map((li) => li.querySelector('span')!.textContent);
 
     it('shows all nine positions in default order and disables moving past either end', () => {
-      renderAt('/settings');
+      renderSettings();
       expect(positions()).toEqual(['QB', 'RB', 'WR', 'TE', 'K', 'DL', 'LB', 'DB', 'Team defenses']);
       expect(screen.getByRole('button', { name: 'Move QB up' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Move Team defenses down' })).toBeDisabled();
     });
 
     it('supports moving both ways, Cancel, Save and restoring the saved order on the next visit', async () => {
-      const { unmount } = renderAt('/settings');
+      const { unmount } = renderSettings();
       await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
       expect(positions().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
       expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
       await userEvent.click(screen.getByRole('button', { name: 'Move WR down' }));
       expect(saveBtn()).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', { name: 'Move RB up' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await userEvent.click(cancelBtn());
       expect(positions()[0]).toBe('QB');
       await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
       await userEvent.click(saveBtn()!);
       expect(positionOrderStore.get().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
       unmount();
       reloadAllStores();
-      renderAt('/settings');
+      renderSettings();
       expect(positions().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
     });
 
     it('resets a custom order only after Save', async () => {
       positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
-      renderAt('/settings');
+      renderSettings();
       await userEvent.click(screen.getByRole('button', { name: 'Reset position order' }));
       expect(positions()[0]).toBe('QB');
       expect(positionOrderStore.get()[0]).toBe('D/ST');
@@ -72,7 +136,7 @@ describe('settings page', () => {
       }
 
       it('drags a position across multiple rows, previews the drop, then saves the draft', async () => {
-        renderAt('/settings');
+        renderSettings();
         layout();
         const button = handle('QB');
         pointer(button, 'pointerdown', 20, 25);
@@ -89,7 +153,7 @@ describe('settings page', () => {
       });
 
       it('supports touch dragging to the top, and Cancel restores the saved order', async () => {
-        renderAt('/settings');
+        renderSettings();
         layout();
         const button = handle('Team defenses');
         pointer(button, 'pointerdown', 20, 425, 'touch');
@@ -97,13 +161,15 @@ describe('settings page', () => {
         pointer(button, 'pointerup', 20, 5, 'touch');
         expect(positions()[0]).toBe('Team defenses');
         expect(new Set(positions()).size).toBe(9);
-        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await userEvent.click(cancelBtn());
         expect(positions()[0]).toBe('QB');
       });
 
       it('can drop at the bottom while preserving other unsaved settings', async () => {
-        renderAt('/settings');
+        renderSettings();
+        pickCategory('General');
         await userEvent.click(radio('Formal'));
+        pickCategory('Position order');
         layout();
         const button = handle('QB');
         pointer(button, 'pointerdown', 20, 25);
@@ -111,6 +177,7 @@ describe('settings page', () => {
         expect(document.querySelector('.drop-after')).toHaveTextContent('Team defenses');
         pointer(button, 'pointerup', 20, 445);
         expect(positions().at(-1)).toBe('QB');
+        pickCategory('General');
         expect(radio('Formal')).toBeChecked();
         await userEvent.click(saveBtn()!);
         expect(stored()).toBe('"formal"');
@@ -118,7 +185,7 @@ describe('settings page', () => {
       });
 
       it.each(['pointercancel', 'lostpointercapture', 'escape', 'outside', 'click'])('leaves the draft unchanged after %s', (ending) => {
-        renderAt('/settings');
+        renderSettings();
         layout();
         const button = handle('QB');
         pointer(button, 'pointerdown', 20, 25);
@@ -133,14 +200,14 @@ describe('settings page', () => {
     });
   });
   it('offers Full, Initial and Formal, with Full selected by default', () => {
-    renderAt('/settings');
+    renderSettings();
     expect(screen.getAllByRole('radio').map((r) => (r as HTMLInputElement).labels?.[0]?.textContent)).toEqual(['Full', 'Initial', 'Formal']);
     expect(radio('Full')).toBeChecked();
     expect(saveBtn()).not.toBeInTheDocument();
   });
 
   it('explains the setting and shows an example for each mode', () => {
-    renderAt('/settings');
+    renderSettings();
     expect(screen.getByText('How player names are shown on cards and in lists.')).toBeInTheDocument();
     expect(radio('Full')).toHaveAccessibleDescription('e.g. David Montgomery');
     expect(radio('Initial')).toHaveAccessibleDescription('e.g. D. Montgomery');
@@ -148,10 +215,10 @@ describe('settings page', () => {
   });
 
   it('keeps a change in a working copy until Save, then stores it', async () => {
-    renderAt('/settings');
+    renderSettings();
     await userEvent.click(radio('Formal'));
     expect(radio('Formal')).toBeChecked();
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(within(sidebar()).getByText('Unsaved changes')).toBeInTheDocument();
     expect(stored()).toBe('"full"'); // the default written back by the store; not changed yet
     await userEvent.click(saveBtn()!);
     expect(stored()).toBe('"formal"');
@@ -160,9 +227,9 @@ describe('settings page', () => {
   });
 
   it('Cancel puts the saved mode back', async () => {
-    renderAt('/settings');
+    renderSettings();
     await userEvent.click(radio('Initial'));
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(cancelBtn());
     expect(radio('Full')).toBeChecked();
     expect(stored()).toBe('"full"');
     expect(saveBtn()).not.toBeInTheDocument();
@@ -171,18 +238,19 @@ describe('settings page', () => {
   it('shows the saved mode on the next visit', () => {
     localStorage.setItem('nflsw:v1:nameDisplay', '"initial"');
     reloadAllStores();
-    renderAt('/settings');
+    renderSettings();
     expect(radio('Initial')).toBeChecked();
   });
 
   it('falls back to Full when the stored value is not a mode', () => {
     localStorage.setItem('nflsw:v1:nameDisplay', '"shouty"');
     reloadAllStores();
-    renderAt('/settings');
+    renderSettings();
     expect(radio('Full')).toBeChecked();
   });
 
   describe('Clear my data', () => {
+    const renderSettings = () => renderCategory('Site settings');
     const openConfirm = async () => {
       await userEvent.click(screen.getByRole('button', { name: 'Clear my data' }));
       return screen.getByRole('dialog', { name: 'Clear all your data?' });
@@ -190,7 +258,7 @@ describe('settings page', () => {
 
     it('warns first and changes nothing while the dialog is open or when kept', async () => {
       seed([warren], profilesFixture);
-      renderAt('/settings');
+      renderSettings();
       const dialog = await openConfirm();
       expect(within(dialog).getByText(/cannot be undone/)).toBeInTheDocument();
       expect(JSON.parse(localStorage.getItem('nflsw:v1:followed')!)).toHaveLength(1);
@@ -200,7 +268,7 @@ describe('settings page', () => {
     });
 
     it('colours Keep as the primary choice and Clear as the danger one', async () => {
-      renderAt('/settings');
+      renderSettings();
       const dialog = await openConfirm();
       expect(within(dialog).getByRole('button', { name: 'Keep my data' })).toHaveClass('btn-primary');
       expect(within(dialog).getByRole('button', { name: 'Clear my data' })).toHaveClass('btn-danger');
@@ -209,7 +277,7 @@ describe('settings page', () => {
     it('Clear my data keeps how far Rookie camp got, so the training camp is not offered again', async () => {
       localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'done', step: 0 }));
       reloadAllStores();
-      renderAt('/settings');
+      renderSettings();
       await userEvent.click(within(await openConfirm()).getByRole('button', { name: 'Clear my data' }));
       expect(JSON.parse(localStorage.getItem('nflsw:v1:camp')!)).toEqual({ phase: 'done', step: 0 });
       expect(localStorage.getItem('nflsw:v1:followed')).toBe('[]'); // everything else is gone
@@ -218,13 +286,16 @@ describe('settings page', () => {
     it('clears everything, resets the stores to defaults and drops an unsaved change', async () => {
       seed([warren, mahomes], profilesFixture);
       localStorage.setItem('nflsw:v1:nameDisplay', '"formal"');
-      renderAt('/settings');
+      renderSettings();
+      pickCategory('General');
       await userEvent.click(radio('Initial'));
+      pickCategory('Site settings');
       const dialog = await openConfirm();
       await userEvent.click(within(dialog).getByRole('button', { name: 'Clear my data' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(localStorage.getItem('nflsw:v1:followed')).toBe('[]'); // back to defaults, not the old entries
       expect(JSON.parse(localStorage.getItem('nflsw:v1:profiles')!)).toEqual([]); // no league until the user adds one
+      pickCategory('General');
       expect(radio('Full')).toBeChecked();
       expect(saveBtn()).not.toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('Your data was cleared.');
@@ -232,21 +303,22 @@ describe('settings page', () => {
   });
 
   describe('the mascot setting', () => {
+    const renderSettings = () => renderCategory('Site settings');
     const box = () => screen.getByRole('checkbox', { name: 'Show the mascot' });
 
     it('is on by default and explained', () => {
-      renderAt('/settings');
+      renderSettings();
       expect(box()).toBeChecked();
       expect(box()).toHaveAccessibleDescription(/plain text instead/);
     });
 
     it('is a working copy: Save stores it, Cancel puts it back', async () => {
-      renderAt('/settings');
+      renderSettings();
       await userEvent.click(box());
       expect(box()).not.toBeChecked();
       expect(localStorage.getItem('nflsw:v1:mascot')).toBe('true'); // not saved yet
-      expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(within(sidebar()).getByText('Unsaved changes')).toBeInTheDocument();
+      await userEvent.click(cancelBtn());
       expect(box()).toBeChecked();
       await userEvent.click(box());
       await userEvent.click(saveBtn()!);
@@ -254,7 +326,7 @@ describe('settings page', () => {
     });
 
     it('is called Fumble unless you name it', async () => {
-      renderAt('/settings');
+      renderSettings();
       const field = screen.getByRole('textbox', { name: 'Name' });
       expect(field).toHaveValue('Fumble');
       await userEvent.clear(field);
@@ -268,14 +340,14 @@ describe('settings page', () => {
     it('goes back to Fumble when the name is saved blank', async () => {
       localStorage.setItem('nflsw:v1:mascotName', JSON.stringify('Gridley'));
       reloadAllStores();
-      renderAt('/settings');
+      renderSettings();
       await userEvent.clear(screen.getByRole('textbox', { name: 'Name' }));
       await userEvent.click(saveBtn()!);
       expect(localStorage.getItem('nflsw:v1:mascotName')).toBe('"Fumble"');
     });
 
     it('takes the mascot out of the header at once when it is saved off', async () => {
-      renderAt('/settings');
+      renderSettings();
       expect(document.querySelector('.brand .mascot')).not.toBeNull();
       await userEvent.click(box());
       expect(document.querySelector('.brand .mascot')).not.toBeNull(); // still a working copy

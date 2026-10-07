@@ -67,6 +67,7 @@ describe('the real dialogs', () => {
 
   it('Clear my data: worried', async () => {
     renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Site settings' }));
     await userEvent.click(screen.getAllByRole('button', { name: 'Clear my data' })[0]!);
     await waitFor(() => expect(perchMascot()).toHaveClass('worried'));
   });
