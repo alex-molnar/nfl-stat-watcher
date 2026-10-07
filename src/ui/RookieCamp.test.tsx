@@ -123,6 +123,7 @@ describe('rookie camp', () => {
       localStorage.setItem('nflsw:v1:mascot', 'false');
       reloadAllStores();
       renderAt('/settings');
+      await userEvent.click(screen.getByRole('button', { name: 'Site settings' }));
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Start rookie camp' })).toBeDisabled();
     });
@@ -281,6 +282,7 @@ describe('rookie camp', () => {
       setCamp('done');
       renderAt('/settings');
       expect(screen.queryByRole('region', { name: 'Rookie camp' })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Site settings' }));
       await act(async () => { await userEvent.click(screen.getByRole('button', { name: 'Start rookie camp' })); });
       expect(stored()).toEqual({ phase: 'running', step: 0, sub: 0 }); // from the start, even with a league: the user does the steps
       expect(camp()).toHaveTextContent('First drill');
