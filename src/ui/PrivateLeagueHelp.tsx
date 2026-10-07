@@ -24,7 +24,6 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   const guideId = useId();
   const guideAnchor = useRef<HTMLButtonElement>(null);
   const bookmarkAnchor = useRef<HTMLAnchorElement>(null);
-  const [rostersHelpOpen, setRostersHelpOpen] = useState(true);
   const [dragging, setDragging] = useState(false);
   const kept = what === 'settings' ? 'Only scoring and lineup settings are kept' : 'Only starting lineups and matchup pairings are kept';
 
@@ -81,11 +80,9 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   );
 
   return (
-    <details className="private-help" open={rostersHelpOpen} onToggle={(event) => setRostersHelpOpen(event.currentTarget.open)}>
-      <summary>Import {leagueLabel} from your own ESPN session</summary>
+    <div className="private-help private-rosters">
       {bookmarklet && (
         <div className="bm-help">
-          <p><b>Once per browser:</b> drag the Sync button to your bookmarks bar, or copy it to create a bookmark manually.</p>
           <div className="bm-actions">
             {/* React refuses javascript: URLs in an href prop, so the link is set on the element itself. */}
             <a
@@ -101,7 +98,8 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
             <span className="muted bm-or">or</span>
             <button type="button" className="btn" onClick={() => void copyCode()}>Copy bookmark</button>
           </div>
-          {rostersHelpOpen && !dragging && <BookmarkDragGuide anchor={bookmarkAnchor} />}
+          <p>Drag the Sync button to your bookmarks bar, or copy it to create a bookmark manually.</p>
+          {!dragging && <BookmarkDragGuide anchor={bookmarkAnchor} />}
           <p>Then {espnPage ? <><a href={espnPage} target="_blank" rel="noreferrer">open the league on ESPN</a> (signed in)</> : 'open the league on ESPN (signed in)'}, click the bookmark, come back here and paste below. The bookmark runs on ESPN&rsquo;s page and only copies lineups to your clipboard.</p>
           {note && <p className="muted" role="status">{note}</p>}
           <p className="muted">Or the manual way:</p>
@@ -112,6 +110,6 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
         <li>Select everything on that page (Cmd or Ctrl plus A), copy it and paste it below. {kept}; nothing leaves your browser.</li>
       </ol>
       {pasteBox}
-    </details>
+    </div>
   );
 }

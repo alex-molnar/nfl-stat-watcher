@@ -65,7 +65,9 @@ describe('sync starters', () => {
     const notice = await screen.findByText(/This league is private/);
     expect(notice).toHaveAttribute('role', 'status');
     expect(notice).not.toHaveClass('error');
-    expect(screen.getByText(/drag the Sync button to your bookmarks bar/)).toBeInTheDocument();
+    expect(screen.getByText(/Drag the Sync button to your bookmarks bar/)).toBeInTheDocument();
+    expect(document.querySelector('.private-help summary')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Once per browser/)).not.toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Sync' });
     expect(link).toHaveClass('btn-primary');
     expect(link).toHaveAttribute('draggable', 'true');
@@ -102,7 +104,7 @@ describe('sync starters', () => {
     expect(bookmark).toHaveAttribute('draggable', 'true');
     fireEvent.dragEnd(bookmark);
     expect(document.querySelector('.bookmark-drag-guide')).toBeInTheDocument();
-    await user.click(screen.getByText(/Import league .* from your own ESPN session/));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }));
     expect(document.querySelector('.bookmark-drag-guide')).not.toBeInTheDocument();
   });
 
