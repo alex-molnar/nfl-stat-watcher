@@ -109,7 +109,7 @@ export function SettingsPage() {
             {category === 'Position order' && <fieldset>
               <legend>Position order</legend>
               <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
-              <p id="position-drag-help" className="muted">Drag the dotted handle to move a position, or use the arrow buttons. Save to apply your order.</p>
+              <p id="position-drag-help" className="muted">Drag anywhere on a row to move a position, or use the arrow buttons. Save to apply your order.</p>
               <PositionOrderInput positions={positions} onChange={(next) => change({ positions: next })} />
               <p className="muted">DL includes DE, DT and NT; LB includes ILB, OLB and MLB; DB includes CB and safeties. Fullbacks use RB; PK uses K.</p>
               <button type="button" className="btn" disabled={positions.every((p, i) => p === DEFAULT_POSITION_ORDER[i])} onClick={() => change({ positions: [...DEFAULT_POSITION_ORDER] })}>Reset position order</button>

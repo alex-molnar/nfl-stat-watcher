@@ -131,9 +131,31 @@ describe('settings page', () => {
       }
       function handle(position: string) {
         const button = screen.getByRole('button', { name: `Drag ${position} to reorder` });
-        button.setPointerCapture = vi.fn();
+        button.closest('li')!.setPointerCapture = vi.fn();
         return button;
       }
+
+      it.each(['label', 'row'])('drags from the %s without using the handle', (start) => {
+        renderSettings();
+        layout();
+        const row = handle('QB').closest('li')!;
+        const target = start === 'label' ? row.querySelector('span')! : row;
+        pointer(target, 'pointerdown', 200, 25);
+        pointer(target, 'pointermove', 200, 190);
+        pointer(target, 'pointerup', 200, 190);
+        expect(positions().slice(0, 4)).toEqual(['RB', 'WR', 'TE', 'QB']);
+        expect(row.setPointerCapture).toHaveBeenCalledWith(1);
+        expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+      });
+
+      it('keeps arrow clicks separate from row dragging', async () => {
+        renderSettings();
+        layout();
+        const row = handle('RB').closest('li')!;
+        await userEvent.click(screen.getByRole('button', { name: 'Move RB up' }));
+        expect(positions().slice(0, 3)).toEqual(['RB', 'QB', 'WR']);
+        expect(row.setPointerCapture).not.toHaveBeenCalled();
+      });
 
       it('drags a position across multiple rows, previews the drop, then saves the draft', async () => {
         renderSettings();
