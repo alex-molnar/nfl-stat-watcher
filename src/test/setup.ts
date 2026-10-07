@@ -27,3 +27,8 @@ HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
   this.removeAttribute('open');
   this.dispatchEvent(new Event('close'));
 };
+
+// jsdom does not implement the popover API or its top-layer visibility.
+HTMLElement.prototype.showPopover = function (this: HTMLElement) {
+  this.style.display = 'block';
+};

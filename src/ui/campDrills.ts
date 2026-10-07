@@ -197,7 +197,7 @@ export const DRILLS: Drill[] = [
         wait: true,
         needs: IMPORT_LINKS,
         skipIf: (c) => !!c.q('.import-preview'),
-        text: 'This league is private, so ESPN will not hand me its settings. You copy them across from your own signed-in ESPN tab, and the box explains how. Paste them in here to go on.',
+        text: 'This league is private, so ESPN will not hand me its settings. Press Open Settings to open them in your signed-in ESPN tab, select all and copy, then come back and paste them here. Press How? if you need a hand.',
       },
       { target: ['.import-preview > p:nth-of-type(1)', '.import-preview > p:nth-of-type(2)'], wait: true, needs: IMPORT_LINKS, next: 'Next', text: 'These are the lineup slots and scoring rules I found on ESPN. They are what will be imported into your new league.' },
       { target: ['.import-issues ul', '.import-issues legend'], wait: true, needs: '.import-preview', skipIf: (c) => !c.q('.import-issues'), next: 'Next', text: 'Some of this league’s rules cannot be scored exactly here. These warnings list them, so you know where the points may differ from ESPN’s.' },

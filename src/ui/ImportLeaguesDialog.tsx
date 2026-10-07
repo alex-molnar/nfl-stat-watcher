@@ -284,7 +284,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
                   {entry.state === 'loading' && <p role="status">Loading {leagueLabel}…</p>}
                   {entry.state === 'error' && (
                     <div>
-                      <p className="error" role="status">{entry.error}</p>
+                      {!entry.needsAccess && <p className="error" role="status">{entry.error}</p>}
                       {entry.needsAccess && isConnectorConfigured() && <button type="button" className="btn" aria-label={`Connect ESPN and retry ${leagueLabel}`} disabled={busy} onClick={() => {
                         const controller = new AbortController();
                         const dialog = ref.current as (HTMLDialogElement & { __importAbort?: AbortController }) | null;
