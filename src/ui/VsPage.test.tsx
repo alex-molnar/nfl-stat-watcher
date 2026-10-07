@@ -27,6 +27,21 @@ describe('vs page grouping', () => {
     events: scoreboardFixture.events.map((event) => event.id === '401872975' ? { ...event, status: { ...event.status, type: { ...event.status.type, state: 'in' as const } } } : event),
   };
 
+  it('applies saved position order to every non-live group in both columns', async () => {
+    const entries = ['25', '23', '12'].flatMap((teamId) => ['QB', 'RB', 'WR'].map((position) => ({ ...warren, espnId: `${teamId}-${position}`, name: `${teamId} ${position}`, teamId, position })));
+    seed([...entries, ...entries.map(opponent)], profilesFixture);
+    positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
+    mockFetch(routes);
+    renderAt('/vs');
+    await within(mineCol()).findByRole('region', { name: 'Later' });
+    for (const col of [mineCol(), oppCol()]) {
+      for (const [group, team] of [['Later', '25'], ['Final', '23'], ['Bye week', '12']]) {
+        const region = within(col).getByRole('region', { name: group });
+        expect([...region.querySelectorAll('.card .nm')].map((n) => n.textContent)).toEqual([`${team} WR`, `${team} RB`, `${team} QB`]);
+      }
+    }
+  });
+
   it('puts live games first with bigger cards, then the rest under their own headings, in each column', async () => {
     seed([warren, sf, opponent(pitDefense), opponent({ ...sf, espnId: '2', name: 'Bo Nix', teamId: '7', teamAbbr: 'DEN' })], profilesFixture);
     mockFetch({ ...routes, scoreboard: live });

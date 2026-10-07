@@ -110,7 +110,7 @@ export function MainPage() {
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
           GROUPS.map(({ key, title }) => {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);
-            if (key === 'in') group.sort(liveOrder); // stable: ties keep the order they were added in
+            group.sort(liveOrder); // activity first in live games, position in every group; ties stay stable
             if (group.length === 0) return null;
             return (
               <section key={key} aria-labelledby={`group-${key}`}>

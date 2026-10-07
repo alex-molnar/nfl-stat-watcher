@@ -99,7 +99,7 @@ export function SettingsPage() {
           </fieldset>
           <fieldset>
             <legend>Position order</legend>
-            <p id="position-order-help" className="muted">Live cards sort by activity first: red zone, on the field, then inactive. Within each group, use this position order on Players and Vs.</p>
+            <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
             <ol className="position-order" aria-label="Position order" aria-describedby="position-order-help">
               {positions.map((position, index) => (
                 <li key={position}>

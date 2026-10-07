@@ -17,7 +17,7 @@ const UNKNOWN = 40; // after every ranked card, until the game's situation arriv
 type Row = { entry: FollowedEntry; game: GameInfo | null };
 
 /**
- * A comparator that orders live cards by liveRank, from the latest data: when the ball changes hands the
+ * A comparator that uses position order for non-live cards and liveRank for live cards, from the latest data: when the ball changes hands the
  * order follows on the next refresh. A card whose own play is being celebrated keeps the rank it had before
  * that play until the celebration is over, then rises to the top of its group for BOOST_MS (never past the group
  * above it), except after a big bad play, which only holds; cards not involved in the play move at once.

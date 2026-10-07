@@ -17,6 +17,47 @@ beforeEach(declineCamp);
 
 const card = (name: string) => screen.getByText(name).closest('li')!;
 
+describe('position order outside live games', () => {
+  const entries = (teamId: string) => ['RB', 'QB', 'WR'].map((position) => ({ ...warren, espnId: `${teamId}-${position}`, name: `${teamId} ${position}`, teamId, position }));
+  const names = (region: HTMLElement) => [...region.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('uses the default and saved position order in Later, Final and Bye week', async () => {
+    seed([...entries('25'), ...entries('23'), ...entries('12')], profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture, 'summary?event=401872964': summary });
+    renderAt('/');
+    const later = await screen.findByRole('region', { name: 'Later' });
+    const final = screen.getByRole('region', { name: 'Final' });
+    const bye = screen.getByRole('region', { name: 'Bye week' });
+    expect(names(later)).toEqual(['25 QB', '25 RB', '25 WR']);
+    expect(names(final)).toEqual(['23 QB', '23 RB', '23 WR']);
+    expect(names(bye)).toEqual(['12 QB', '12 RB', '12 WR']);
+    act(() => positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse()));
+    expect(names(later)).toEqual(['25 WR', '25 RB', '25 QB']);
+    expect(names(final)).toEqual(['23 WR', '23 RB', '23 QB']);
+    expect(names(bye)).toEqual(['12 WR', '12 RB', '12 QB']);
+  });
+
+  it('uses a preference saved in Settings after navigating back to Players', async () => {
+    seed(entries('25'), profilesFixture);
+    mockFetch({ scoreboard: scoreboardFixture });
+    renderAt('/settings');
+    await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Players' }));
+    const later = await screen.findByRole('region', { name: 'Later' });
+    expect(names(later)).toEqual(['25 WR', '25 QB', '25 RB']);
+  });
+
+  it('sorts by position when the game schedule is unavailable, preserving ties', async () => {
+    seed([...entries('25'), { ...entries('25')[0], espnId: 'second-rb', name: 'Second RB' }], profilesFixture);
+    mockFetch({ scoreboard: status(500) });
+    renderAt('/');
+    const followed = await screen.findByRole('region', { name: 'Followed' });
+    expect(names(followed)).toEqual(['25 QB', '25 RB', 'Second RB', '25 WR']);
+  });
+});
+
 describe('main page', () => {
   beforeEach(() => seed([warren, pitDefense, mahomes], profilesFixture));
 
