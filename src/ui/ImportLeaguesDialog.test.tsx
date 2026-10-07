@@ -197,7 +197,7 @@ describe('ImportLeaguesDialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('different league');
   });
 
-  it.each(['hover', 'click'] as const)('opens Fumble’s settings drill on %s and keeps the import dialog open when dismissed', async (interaction) => {
+  it.each(['hover', 'click'] as const)('opens Fumble’s settings hint on %s and hides it when the mouse leaves the button', async (interaction) => {
     mockFetch({ 'seasons/2026/segments/0/leagues/555?view=mSettings': { __status: 401 } });
     renderAt('/leagues');
     await userEvent.click(screen.getByRole('button', { name: 'Import leagues' }));
@@ -208,13 +208,15 @@ describe('ImportLeaguesDialog', () => {
     const how = await screen.findByRole('button', { name: 'How?' });
     if (interaction === 'hover') await userEvent.hover(how);
     else await userEvent.click(how, { skipHover: true });
-    const guide = screen.getByRole('dialog', { name: 'Fumble · Copy private league settings' });
+    const guide = screen.getByRole('tooltip');
+    expect(within(guide).getByText('Fumble · Copy settings')).toBeInTheDocument();
     expect(within(guide).getAllByRole('listitem')).toHaveLength(3);
-    expect(guide).toHaveAccessibleDescription(/Stay signed in to ESPN/);
+    expect(how).toHaveAccessibleDescription(/Stay signed in to ESPN/);
     expect(within(guide).getByText(/Ctrl\+A/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Settings JSON for league 555, season 2026')).not.toBeInTheDocument();
-    await userEvent.click(within(guide).getByRole('button', { name: 'Got it' }));
-    expect(screen.queryByRole('dialog', { name: /Copy private league settings/ })).not.toBeInTheDocument();
+    await userEvent.hover(how);
+    await userEvent.unhover(how);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Import ESPN leagues' })).toHaveAttribute('open');
     await userEvent.click(screen.getByRole('link', { name: 'Open Settings' }));
     expect(screen.getByLabelText('Settings JSON for league 555, season 2026')).toBeInTheDocument();

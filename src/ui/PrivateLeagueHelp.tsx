@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { PrivateSettingsGuide } from './PrivateSettingsGuide';
 
 interface Props {
@@ -20,6 +20,8 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   const [note, setNote] = useState('');
   const [settingsOpened, setSettingsOpened] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const guideId = useId();
+  const guideAnchor = useRef<HTMLButtonElement>(null);
   const kept = what === 'settings' ? 'Only scoring and lineup settings are kept' : 'Only starting lineups and matchup pairings are kept';
 
   /** Pasting is the whole action: the text is checked and imported at once, and a problem is shown right under the box. */
@@ -64,13 +66,13 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
       <p role="status">This league is private you need to copy the settings manually</p>
       <div className="bubble-actions">
         {url && <a className="btn private-settings-open" href={url} target="_blank" rel="noreferrer" onClick={() => setSettingsOpened(true)} onAuxClick={(event) => { if (event.button === 1) setSettingsOpened(true); }}>Open Settings</a>}
-        <button type="button" className="btn private-settings-how" aria-haspopup="dialog" onMouseEnter={() => setGuideOpen(true)} onClick={() => setGuideOpen(true)}>How?</button>
+        <button ref={guideAnchor} type="button" className="btn private-settings-how" aria-describedby={guideOpen ? guideId : undefined} onMouseEnter={() => setGuideOpen(true)} onMouseLeave={() => setGuideOpen(false)} onFocus={() => setGuideOpen(true)} onBlur={() => setGuideOpen(false)} onClick={() => setGuideOpen(true)} onKeyDown={(event) => { if (event.key === 'Escape' && guideOpen) { event.preventDefault(); event.stopPropagation(); setGuideOpen(false); } }}>How?</button>
       </div>
       {settingsOpened && <>
         <p className="muted">Paste the copied settings text below. It is imported straight away.</p>
         {pasteBox}
       </>}
-      {guideOpen && <PrivateSettingsGuide onClose={() => setGuideOpen(false)} />}
+      {guideOpen && <PrivateSettingsGuide id={guideId} anchor={guideAnchor} />}
     </div>
   );
 
