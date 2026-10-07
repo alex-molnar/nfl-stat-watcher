@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { mahomes, profilesFixture, warren } from '../test/data';
 import { reloadAllStores } from '../storage/store';
 import { renderAt, seed, declineCamp } from '../test/render';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
+import { positionOrderStore } from '../storage/positionOrder';
 
 beforeEach(declineCamp);
 
@@ -11,6 +13,45 @@ const radio = (name: string) => screen.getByRole('radio', { name });
 const saveBtn = () => screen.queryByRole('button', { name: 'Save' });
 
 describe('settings page', () => {
+  describe('position order', () => {
+    const positions = () => within(screen.getByRole('list', { name: 'Position order' })).getAllByRole('listitem').map((li) => li.querySelector('span')!.textContent);
+
+    it('shows all nine positions in default order and disables moving past either end', () => {
+      renderAt('/settings');
+      expect(positions()).toEqual(['QB', 'RB', 'WR', 'TE', 'K', 'DL', 'LB', 'DB', 'Team defenses']);
+      expect(screen.getByRole('button', { name: 'Move QB up' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Move Team defenses down' })).toBeDisabled();
+    });
+
+    it('supports moving both ways, Cancel, Save and restoring the saved order on the next visit', async () => {
+      const { unmount } = renderAt('/settings');
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+      expect(positions().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+      expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR down' }));
+      expect(saveBtn()).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Move RB up' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(positions()[0]).toBe('QB');
+      await userEvent.click(screen.getByRole('button', { name: 'Move WR up' }));
+      await userEvent.click(saveBtn()!);
+      expect(positionOrderStore.get().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+      unmount();
+      reloadAllStores();
+      renderAt('/settings');
+      expect(positions().slice(0, 3)).toEqual(['QB', 'WR', 'RB']);
+    });
+
+    it('resets a custom order only after Save', async () => {
+      positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
+      renderAt('/settings');
+      await userEvent.click(screen.getByRole('button', { name: 'Reset position order' }));
+      expect(positions()[0]).toBe('QB');
+      expect(positionOrderStore.get()[0]).toBe('D/ST');
+      await userEvent.click(saveBtn()!);
+      expect(positionOrderStore.get()).toEqual(DEFAULT_POSITION_ORDER);
+    });
+  });
   it('offers Full, Initial and Formal, with Full selected by default', () => {
     renderAt('/settings');
     expect(screen.getAllByRole('radio').map((r) => (r as HTMLInputElement).labels?.[0]?.textContent)).toEqual(['Full', 'Initial', 'Formal']);
@@ -163,4 +204,3 @@ describe('settings page', () => {
     });
   });
 });
-

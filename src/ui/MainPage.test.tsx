@@ -10,6 +10,8 @@ import { renderAt, seed, declineCamp } from '../test/render';
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { parseEspnLeagueSettings } from '../leagues/espn/parse';
 import settings from '../test/fixtures/espn-fantasy/public-settings-1900128084-2026.json';
+import { positionOrderStore } from '../storage/positionOrder';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
 
 beforeEach(declineCamp);
 
@@ -404,6 +406,14 @@ describe('live ordering', () => {
   };
   const names = () => [...document.querySelectorAll('.card .nm')].map((n) => n.textContent);
 
+  it('applies a saved position order on Players without changing activity priority', async () => {
+    seed([sf('1', 'SF quarterback', 'QB'), sf('2', 'SF runner', 'RB'), sf('3', 'DEN receiver', 'WR', '7', 'DEN')], profilesFixture);
+    positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse());
+    mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
+    renderAt('/');
+    await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'DEN receiver']));
+  });
+
   it('orders live cards red zone first, then the side with the ball, then the rest, by position within each', async () => {
     seed([
       sf('1', 'DEN receiver', 'WR', '7', 'DEN'),
@@ -416,7 +426,7 @@ describe('live ordering', () => {
     mockFetch({ scoreboard: liveBoard, 'summary?event=401872975': liveSummary, standings: teams });
     renderAt('/');
     await screen.findByText('SF runner');
-    await waitFor(() => expect(names()).toEqual(['SF runner', 'SF quarterback', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
+    await waitFor(() => expect(names()).toEqual(['SF quarterback', 'SF runner', 'SF kicker', 'Denver D/ST', 'DEN receiver', 'SF D/ST']));
   });
 
   it('styles the right side of the ball, and pulses a red zone card only until the page is paused', async () => {
@@ -462,7 +472,7 @@ describe('injury designations', () => {
     expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
     expect(screen.getByText('Questionable · Hamstring').parentElement).toHaveClass('inj-row'); // its own row, not squeezed beside the name
     expect(within(screen.getByText('Healthy quarterback').closest('.card') as HTMLElement).queryByText(/Questionable|Out/)).not.toBeInTheDocument(); // no row when healthy
-    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    await waitFor(() => expect(names()).toEqual(['Healthy quarterback', 'Iffy receiver', 'Hurt runner']));
     const hurt = screen.getByText('Hurt runner').closest('.card')!;
     expect(hurt).not.toHaveClass('is-rz');
     expect(hurt).not.toHaveClass('on-field');
@@ -501,7 +511,7 @@ describe('injury designations from the league report', () => {
     renderAt('/');
     await waitFor(() => expect(screen.getByText('Out · Toe')).toBeInTheDocument());
     expect(screen.getByText('Questionable · Hamstring')).toBeInTheDocument();
-    await waitFor(() => expect(names()).toEqual(['Iffy receiver', 'Healthy quarterback', 'Hurt runner']));
+    await waitFor(() => expect(names()).toEqual(['Healthy quarterback', 'Iffy receiver', 'Hurt runner']));
     expect(screen.getByText('Hurt runner').closest('.card')).not.toHaveClass('is-rz');
   });
 

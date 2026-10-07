@@ -3,13 +3,7 @@ import type { FollowedEntry } from '../storage/types';
 import type { GameInfo } from './scoreboard';
 import { injuryOf, isOut } from './injury';
 import type { GameStats, Injury } from './types';
-
-/** Within a bucket: skill players, then quarterbacks, then kickers, then defenses and IDP. */
-function tier(entry: FollowedEntry): number {
-  if (entry.kind === 'defense' || !isOffense(entry.position)) return 3;
-  if (entry.position === 'K' || entry.position === 'PK') return 2;
-  return entry.position === 'QB' ? 1 : 0;
-}
+import { DEFAULT_POSITION_ORDER, positionRank, type PositionGroup } from './positionOrder';
 
 /** After every other rank, including cards whose situation is still unknown (40). */
 export const OUT_RANK = 50;
@@ -24,15 +18,15 @@ export function onRightSide(entry: FollowedEntry, situation: { possessionTeamId:
 /**
  * Sort rank for a card in a live game: red zone first, then players whose side has the ball (offense
  * with possession, defense without), then everyone else. Null until the game's situation is known.
- * Lower sorts first; the tens digit is the bucket and the ones digit is the position tier.
+ * Lower sorts first; the tens digit is the bucket and the ones digit is the configured position rank.
  */
-export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats | undefined, league?: Record<string, Injury>): number | null {
+export function liveRank(entry: FollowedEntry, game: GameInfo, stats: GameStats | undefined, league?: Record<string, Injury>, order: readonly PositionGroup[] = DEFAULT_POSITION_ORDER): number | null {
   // A player ruled out goes to the back whatever the ball is doing, even before the situation is known.
   if (entry.kind === 'player' && isOut(injuryOf(entry.espnId, stats, league))) return OUT_RANK;
   const situation = stats?.situation;
   if (!situation) return null;
   const bucket = isRedZone(entry, game, stats) ? 0 : onRightSide(entry, situation) ? 1 : 2;
-  return bucket * 10 + tier(entry);
+  return bucket * 10 + positionRank(entry, order);
 }
 
 /** How long a card stays at the top of its group after a celebrated play of its own. */
@@ -46,7 +40,8 @@ export const BOOST_MS = 30_000;
 export function boostedRank(rank: number): number {
   const bucket = Math.floor(rank / 10);
   if (bucket >= 4) return rank;
-  return bucket * 10 - 1 + (rank % 10) / 10;
+  // Fit all nine groups and an unknown position between the previous bucket's last rank and this bucket.
+  return bucket * 10 - 1 + ((rank % 10) + 1) / 11;
 }
 
 /**

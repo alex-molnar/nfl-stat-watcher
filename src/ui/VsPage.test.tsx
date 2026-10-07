@@ -7,6 +7,8 @@ import { mahomes, opponent, pitDefense, profilesFixture, scoreboardFixture, warr
 import { mockFetch, status } from '../test/mockFetch';
 import { addEntry } from '../storage/followed';
 import { renderAt, seed } from '../test/render';
+import { positionOrderStore } from '../storage/positionOrder';
+import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
 
 const routes = { scoreboard: scoreboardFixture, 'summary?event=401872964': summary };
 const column = (name: 'Your players' | 'Opponent players') => screen.getByRole('region', { name });
@@ -51,6 +53,20 @@ describe('vs page live ordering', () => {
     drives: { current: { plays: [{ id: '1', text: 'run', start: { team: { id: '25' }, yardsToEndzone: 12, downDistanceText: '1st & 10' } }] } },
   };
   const names = (col: HTMLElement) => [...col.querySelectorAll('.card .nm')].map((n) => n.textContent);
+
+  it('uses the saved order in both columns and updates when the preference is saved', async () => {
+    seed([
+      player('1', 'SF runner', 'RB', '25', 'SF'), player('2', 'SF quarterback', 'QB', '25', 'SF'),
+      opponent(player('3', 'SF receiver', 'WR', '25', 'SF')), opponent(player('4', 'SF tight end', 'TE', '25', 'SF')),
+    ], profilesFixture);
+    mockFetch({ ...routes, scoreboard: board, 'summary?event=401872975': liveSummary });
+    renderAt('/vs');
+    await waitFor(() => expect(names(mineCol())).toEqual(['SF quarterback', 'SF runner']));
+    expect(names(oppCol())).toEqual(['SF receiver', 'SF tight end']);
+    act(() => positionOrderStore.set([...DEFAULT_POSITION_ORDER].reverse()));
+    await waitFor(() => expect(names(mineCol())).toEqual(['SF runner', 'SF quarterback']));
+    expect(names(oppCol())).toEqual(['SF tight end', 'SF receiver']);
+  });
 
   it('orders each column on its own: red zone, then the side with the ball, then the rest', async () => {
     seed([
@@ -104,7 +120,7 @@ describe('vs page', () => {
     expect(within(oppCol()).getByText('No opponent players yet')).toBeInTheDocument();
     expect(bar()).toHaveTextContent('You 0.00 Tied Opponent 0.00');
     const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
-    expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme', 'nflsw:v1:nameDisplay', 'nflsw:v1:mascot', 'nflsw:v1:mascotName', 'nflsw:v1:camp'].includes(k!))).toBe(true);
+    expect(keys.every((k) => ['nflsw:v1:followed', 'nflsw:v1:profiles', 'nflsw:v1:theme', 'nflsw:v1:nameDisplay', 'nflsw:v1:positionOrder', 'nflsw:v1:mascot', 'nflsw:v1:mascotName', 'nflsw:v1:camp'].includes(k!))).toBe(true);
   });
 
   it('renders an empty matchup as a tie with both Add buttons, silent in the status line', async () => {
