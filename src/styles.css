@@ -160,9 +160,15 @@ dialog { overflow: visible; max-height: none; }
 /* The top padding equals the sticky menu's offset below the header, so the menu starts in the same place whether or not the form beside it is tall enough to let it slide into that offset. */
 .settings-page { max-width: 720px; }
 .choice-list { display: grid; gap: 10px; }
-.position-order { max-width: 360px; padding-left: 28px; }
-.position-order li { padding: 4px 0; }
-.position-order li > span { display: inline-block; min-width: 120px; }
+.position-order { max-width: 360px; list-style: none; padding: 0; }
+.position-order li { display: flex; position: relative; align-items: center; gap: 8px; padding: 6px 0; }
+.position-order li > span { flex: 1; }
+.position-drag-handle { order: -1; touch-action: none; user-select: none; cursor: grab; font-size: 22px; }
+.position-drag-handle:active { cursor: grabbing; }
+.position-order .is-dragging { opacity: .5; }
+.position-order .drop-before::before, .position-order .drop-after::after { content: ''; position: absolute; left: 0; right: 0; height: 3px; background: var(--accent); pointer-events: none; }
+.position-order .drop-before::before { top: -2px; }
+.position-order .drop-after::after { bottom: -2px; }
 .position-order-actions { display: inline-flex; gap: 8px; }
 .choice-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
 .choice { display: flex; align-items: center; gap: 10px; font-weight: 700; cursor: pointer; }

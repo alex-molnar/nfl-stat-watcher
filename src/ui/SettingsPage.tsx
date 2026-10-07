@@ -12,10 +12,10 @@ import { SaveActions } from './LeaguesPage';
 import { usePageTitle } from './usePageTitle';
 import { DEFAULT_POSITION_ORDER, type PositionGroup } from '../stats/positionOrder';
 import { positionOrderStore } from '../storage/positionOrder';
+import { PositionOrderInput } from './PositionOrderInput';
 
 const MODE_LABELS: Record<NameDisplayMode, string> = { full: 'Full', initial: 'Initial', formal: 'Formal' };
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
-const positionLabel = (position: PositionGroup) => position === 'D/ST' ? 'Team defenses' : position;
 type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[] };
 
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
@@ -35,12 +35,6 @@ export function SettingsPage() {
   const positions = draft?.positions ?? storedPositions;
   const change = (patch: Partial<SettingsDraft>) => setDraft({ mode, mascot, name, positions, ...patch });
   const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]);
-
-  function movePosition(index: number, direction: -1 | 1) {
-    const next = [...positions];
-    [next[index], next[index + direction]] = [next[index + direction], next[index]];
-    change({ positions: next });
-  }
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -100,17 +94,8 @@ export function SettingsPage() {
           <fieldset>
             <legend>Position order</legend>
             <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
-            <ol className="position-order" aria-label="Position order" aria-describedby="position-order-help">
-              {positions.map((position, index) => (
-                <li key={position}>
-                  <span>{positionLabel(position)}</span>
-                  <div className="position-order-actions">
-                    <button type="button" className="btn" aria-label={`Move ${positionLabel(position)} up`} disabled={index === 0} onClick={() => movePosition(index, -1)}>↑</button>
-                    <button type="button" className="btn" aria-label={`Move ${positionLabel(position)} down`} disabled={index === positions.length - 1} onClick={() => movePosition(index, 1)}>↓</button>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <p id="position-drag-help" className="muted">Drag the dotted handle to move a position, or use the arrow buttons. Save to apply your order.</p>
+            <PositionOrderInput positions={positions} onChange={(next) => change({ positions: next })} />
             <p className="muted">DL includes DE, DT and NT; LB includes ILB, OLB and MLB; DB includes CB and safeties. Fullbacks use RB; PK uses K.</p>
             <button type="button" className="btn" disabled={positions.every((p, i) => p === DEFAULT_POSITION_ORDER[i])} onClick={() => change({ positions: [...DEFAULT_POSITION_ORDER] })}>Reset position order</button>
           </fieldset>
