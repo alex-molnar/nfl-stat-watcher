@@ -160,11 +160,13 @@ dialog { overflow: visible; max-height: none; }
 /* The top padding equals the sticky menu's offset below the header, so the menu starts in the same place whether or not the form beside it is tall enough to let it slide into that offset. */
 .settings-category-title { margin: 0; font: 800 18px/1.3 Anybody, sans-serif; }
 .choice-list { display: grid; gap: 10px; }
-.position-order { width: 100%; list-style: none; padding: 0; }
-.position-order li { display: flex; position: relative; align-items: center; gap: 8px; padding: 6px 0; touch-action: none; user-select: none; cursor: grab; }
+.position-order { width: 100%; list-style: none; padding: 0; display: grid; gap: 8px; }
+.position-order li { display: flex; position: relative; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); touch-action: none; user-select: none; cursor: grab; }
+.position-order .btn { border: 0; border-radius: 4px; background: transparent; }
+.position-order .btn:hover:not(:disabled) { background: var(--panel); }
 .position-order li:active { cursor: grabbing; }
 .position-order li > span { flex: 1; }
-.position-drag-handle { order: -1; touch-action: none; user-select: none; cursor: grab; font-size: 22px; }
+.position-drag-handle { order: -1; padding: 6px 8px; touch-action: none; user-select: none; cursor: grab; font-size: 22px; }
 .position-drag-handle:active { cursor: grabbing; }
 .position-order .is-dragging { opacity: .5; }
 .position-order .drop-before::before, .position-order .drop-after::after { content: ''; position: absolute; left: 0; right: 0; height: 3px; background: var(--accent); pointer-events: none; }
