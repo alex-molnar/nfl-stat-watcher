@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
@@ -22,10 +23,10 @@ import { useLiveOrder } from '../hooks/useLiveOrder';
 import { useAutoSync } from '../hooks/useAutoSync';
 
 const MINE: Side[] = ['mine'];
-const NEED_LEAGUE = 'Add a scoring league first to add players';
 
 export function MainPage() {
-  usePageTitle('Players');
+  const { t } = useTranslation();
+  usePageTitle(t(($) => $.shell.main.title));
   useAutoSync(MINE);
   const profiles = useStore(profilesStore);
   // Only my entries: opponent entries (vs mode) never show here, in cards or in the empty state.
@@ -39,7 +40,7 @@ export function MainPage() {
   const hasImported = profiles.some((profile) => profile.source);
   const noLeagues = profiles.length === 0;
   // aria-disabled, not disabled: a disabled button shows no tooltip, and this one explains what to do first.
-  const needLeague = noLeagues ? NEED_LEAGUE : undefined;
+  const needLeague = noLeagues ? t(($) => $.shell.main.needLeague) : undefined;
   const hasSchedule = scoreboard.data !== undefined;
   const games = scoreboard.data ?? [];
   const rows = followed.map((entry) => ({ entry, game: gameForTeam(games, entry.teamId) }));
@@ -73,7 +74,7 @@ export function MainPage() {
   const headerAdd = useRef<HTMLButtonElement>(null);
   const addButton = (ref?: React.Ref<HTMLButtonElement>) => (
     <button type="button" ref={ref} className="btn btn-primary press" data-camp="add-player" aria-disabled={noLeagues || undefined} title={needLeague} onClick={(e) => { if (noLeagues) return; opener.current = e.currentTarget; setAdding(true); }}>
-      Add player
+      {t(($) => $.shell.main.addPlayer)}
     </button>
   );
 
@@ -90,29 +91,29 @@ export function MainPage() {
         actions={
           <>
             <PauseButton />
-            {(hasImported || noLeagues) && <button type="button" className="btn press" data-camp="sync-starters" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>Sync starters</button>}
+            {(hasImported || noLeagues) && <button type="button" className="btn press" data-camp="sync-starters" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>{t(($) => $.shell.main.syncStarters)}</button>}
             {addButton(headerAdd)}
           </>
         }
       />
       <main className="wrap">
-        <h2 className="sr" tabIndex={-1} data-page-title>Players</h2>
+        <h2 className="sr" tabIndex={-1} data-page-title>{t(($) => $.shell.main.title)}</h2>
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
           noLeagues ? (
-            <MascotSays text="Add a scoring league first to start following players.">
-              <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
+            <MascotSays text={t(($) => $.shell.main.noLeague)}>
+              <Link className="btn btn-primary press" to="/leagues">{t(($) => $.shell.main.goToLeagues)}</Link>
             </MascotSays>
           ) : (
-            <MascotSays text={`You're not following anyone yet. Add players or team defenses from any of your leagues.${hasImported ? ' Alternatively sync your starters from your imported leagues.' : ''}`}>
+            <MascotSays text={hasImported ? t(($) => $.shell.main.emptyWithImport) : t(($) => $.shell.main.empty)}>
               <div className="bubble-actions">
                 {addButton()}
-                {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>Sync starters</button>}
+                {hasImported && <button type="button" className="btn press" onClick={() => setImporting(true)}>{t(($) => $.shell.main.syncStarters)}</button>}
               </div>
             </MascotSays>
           )
         ) : loading ? null : ( // Wait for the schedule so cards do not jump between groups after mounting.
-          GROUPS.map(({ key, title }) => {
+          GROUPS.map(({ key }) => {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);
             group.sort(liveOrder); // activity first in live games, position in every group; ties stay stable
             if (group.length === 0) return null;
@@ -121,7 +122,7 @@ export function MainPage() {
               <section key={key} aria-labelledby={`group-${key}`}>
                 <div className="section-head">
                   <h2 className="section-title" id={`group-${key}`}>
-                    {key === 'none' && !hasSchedule ? 'Followed' : title}
+                    {key === 'none' && !hasSchedule ? t(($) => $.shell.main.followed) : t(($) => $.shell.groups[key])}
                   </h2>
                   {first && hasImported && <AutoSyncToggle />}
                 </div>

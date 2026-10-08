@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router';
 import { ALL_LEAGUES, useMatchup } from '../hooks/useMatchup';
@@ -26,15 +27,11 @@ function focusVisible(el: HTMLElement | null | undefined) {
   el.scrollIntoView({ block: 'nearest' });
 }
 
-const COLUMNS = {
-  mine: { title: 'Your players', add: 'Add player to your side', empty: 'No players on your side yet' },
-  opponent: { title: 'Opponent players', add: 'Add player to opponent side', empty: 'No opponent players yet' },
-} as const;
-
 const BOTH_SIDES: Side[] = ['mine', 'opponent'];
 
 function VsMatchup() {
-  usePageTitle('Matchup');
+  const { t } = useTranslation();
+  usePageTitle(t(($) => $.shell.vs.title));
   useAutoSync(BOTH_SIDES);
   const profiles = useStore(profilesStore);
   const [pickedId, setPickedId] = useState(profiles[0]!.id); // memory only, never stored
@@ -104,27 +101,27 @@ function VsMatchup() {
   const column = (side: Side) => (
     <section className="vs-col" aria-labelledby={`vs-${side}`}>
       <div className="vs-col-head">
-        <h2 className="section-title" id={`vs-${side}`}>{COLUMNS[side].title}</h2>
-        <button type="button" className="btn press vs-add" data-camp={`vs-add-${side}`} aria-label={COLUMNS[side].add} onClick={(e) => openDialog(side, e.currentTarget)}>
-          Add player
+        <h2 className="section-title" id={`vs-${side}`}>{t(($) => $.shell.vs[side].title)}</h2>
+        <button type="button" className="btn press vs-add" data-camp={`vs-add-${side}`} aria-label={t(($) => $.shell.vs[side].add)} onClick={(e) => openDialog(side, e.currentTarget)}>
+          {t(($) => $.shell.vs.addPlayer)}
         </button>
         {canSync && (
-          <button type="button" className="btn press" aria-label={`Sync ${side === 'opponent' ? 'opponent' : 'your'} starters`} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
-            Sync starters
+          <button type="button" className="btn press" aria-label={t(($) => $.shell.vs[side].sync)} onClick={(e) => { opener.current = e.currentTarget; setImportSide(side); }}>
+            {t(($) => $.shell.vs.syncStarters)}
           </button>
         )}
       </div>
       {rows[side].length === 0 ? (
-        <p className="muted" style={{ gridRow: 2 }}>{COLUMNS[side].empty}</p>
+        <p className="muted" style={{ gridRow: 2 }}>{t(($) => $.shell.vs[side].empty)}</p>
       ) : loading ? null : ( // Wait for the schedule so cards do not reorder after mounting.
-        GROUPS.map(({ key, title }, slot) => {
+        GROUPS.map(({ key }, slot) => {
           const group = rows[side].filter((r) => (r.game?.state ?? 'none') === key);
           group.sort(liveOrder); // non-live cards use the saved position order too
           if (group.length === 0) return null;
           return (
             // One fixed row per group, shared by both columns, so each group starts at the same height on either side.
             <section key={key} aria-labelledby={`vs-${side}-${key}`} style={{ gridRow: slot + 2 }}>
-              <h3 className="group-title" id={`vs-${side}-${key}`}>{key === 'none' && !hasSchedule ? 'Followed' : title}</h3>
+              <h3 className="group-title" id={`vs-${side}-${key}`}>{key === 'none' && !hasSchedule ? t(($) => $.shell.main.followed) : t(($) => $.shell.groups[key])}</h3>
               <ul className={`grid vs-list${key === 'in' ? ' live' : ''}`}>
                 {group.map(({ entry, game }) => (
                   <EntryCard
@@ -150,18 +147,18 @@ function VsMatchup() {
     <>
       <Header actions={<PauseButton />} />
       <main className="wrap">
-        <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
+        <h2 className="sr" tabIndex={-1} data-page-title>{t(($) => $.shell.vs.title)}</h2>
         <div className="vs-league-row">
           <label className="field-label vs-league">
-            Matchup league
+            {t(($) => $.shell.vs.league)}
             <select value={all ? ALL_LEAGUES : profile.id} onChange={(e) => setPickedId(e.target.value)}>
-              {profiles.length > 1 && <option value={ALL_LEAGUES}>All</option>}
+              {profiles.length > 1 && <option value={ALL_LEAGUES}>{t(($) => $.shell.vs.all)}</option>}
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
           {canSync && (
             <button type="button" className="btn press" onClick={(e) => { opener.current = e.currentTarget; setImportSide('both'); }}>
-              Sync all starters
+              {t(($) => $.shell.vs.syncAll)}
             </button>
           )}
           {canSync && <AutoSyncToggle />}
@@ -174,7 +171,7 @@ function VsMatchup() {
         <ScoreBar ref={barRef} settled={announced} mine={totals.mine} opponent={totals.opponent} />
         {!all && profile.source?.issues.length ? (
           <details className="compat-warning matchup-warning">
-            <summary>{`${profile.name} has ${profile.source.issues.length} imported scoring limits`}</summary>
+            <summary>{t(($) => $.shell.vs.limits, { name: profile.name, n: profile.source.issues.length })}</summary>
             <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
           </details>
         ) : null}
@@ -191,16 +188,17 @@ function VsMatchup() {
 
 /** Without a league there is no scoring to compare, so the page says where to start. */
 export function VsPage() {
+  const { t } = useTranslation();
   const profiles = useStore(profilesStore);
-  usePageTitle('Matchup');
+  usePageTitle(t(($) => $.shell.vs.title));
   if (profiles.length > 0) return <VsMatchup />;
   return (
     <>
       <Header pageMascot />
       <main className="wrap">
-        <h2 className="sr" tabIndex={-1} data-page-title>Matchup</h2>
-        <MascotSays text="Add a scoring league first to compare a matchup.">
-          <Link className="btn btn-primary press" to="/leagues">Go to Leagues</Link>
+        <h2 className="sr" tabIndex={-1} data-page-title>{t(($) => $.shell.vs.title)}</h2>
+        <MascotSays text={t(($) => $.shell.vs.noLeague)}>
+          <Link className="btn btn-primary press" to="/leagues">{t(($) => $.shell.vs.goToLeagues)}</Link>
         </MascotSays>
       </main>
     </>

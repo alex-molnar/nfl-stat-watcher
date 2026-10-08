@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 import { isOffense } from '../ui/format';
 import type { FollowedEntry } from '../storage/types';
 import type { GameStats } from './types';
@@ -25,33 +26,33 @@ export const LONG_CATCH = 10;
  * The one place that decides which tier a play is in. To move a play, change it here. Order inside a tier is
  * the priority when several happen in the same refresh.
  */
-const TIERS: Record<PlayEvent['kind'], { tier: PlayTier; tone: PlayTone; label: string }> = {
-  td: { tier: 'big', tone: 'good', label: 'Touchdown' },
-  fg: { tier: 'big', tone: 'good', label: 'Field goal' },
-  int: { tier: 'big', tone: 'good', label: 'Interception' },
-  fumble: { tier: 'big', tone: 'good', label: 'Fumble recovery' },
-  safety: { tier: 'big', tone: 'good', label: 'Safety' },
-  block: { tier: 'small', tone: 'good', label: 'Blocked kick' },
-  sack: { tier: 'small', tone: 'good', label: 'Sack' },
-  xp: { tier: 'small', tone: 'good', label: 'Extra point' },
-  twopoint: { tier: 'small', tone: 'good', label: '2-point conversion' },
-  pass: { tier: 'small', tone: 'good', label: 'Long pass' },
-  run: { tier: 'small', tone: 'good', label: 'Long run' },
-  catch: { tier: 'small', tone: 'good', label: 'Long catch' },
+const TIERS: Record<PlayEvent['kind'], { tier: PlayTier; tone: PlayTone }> = {
+  td: { tier: 'big', tone: 'good' },
+  fg: { tier: 'big', tone: 'good' },
+  int: { tier: 'big', tone: 'good' },
+  fumble: { tier: 'big', tone: 'good' },
+  safety: { tier: 'big', tone: 'good' },
+  block: { tier: 'small', tone: 'good' },
+  sack: { tier: 'small', tone: 'good' },
+  xp: { tier: 'small', tone: 'good' },
+  twopoint: { tier: 'small', tone: 'good' },
+  pass: { tier: 'small', tone: 'good' },
+  run: { tier: 'small', tone: 'good' },
+  catch: { tier: 'small', tone: 'good' },
   // Bad plays, in the same two tiers.
-  intthrown: { tier: 'big', tone: 'bad', label: 'Interception thrown' },
-  fumblelost: { tier: 'big', tone: 'bad', label: 'Fumble lost' },
-  missfg: { tier: 'big', tone: 'bad', label: 'Missed field goal' },
-  tdallowed: { tier: 'big', tone: 'bad', label: 'Touchdown allowed' },
-  sacked: { tier: 'small', tone: 'bad', label: 'Sacked' },
-  missxp: { tier: 'small', tone: 'bad', label: 'Missed extra point' },
-  fgallowed: { tier: 'small', tone: 'bad', label: 'Field goal allowed' },
+  intthrown: { tier: 'big', tone: 'bad' },
+  fumblelost: { tier: 'big', tone: 'bad' },
+  missfg: { tier: 'big', tone: 'bad' },
+  tdallowed: { tier: 'big', tone: 'bad' },
+  sacked: { tier: 'small', tone: 'bad' },
+  missxp: { tier: 'small', tone: 'bad' },
+  fgallowed: { tier: 'small', tone: 'bad' },
 };
 
 const grew = (before: number | undefined, after: number | undefined) => (after ?? 0) > (before ?? 0);
 const change = (before: number | undefined, after: number | undefined) => (after ?? 0) - (before ?? 0);
 
-const make = (kind: PlayEvent['kind'], label?: string): PlayEvent => ({ kind, label: label ?? TIERS[kind].label, tier: TIERS[kind].tier, tone: TIERS[kind].tone });
+const make = (kind: PlayEvent['kind'], label?: string): PlayEvent => ({ kind, label: label ?? i18n.t(($) => $.shell.plays[kind]), tier: TIERS[kind].tier, tone: TIERS[kind].tone });
 
 /**
  * The biggest celebrated play a card's player or defense just made or suffered, by comparing two refreshes of the
@@ -98,9 +99,9 @@ export function scoringEvent(entry: FollowedEntry, before: GameStats, after: Gam
     const pass = change(a?.passing?.yards, b.passing?.yards);
     const run = change(a?.rushing?.yards, b.rushing?.yards);
     const catchYards = change(a?.receiving?.yards, b.receiving?.yards);
-    add(change(a?.passing?.completions, b.passing?.completions) === 1 && pass >= LONG_PASS, 'pass', `${pass}-yard pass`);
-    add(change(a?.rushing?.attempts, b.rushing?.attempts) === 1 && run >= LONG_RUN, 'run', `${run}-yard run`);
-    add(change(a?.receiving?.receptions, b.receiving?.receptions) === 1 && catchYards >= LONG_CATCH, 'catch', `${catchYards}-yard catch`);
+    add(change(a?.passing?.completions, b.passing?.completions) === 1 && pass >= LONG_PASS, 'pass', i18n.t(($) => $.shell.plays.passYards, { yards: pass }));
+    add(change(a?.rushing?.attempts, b.rushing?.attempts) === 1 && run >= LONG_RUN, 'run', i18n.t(($) => $.shell.plays.runYards, { yards: run }));
+    add(change(a?.receiving?.receptions, b.receiving?.receptions) === 1 && catchYards >= LONG_CATCH, 'catch', i18n.t(($) => $.shell.plays.catchYards, { yards: catchYards }));
     // Bad plays for an offensive player.
     const misses = (k: GameStats['players'][string]['kicking'], kind: 'fg' | 'xp') => (k ? (kind === 'fg' ? k.fgAttempts - k.fgMade : k.xpAttempts - k.xpMade) : 0);
     add(!defender && grew(a?.passing?.interceptions, b.passing?.interceptions), 'intthrown');

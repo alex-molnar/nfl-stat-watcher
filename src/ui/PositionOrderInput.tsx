@@ -1,11 +1,13 @@
 import { useRef, useState, type PointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PositionGroup } from '../stats/positionOrder';
 
-const label = (position: PositionGroup) => position === 'D/ST' ? 'Team defenses' : position;
 type Drag = { position: PositionGroup; pointerId: number; startY: number };
 
 /** Each row supports mouse, pen and touch dragging; arrow buttons remain separate click targets. */
 export function PositionOrderInput({ positions, onChange }: { positions: PositionGroup[]; onChange: (positions: PositionGroup[]) => void }) {
+  const { t } = useTranslation();
+  const label = (position: PositionGroup) => position === 'D/ST' ? t(($) => $.shell.positionOrder.teamDefenses) : position;
   const list = useRef<HTMLOListElement>(null);
   const active = useRef<Drag | null>(null);
   const [preview, setPreview] = useState<{ position: PositionGroup; slot: number } | null>(null);
@@ -50,7 +52,7 @@ export function PositionOrderInput({ positions, onChange }: { positions: Positio
   }
 
   return (
-    <ol ref={list} className="position-order" aria-label="Position order" aria-describedby="position-order-help position-drag-help"
+    <ol ref={list} className="position-order" aria-label={t(($) => $.shell.positionOrder.label)} aria-describedby="position-order-help position-drag-help"
       onPointerMove={(event) => {
         if (!active.current || active.current.pointerId !== event.pointerId) return;
         const slot = destination(event);
@@ -70,10 +72,10 @@ export function PositionOrderInput({ positions, onChange }: { positions: Positio
             event.currentTarget.setPointerCapture(event.pointerId);
           }}>
           <span>{label(position)}</span>
-          <button type="button" className="btn position-drag-handle" aria-label={`Drag ${label(position)} to reorder`} aria-describedby="position-drag-help">⠿</button>
+          <button type="button" className="btn position-drag-handle" aria-label={t(($) => $.shell.positionOrder.drag, { position: label(position) })} aria-describedby="position-drag-help">⠿</button>
           <div className="position-order-actions">
-            <button type="button" className="btn" aria-label={`Move ${label(position)} up`} disabled={index === 0} onClick={() => move(index, -1)}>↑</button>
-            <button type="button" className="btn" aria-label={`Move ${label(position)} down`} disabled={index === positions.length - 1} onClick={() => move(index, 1)}>↓</button>
+            <button type="button" className="btn" aria-label={t(($) => $.shell.positionOrder.up, { position: label(position) })} disabled={index === 0} onClick={() => move(index, -1)}>↑</button>
+            <button type="button" className="btn" aria-label={t(($) => $.shell.positionOrder.down, { position: label(position) })} disabled={index === positions.length - 1} onClick={() => move(index, 1)}>↓</button>
           </div>
         </li>
       ))}
