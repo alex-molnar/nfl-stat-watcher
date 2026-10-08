@@ -46,7 +46,7 @@ export const settings: Messages['settings'] = {
   privateSync: {
     legend: 'Privát liga szinkronizálása',
     show: 'Könyvjelzős beállítás mutatása privát ligákhoz',
-    help: 'A könyvjelző opció mutatása a privát ligák kezdőinek szinkronizálásakor. Kapcsold be, hogy visszakerüljön, ha korábban a „Ne mutasd többé ezt az opciót” lehetőséget választottad.',
+    help: 'A könyvjelző opció mutatása a privát ligák kezdőinek szinkronizálásakor. Kapcsold be, hogy visszakerüljön, ha korábban a „Ne mutasd többé ezt a lehetőséget” gombot választottad.',
   },
   data: {
     legend: 'Az adataid',
