@@ -97,7 +97,7 @@ describe('UsageMetrics', () => {
       const ids = new Set(vi.mocked(trackBeat).mock.calls.map(([id]) => id));
       expect(ids.size).toBe(1);
       expect([...ids][0]).toMatch(/^[a-z0-9-]{8,40}$/); // the shape the collector accepts
-      expect(localStorage.length).toBe(1); // only the followed player: the tab id is never stored
+      expect(Object.values(localStorage).some((value) => value.includes([...ids][0] as string))).toBe(false); // the tab id is never stored
     });
 
     it('stops while updates are paused and starts again when they resume', () => {

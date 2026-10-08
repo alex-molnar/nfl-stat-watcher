@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 import type { PresetId, ScoringValues } from './types';
 
 const BASE: ScoringValues = {
@@ -27,4 +28,7 @@ export const PRESETS: Record<PresetId, ScoringValues> = {
   ppr: copyValues(BASE),
 };
 
-export const PRESET_LABELS: Record<PresetId, string> = { standard: 'Standard', half: 'Half PPR', ppr: 'PPR' };
+export const PRESET_IDS: readonly PresetId[] = ['standard', 'half', 'ppr'];
+
+/** A preset's name in the page's language; read when asked, never at import time. */
+export const presetLabel = (id: PresetId): string => i18n.t(($) => $.leagues.presets[id]);

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router';
 import { mascotEnabledStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
@@ -21,6 +22,7 @@ const isWide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matche
  * they stay put however many page buttons there are.
  */
 export function Header({ actions, pageMascot = false }: { actions?: ReactNode; /** The page shows its own mascot, so the header's steps aside. The page knows this when it renders, which a header could only learn too late. */ pageMascot?: boolean }) {
+  const { t } = useTranslation();
   const bar = useRef<HTMLElement>(null);
   const mascotOn = useStore(mascotEnabledStore);
   const inDialog = useSyncExternalStore(subscribeDialogs, mascotAway, () => false); // a dialog or the camp has the mascot now
@@ -54,11 +56,11 @@ export function Header({ actions, pageMascot = false }: { actions?: ReactNode; /
         </h1>
         {actions}
         <div className="top-end">
-          <nav className="nav" aria-label="Main">
-            <NavLink to="/" end>Players</NavLink>
-            <NavLink to="/vs">Vs Mode</NavLink>
-            <NavLink to="/leagues">Leagues</NavLink>
-            <NavLink to="/settings">Settings</NavLink>
+          <nav className="nav" aria-label={t(($) => $.shell.nav.label)}>
+            <NavLink to="/" end>{t(($) => $.shell.nav.players)}</NavLink>
+            <NavLink to="/vs">{t(($) => $.shell.nav.vs)}</NavLink>
+            <NavLink to="/leagues">{t(($) => $.shell.nav.leagues)}</NavLink>
+            <NavLink to="/settings">{t(($) => $.shell.nav.settings)}</NavLink>
           </nav>
           <ThemeToggle />
         </div>

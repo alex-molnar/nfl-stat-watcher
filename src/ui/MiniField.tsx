@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { GameInfo } from '../stats/scoreboard';
 import type { Situation } from '../stats/types';
 import { textOn } from './format';
 
 export function MiniField({ game, situation }: { game: GameInfo; situation: Situation }) {
+  const { t } = useTranslation();
   const offense = game.home.id === situation.possessionTeamId ? game.home : game.away;
   const defense = offense === game.home ? game.away : game.home;
   const yards = Math.min(100, Math.max(0, situation.yardsToEndzone));
@@ -14,7 +16,7 @@ export function MiniField({ game, situation }: { game: GameInfo; situation: Situ
     '--opp': defense.color, '--opp-ink': textOn(defense.color),
   } as CSSProperties;
   return (
-    <div className="field" role="img" aria-label={`${offense.abbr} has the ball, ${yards} ${yards === 1 ? 'yard' : 'yards'} from the end zone`} style={style}>
+    <div className="field" role="img" aria-label={t(($) => $.shell.field.ballOn, { team: offense.abbr, count: yards })} style={style}>
       <div className="ez l">{offense.abbr}</div>
       <div className="ez r">{defense.abbr}</div>
       <div className="rzone" />

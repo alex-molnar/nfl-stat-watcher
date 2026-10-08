@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../i18n';
 import { backdropClose } from './backdropClose';
 import { DialogMascot } from './DialogMascot';
 import type { Highlight } from '../stats/types';
@@ -14,11 +16,12 @@ interface Props {
 const length = (seconds?: number) => (seconds ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : '');
 const clock = (iso: string) => {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 };
 
 /** Plays a clip inside the site when ESPN gives a video file, and sends the user to the clip's page in a new window when it does not. */
 export function HighlightsDialog({ open, onClose, playerName, clips, onWatched }: Props) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const playing = clips.find((clip) => clip.id === playingId && clip.mp4);
@@ -47,8 +50,8 @@ export function HighlightsDialog({ open, onClose, playerName, clips, onWatched }
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
-          <h2 id="hl-title">Highlights, {playerName}</h2>
-          <button type="button" className="close" aria-label="Close highlights" onClick={onClose}>×</button>
+          <h2 id="hl-title">{t(($) => $.shell.highlights.title, { name: playerName })}</h2>
+          <button type="button" className="close" aria-label={t(($) => $.shell.highlights.close)} onClick={onClose}>×</button>
         </div>
         {playing && (
           <figure className="hl-player">
@@ -64,7 +67,7 @@ export function HighlightsDialog({ open, onClose, playerName, clips, onWatched }
                 {clip.thumbnail && <img src={clip.thumbnail} alt="" loading="lazy" />}
                 <span className="hl-text">
                   <b>{clip.headline}</b>
-                  <small>{[clock(clip.publishedAt), length(clip.duration), clip.mp4 ? '' : 'Opens ESPN in a new window'].filter(Boolean).join(' · ')}</small>
+                  <small>{[clock(clip.publishedAt), length(clip.duration), clip.mp4 ? '' : t(($) => $.shell.highlights.opensEspn)].filter(Boolean).join(' · ')}</small>
                 </span>
               </button>
             </li>

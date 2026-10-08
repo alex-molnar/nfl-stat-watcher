@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../i18n';
 import { backdropClose } from './backdropClose';
 import { DialogMascot, useHint } from './DialogMascot';
 import { useTeams } from '../hooks/queries';
@@ -35,12 +37,13 @@ function LeagueChip({ profile }: { profile?: Profile }) {
 
 /** One of the three preview lists. The sign and the word carry the meaning; the colour (green, red, none) reinforces it. */
 function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed' | 'unchanged'; title: string; entries: FollowedEntry[]; leagueOf?: (entry: FollowedEntry) => Profile | undefined }) {
+  const { t } = useTranslation();
   const nameMode = useStore(nameDisplayStore);
   const sign = tone === 'added' ? '+' : tone === 'removed' ? '−' : '';
   return (
     <div className={`plan-list plan-${tone}`}>
-      <h4>{title} ({entries.length})</h4>
-      {entries.length === 0 ? <p className="muted">None</p> : (
+      <h4>{t(($) => $.sync.dialog.planTitle, { title, count: entries.length })}</h4>
+      {entries.length === 0 ? <p className="muted">{t(($) => $.sync.dialog.none)}</p> : (
         <ul className="starter-list">
           {entries.map((entry) => <li key={`${entry.kind}:${entry.espnId}`}>{sign && <b aria-hidden="true">{sign} </b>}{displayName(entry, nameMode)}{entry.position ? ` · ${entry.position}` : ''}{leagueOf && <LeagueChip profile={leagueOf(entry)} />}</li>)}
         </ul>
@@ -52,6 +55,7 @@ function PlanList({ tone, title, entries, leagueOf }: { tone: 'added' | 'removed
 type Failure = { id: string; message: string; needsAccess: boolean };
 
 export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: fixedId }: Props) {
+  const { t } = useTranslation();
   const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const profiles = useStore(profilesStore);
@@ -98,7 +102,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
         if (controller.signal.aborted) return;
         const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
         track('sync_load', { result: needsAccess ? 'private' : 'error' });
-        setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private, and the requested data cannot be obtained automatically. There are two ways to set it up. Via a bookmark, or copying the data manually.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
+        setFailure({ id: pendingId, needsAccess, message: needsAccess ? i18n.t(($) => $.sync.dialog.privateLeague) : cause instanceof Error ? cause.message : i18n.t(($) => $.sync.dialog.loadFailed) });
       },
     );
     return () => controller.abort();
@@ -112,7 +116,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       setLineupsBy((current) => ({ ...current, [pendingId!]: lineups }));
       return null;
     } catch (cause) {
-      return cause instanceof LineupError || cause instanceof Error ? cause.message : 'Could not read those rosters.';
+      return cause instanceof LineupError || cause instanceof Error ? cause.message : i18n.t(($) => $.sync.dialog.readFailed);
     }
   }
 
@@ -147,14 +151,18 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   });
   const hasTeam = panels.some((panel) => panel.has);
   const canSync = !!teams.data && panels.some((panel) => panel.starterCount > 0);
-  const sideLabel = (forSide: Side) => (forSide === 'mine' ? 'Your side' : 'Opponent side');
+  const sideLabel = (forSide: Side) => (forSide === 'mine' ? t(($) => $.sync.dialog.sideMine) : t(($) => $.sync.dialog.sideOpponent));
 
-  /** What one side's plan does, in words: "Added 3 starters, 2 already followed" or "Added 3 starters, removed 1". */
+  /** What one side's plan does, in words: "Added 3 starters, 2 already followed." or "Added 3 starters, removed 1." */
   function describe(plan: StarterPlan) {
-    const parts = [`Added ${plan.added.length} ${plan.added.length === 1 ? 'starter' : 'starters'}`];
-    if (plan.unchanged.length && !removeOthers) parts.push(`${plan.unchanged.length} already followed`);
-    if (removeOthers || plan.removed.length) parts.push(`removed ${plan.removed.length}`);
-    return parts.join(', ');
+    const count = plan.added.length;
+    const kept = plan.unchanged.length && !removeOthers ? plan.unchanged.length : 0;
+    const removed = plan.removed.length;
+    const showRemoved = removeOthers || removed > 0;
+    if (kept && showRemoved) return t(($) => $.sync.dialog.summaryKeptRemoved, { count, kept, removed });
+    if (kept) return t(($) => $.sync.dialog.summaryKept, { count, kept });
+    if (showRemoved) return t(($) => $.sync.dialog.summaryRemoved, { count, removed });
+    return t(($) => $.sync.dialog.summaryPlain, { count });
   }
 
   function add() {
@@ -166,13 +174,13 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       panel.plan!.added.forEach(addEntry);
     }
     setStatus(both
-      ? applicable.map((panel) => `${sideLabel(panel.side)}: ${describe(panel.plan!)}.`).join(' ')
-      : `${describe(applicable[0]!.plan!)}.`);
+      ? applicable.map((panel) => t(($) => $.sync.dialog.sideSummary, { side: sideLabel(panel.side), summary: describe(panel.plan!) })).join(' ')
+      : describe(applicable[0]!.plan!));
     track('sync', { side, leagues: everyLeague ? 'many' : 'one' });
     ref.current?.close(); // the native close runs onClose and returns focus to the button that opened the dialog
   }
 
-  const heading = both ? 'Sync all starters' : side === 'opponent' ? 'Sync opponent starters' : 'Sync your starters';
+  const heading = both ? t(($) => $.sync.dialog.headingAll) : side === 'opponent' ? t(($) => $.sync.dialog.headingOpponent) : t(($) => $.sync.dialog.headingMine);
   const mineHere = panels.find((panel) => panel.side === 'mine');
   const opponentHere = panels.find((panel) => panel.side === 'opponent');
 
@@ -183,65 +191,65 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="starters-title">{heading}</h2>
-          <button type="button" className="close" aria-label="Close sync starters dialog" onClick={onClose}>×</button>
+          <button type="button" className="close" aria-label={t(($) => $.sync.dialog.closeLabel)} onClick={onClose}>×</button>
         </div>
-        {targets.length === 0 && <p className="muted">Import an ESPN league in Leagues first. Starters come from its current matchup.</p>}
+        {targets.length === 0 && <p className="muted">{t(($) => $.sync.dialog.noLeagues)}</p>}
         {profile && fixedId === undefined && imported.length > 1 && (
           <label className="field-label">
-            League
+            {t(($) => $.sync.dialog.league)}
             <select value={everyLeague ? ALL_LEAGUES : profile.id} onChange={(event) => setChosenId(event.target.value)}>
-              <option value={ALL_LEAGUES}>All</option>
+              <option value={ALL_LEAGUES}>{t(($) => $.sync.dialog.all)}</option>
               {imported.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
             </select>
           </label>
         )}
-        {pending && everyLeague && <p className="muted" role="status">League {targets.indexOf(pending) + 1} of {targets.length}: {pending.name}</p>}
-        {pending && !failed && <p role="status">Loading rosters…</p>}
+        {pending && everyLeague && <p className="muted" role="status">{t(($) => $.sync.dialog.progress, { current: targets.indexOf(pending) + 1, total: targets.length, name: pending.name })}</p>}
+        {pending && !failed && <p role="status">{t(($) => $.sync.dialog.loading)}</p>}
         {failed && pending && (
           <>
             <p className={failed.needsAccess ? undefined : 'error'} role={failed.needsAccess ? 'status' : 'alert'}>{failed.message}</p>
-            {failed.needsAccess && leagueId && season && <PrivateLeagueHelp key={pending.id} url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={`league ${leagueId}, season ${season}`} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
-            {everyLeague && <button type="button" className="btn" onClick={() => setSkipped((current) => [...current, pending.id])}>Skip {pending.name}</button>}
+            {failed.needsAccess && leagueId && season && <PrivateLeagueHelp key={pending.id} url={lineupsUrl(leagueId, season)} what="rosters" leagueLabel={t(($) => $.sync.dialog.leagueLabel, { leagueId, season })} onImport={pasted} bookmarklet={rosterBookmarklet(leagueId, season)} espnPage={`https://fantasy.espn.com/football/league?leagueId=${leagueId}&seasonId=${season}`} />}
+            {everyLeague && <button type="button" className="btn" onClick={() => setSkipped((current) => [...current, pending.id])}>{t(($) => $.sync.dialog.skip, { name: pending.name })}</button>}
           </>
         )}
         {!pending && loaded.map(({ profile: target, lineups }) => (
           <label key={target.id} className="field-label" data-camp="starters-team">
-            {everyLeague ? `Your team in ${target.name}` : 'Your team in this league'}
-            <select {...hint('Pick your own fantasy team, so I know whose lineup to read. It is remembered for next time.')} value={myTeamIn(target, lineups)} onChange={(event) => { setStatus(''); if (event.target.value) setLeagueTeam(target.id, event.target.value); }}>
-              <option value="">Choose your team</option>
+            {everyLeague ? t(($) => $.sync.dialog.teamIn, { name: target.name }) : t(($) => $.sync.dialog.teamHere)}
+            <select {...hint(t(($) => $.sync.dialog.hintTeam))} value={myTeamIn(target, lineups)} onChange={(event) => { setStatus(''); if (event.target.value) setLeagueTeam(target.id, event.target.value); }}>
+              <option value="">{t(($) => $.sync.dialog.chooseTeam)}</option>
               {lineups.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
             </select>
           </label>
         ))}
         {!pending && !everyLeague && mineHere?.has && opponentHere && !opponentHere.has && (
-          <p className="muted">Your team has no opponent in the current matchup period (a bye).</p>
+          <p className="muted">{t(($) => $.sync.dialog.bye)}</p>
         )}
         {!pending && hasTeam && (
           <label className="check-row" data-camp="starters-remove">
-            <input type="checkbox" {...hint('Players you follow in this league who are not in the lineup are removed too. Off, nothing is removed.')} checked={removeOthers} onChange={(event) => targets.forEach((target) => setLeagueRemoveNonStarters(target.id, event.target.checked))} />
-            Remove every non starter player
+            <input type="checkbox" {...hint(t(($) => $.sync.dialog.hintRemove))} checked={removeOthers} onChange={(event) => targets.forEach((target) => setLeagueRemoveNonStarters(target.id, event.target.checked))} />
+            {t(($) => $.sync.dialog.removeOthers)}
           </label>
         )}
         <div className={both ? 'plan-sides' : undefined}>
           {!pending && panels.filter((panel) => panel.has).map((panel) => (
-            <section key={panel.side} aria-label={`Starters for ${everyLeague ? sideLabel(panel.side).toLowerCase() : panel.name}`} className="plan">
-              <h3>{everyLeague ? sideLabel(panel.side) : `${both ? `${sideLabel(panel.side)}: ` : ''}${panel.name}`} ({panel.starterCount} {panel.starterCount === 1 ? 'starter' : 'starters'})</h3>
-              {panel.starterCount === 0 && <p className="muted">No starters are set for this team.</p>}
+            <section key={panel.side} aria-label={t(($) => $.sync.dialog.sectionLabel, { name: everyLeague ? (panel.side === 'mine' ? t(($) => $.sync.dialog.sideMineLower) : t(($) => $.sync.dialog.sideOpponentLower)) : panel.name })} className="plan">
+              <h3>{t(($) => $.sync.dialog.panelTitle, { count: panel.starterCount, title: everyLeague ? sideLabel(panel.side) : both ? t(($) => $.sync.dialog.sideWithName, { side: sideLabel(panel.side), name: panel.name }) : panel.name })}</h3>
+              {panel.starterCount === 0 && <p className="muted">{t(($) => $.sync.dialog.noStarters)}</p>}
               {panel.plan && (
                 <>
-                  <PlanList tone="added" title="To be added" entries={panel.plan.added} leagueOf={everyLeague ? leagueOf : undefined} />
-                  <PlanList tone="removed" title="To be removed" entries={panel.plan.removed} leagueOf={everyLeague ? leagueOf : undefined} />
-                  <PlanList tone="unchanged" title="Unchanged" entries={panel.plan.unchanged} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="added" title={t(($) => $.sync.dialog.toAdd)} entries={panel.plan.added} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="removed" title={t(($) => $.sync.dialog.toRemove)} entries={panel.plan.removed} leagueOf={everyLeague ? leagueOf : undefined} />
+                  <PlanList tone="unchanged" title={t(($) => $.sync.dialog.unchanged)} entries={panel.plan.unchanged} leagueOf={everyLeague ? leagueOf : undefined} />
                 </>
               )}
             </section>
           ))}
         </div>
-        {teams.isError && <p className="error" role="alert">NFL team data is unavailable, so starters cannot be added right now.</p>}
+        {teams.isError && <p className="error" role="alert">{t(($) => $.sync.dialog.teamsUnavailable)}</p>}
         <div className="dlg-actions">
-          <button type="button" className="btn" onClick={onClose}>{both ? 'Cancel' : 'Close'}</button>
+          <button type="button" className="btn" onClick={onClose}>{both ? t(($) => $.sync.dialog.cancel) : t(($) => $.sync.dialog.close)}</button>
           <button type="button" className="btn btn-primary" data-camp="starters-sync" disabled={!!pending || !canSync} onClick={add}>
-            {both ? 'Sync all starters' : 'Sync starters'}
+            {both ? t(($) => $.sync.dialog.syncAll) : t(($) => $.sync.dialog.syncStarters)}
           </button>
         </div>
       </div>

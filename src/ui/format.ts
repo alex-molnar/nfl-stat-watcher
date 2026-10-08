@@ -1,3 +1,5 @@
+import { i18n } from '../i18n';
+import type { en } from '../i18n/en';
 import type { GameStats } from '../stats/types';
 import type { GameInfo } from '../stats/scoreboard';
 import type { NameDisplayMode } from '../storage/nameDisplay';
@@ -8,13 +10,15 @@ export type StatItem = { value: string; label: string };
 const OFFENSE = new Set(['QB', 'RB', 'FB', 'WR', 'TE', 'K', 'PK']);
 export const isOffense = (position: string) => OFFENSE.has(position);
 
-const items = (pairs: [number | string, string][]): StatItem[] => pairs.map(([v, label]) => ({ value: String(v), label }));
+type StatKey = keyof (typeof en)['shell']['stats'];
+const stat = (key: StatKey) => i18n.t(($) => $.shell.stats[key]);
+const items = (pairs: [number | string, StatKey][]): StatItem[] => pairs.map(([v, key]) => ({ value: String(v), label: stat(key) }));
 
 export function statLine(entry: FollowedEntry, game: GameStats | undefined): StatItem[] {
   if (!game) return [];
   if (entry.kind === 'defense') {
     const d = game.defenses[entry.teamId];
-    return d ? items([[d.sacks, 'sacks'], [d.interceptions, 'INT'], [d.fumbleRecoveries, 'fum rec'], [d.pointsAllowed, 'pts allowed']]) : [];
+    return d ? items([[d.sacks, 'sacks'], [d.interceptions, 'int'], [d.fumbleRecoveries, 'fumRec'], [d.pointsAllowed, 'ptsAllowed']]) : [];
   }
   const s = game.players[entry.espnId];
   if (!s) return [];
@@ -23,22 +27,22 @@ export function statLine(entry: FollowedEntry, game: GameStats | undefined): Sta
   switch (entry.position) {
     case 'QB': {
       const p = s.passing ?? { completions: 0, attempts: 0, yards: 0, touchdowns: 0, interceptions: 0 };
-      return items([[`${p.completions}/${p.attempts}`, 'comp'], [p.yards, 'pass yds'], [p.touchdowns, 'pass TD'], [p.interceptions, 'INT'], [rush.yards, 'rush yds']]);
+      return items([[`${p.completions}/${p.attempts}`, 'comp'], [p.yards, 'passYds'], [p.touchdowns, 'passTd'], [p.interceptions, 'int'], [rush.yards, 'rushYds']]);
     }
     case 'RB':
     case 'FB':
-      return items([[rush.attempts, 'carries'], [rush.yards, 'rush yds'], [rec.receptions, 'catches'], [rec.yards, 'rec yds'], [rush.touchdowns + rec.touchdowns, 'TD']]);
+      return items([[rush.attempts, 'carries'], [rush.yards, 'rushYds'], [rec.receptions, 'catches'], [rec.yards, 'recYds'], [rush.touchdowns + rec.touchdowns, 'td']]);
     case 'WR':
     case 'TE':
-      return items([[`${rec.receptions}/${rec.targets}`, 'catches'], [rec.yards, 'rec yds'], [rec.touchdowns, 'TD']]);
+      return items([[`${rec.receptions}/${rec.targets}`, 'catches'], [rec.yards, 'recYds'], [rec.touchdowns, 'td']]);
     case 'K':
     case 'PK': {
       const k = s.kicking ?? { fgMade: 0, fgAttempts: 0, longest: 0, xpMade: 0, xpAttempts: 0, madeDistances: [] };
-      return items([[`${k.fgMade}/${k.fgAttempts}`, 'FG'], [k.longest, 'long'], [`${k.xpMade}/${k.xpAttempts}`, 'XP']]);
+      return items([[`${k.fgMade}/${k.fgAttempts}`, 'fg'], [k.longest, 'long'], [`${k.xpMade}/${k.xpAttempts}`, 'xp']]);
     }
     default: {
       const d = s.defense ?? { totalTackles: 0, soloTackles: 0, sacks: 0, tacklesForLoss: 0, passesDefended: 0, qbHits: 0, touchdowns: 0 };
-      return items([[d.totalTackles, 'tackles'], [d.sacks, 'sacks'], [d.tacklesForLoss, 'TFL'], [d.passesDefended, 'PD'], [s.interceptions?.interceptions ?? 0, 'INT']]);
+      return items([[d.totalTackles, 'tackles'], [d.sacks, 'sacks'], [d.tacklesForLoss, 'tfl'], [d.passesDefended, 'pd'], [s.interceptions?.interceptions ?? 0, 'int']]);
     }
   }
 }
@@ -71,12 +75,14 @@ export function resultText(game: GameInfo, teamId: string): string {
   const home = game.home.id === teamId;
   const us = home ? game.home : game.away;
   const them = home ? game.away : game.home;
-  const verb = us.score > them.score ? 'Won' : us.score < them.score ? 'Lost' : 'Tied';
-  return `${verb} ${us.score}-${them.score} ${home ? 'vs' : 'at'} ${them.abbr}`;
+  const values = { us: us.score, them: them.score, opponent: them.abbr };
+  if (us.score > them.score) return home ? i18n.t(($) => $.shell.result.wonHome, values) : i18n.t(($) => $.shell.result.wonAway, values);
+  if (us.score < them.score) return home ? i18n.t(($) => $.shell.result.lostHome, values) : i18n.t(($) => $.shell.result.lostAway, values);
+  return home ? i18n.t(($) => $.shell.result.tiedHome, values) : i18n.t(($) => $.shell.result.tiedAway, values);
 }
 
 export const kickoffText = (iso: string) =>
-  new Date(iso).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  new Date(iso).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
 
 const SUFFIXES = new Set(['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv', 'v']);
 // Lower-case words that belong to the last name: "Amon-Ra St. Brown", "Jaylen Van Dyke".

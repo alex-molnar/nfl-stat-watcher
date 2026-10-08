@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { FIELD_GROUPS, STEP_LABELS, isRuleOn, type FieldDef } from '../scoring/fields';
-import { PRESET_LABELS } from '../scoring/presets';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../i18n';
+import { FIELD_GROUPS, isRuleOn, stepLabel, type FieldDef, type GroupId } from '../scoring/fields';
+import { PRESET_IDS, presetLabel } from '../scoring/presets';
 import { POINTS_ALLOWED_TIERS, type PresetId, type Profile } from '../scoring/types';
 import { followedStore, sideOf } from '../storage/followed';
 import { newProfile, profilesStore } from '../storage/profiles';
@@ -17,12 +19,13 @@ import { ImportLeaguesDialog } from './ImportLeaguesDialog';
 import { MascotSays } from './Mascot';
 import { ImportProfileDialog } from './ImportProfileDialog';
 import { disconnectLeagueSource, isLocallyModified } from '../leagues/import';
-import { ESPN_SCORING_MAP_VERSION } from '../leagues/espn/statMap';
+import { ESPN_SCORING_MAP_VERSION, issueText } from '../leagues/espn/statMap';
 
 function NumberField({ label, value, step, onChange, enabled = true, onToggle, note }: {
   label: string; value: number; step: number; onChange: (n: number) => void;
   enabled?: boolean; onToggle?: (on: boolean) => void; note?: string;
 }) {
+  const { t } = useTranslation();
   const [text, setText] = useState(String(value));
   const [msg, setMsg] = useState('');
   const msgId = useId();
@@ -37,8 +40,8 @@ function NumberField({ label, value, step, onChange, enabled = true, onToggle, n
     <div className="num-field">
       {onToggle && (
         <label className="rule-toggle">
-          <input type="checkbox" checked={enabled} aria-label={`Count ${label}`} onChange={(e) => onToggle(e.target.checked)} />
-          <span aria-hidden="true">{enabled ? 'On' : 'Off'}</span>
+          <input type="checkbox" checked={enabled} aria-label={t(($) => $.leagues.numberField.count, { label })} onChange={(e) => onToggle(e.target.checked)} />
+          <span aria-hidden="true">{enabled ? t(($) => $.leagues.numberField.on) : t(($) => $.leagues.numberField.off)}</span>
         </label>
       )}
       <label>
@@ -53,7 +56,7 @@ function NumberField({ label, value, step, onChange, enabled = true, onToggle, n
           onBlur={() => {
             if (!Number.isFinite(Number.parseFloat(text))) {
               setText(String(value));
-              setMsg(`Enter a number. Restored ${value}.`);
+              setMsg(t(($) => $.leagues.numberField.restored, { value }));
             }
           }}
           onChange={(e) => {
@@ -71,9 +74,10 @@ function NumberField({ label, value, step, onChange, enabled = true, onToggle, n
 }
 
 
-const CORE_GROUPS = ['Offense', 'Kicker', 'IDP', 'Team defense'];
+const CORE_GROUPS: GroupId[] = ['offense', 'kicker', 'idp', 'teamDefense'];
 
 function NameField({ profile, others, onName }: { profile: Profile; others: Profile[]; onName: (name: string) => void }) {
+  const { t } = useTranslation();
   const [text, setText] = useState(profile.name);
   const [msg, setMsg] = useState('');
   const msgId = useId();
@@ -82,7 +86,7 @@ function NameField({ profile, others, onName }: { profile: Profile; others: Prof
   return (
     <div className="field-wrap" data-camp="league-name">
       <label className="field-label">
-        Name
+        {t(($) => $.leagues.nameField.name)}
         <input
           value={text}
           aria-describedby={msg ? msgId : undefined}
@@ -94,8 +98,8 @@ function NameField({ profile, others, onName }: { profile: Profile; others: Prof
           }}
           onBlur={() => {
             const name = uniqueName(text, others);
-            if (!text.trim()) setMsg(`Name was empty. Using ${name}.`);
-            else if (name !== text.trim()) setMsg(`That name is taken. Using ${name}.`);
+            if (!text.trim()) setMsg(t(($) => $.leagues.nameField.empty, { name }));
+            else if (name !== text.trim()) setMsg(t(($) => $.leagues.nameField.taken, { name }));
             setText(name);
             onName(name);
           }}
@@ -108,10 +112,11 @@ function NameField({ profile, others, onName }: { profile: Profile; others: Prof
 
 /** The league's colour: the tag on its player cards. A native colour input, so it is keyboard and screen reader friendly. */
 function ColorField({ profile, onColor }: { profile: Profile; onColor: (color: string) => void }) {
+  const { t } = useTranslation();
   return (
     <div className="color-row" data-camp="league-color">
       <label className="field-label color-field">
-        Color
+        {t(($) => $.leagues.colorField.color)}
         <input type="color" value={profile.color ?? '#2563eb'} onChange={(e) => onColor(e.target.value)} />
       </label>
       <span className="chip" aria-hidden="true" style={{ background: profile.color, color: profile.color ? textOn(profile.color) : undefined }}>{profile.name}</span>
@@ -121,11 +126,12 @@ function ColorField({ profile, onColor }: { profile: Profile; onColor: (color: s
 
 /** Save and Cancel for the unsaved changes; shown on the left menu and at the end of the form while there are any. */
 export function SaveActions({ label, onSave, onCancel }: { label: string; onSave: () => void; onCancel: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="save-actions" role="group" aria-label={label}>
-      <p className="muted save-note">Unsaved changes</p>
-      <button type="button" className="btn btn-primary press" onClick={onSave}>Save</button>
-      <button type="button" className="btn press" onClick={onCancel}>Cancel</button>
+      <p className="muted save-note">{t(($) => $.leagues.saveActions.unsaved)}</p>
+      <button type="button" className="btn btn-primary press" onClick={onSave}>{t(($) => $.leagues.saveActions.save)}</button>
+      <button type="button" className="btn press" onClick={onCancel}>{t(($) => $.leagues.saveActions.cancel)}</button>
     </div>
   );
 }
@@ -154,37 +160,38 @@ type Edit = (change: (p: Profile) => Profile) => void;
 
 /** Edits the working copy of one profile. Nothing here touches storage: Save and Cancel are the page's. */
 function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { profile: Profile; stored: Profile; others: Profile[]; onEdit: Edit; onRefresh: () => void; footer: ReactNode }) {
+  const { t } = useTranslation();
   // Picking in the select changes nothing; only the Apply preset button asks for confirmation (WCAG 3.2.2).
   const [picked, setPicked] = useState<PresetId | null>(null);
   const preset: PresetId | 'custom' = picked ?? profile.preset;
   function applyPicked() {
     if (preset === 'custom') return;
-    if (window.confirm(`Replace all values in ${profile.name} with the ${PRESET_LABELS[preset]} preset? Nothing is kept until you save.`)) {
+    if (window.confirm(t(($) => $.leagues.form.applyConfirm, { name: profile.name, preset: presetLabel(preset) }))) {
       onEdit((p) => withPreset(p, preset));
     }
     setPicked(null); // cancel or apply: the select shows what the profile really uses
   }
 
   return (
-    <section className="profile-form" aria-label={`Edit ${profile.name}`}>
+    <section className="profile-form" aria-label={t(($) => $.leagues.form.edit, { name: profile.name })}>
       <NameField profile={profile} others={others} onName={(name) => onEdit((p) => withName(p, name))} />
       <ColorField profile={profile} onColor={(color) => onEdit((p) => withColor(p, color))} />
       <div className="preset-row">
         <label className="field-label" data-camp="league-preset">
-          Preset
+          {t(($) => $.leagues.form.preset)}
           <select value={preset} onChange={(e) => setPicked(e.target.value as PresetId)}>
-            {(Object.keys(PRESET_LABELS) as PresetId[]).map((id) => <option key={id} value={id}>{PRESET_LABELS[id]}</option>)}
-            <option value="custom" disabled>Custom</option>
+            {PRESET_IDS.map((id) => <option key={id} value={id}>{presetLabel(id)}</option>)}
+            <option value="custom" disabled>{t(($) => $.leagues.form.custom)}</option>
           </select>
         </label>
-        <button type="button" className="btn press" data-camp="league-apply" disabled={preset === 'custom' || preset === profile.preset} onClick={applyPicked}>Apply preset</button>
+        <button type="button" className="btn press" data-camp="league-apply" disabled={preset === 'custom' || preset === profile.preset} onClick={applyPicked}>{t(($) => $.leagues.form.applyPreset)}</button>
       </div>
 
       {FIELD_GROUPS.map((group) => {
         // Core boxes start open; the others start open only when the league scores something in them.
         const anyOn = group.fields.some((f) => profile.values[f.key] !== 0 && isRuleOn(profile.values, f.key));
         return (
-          <Box key={group.title} title={group.title} defaultOpen={CORE_GROUPS.includes(group.title) || anyOn}>
+          <Box key={group.id} title={group.title} defaultOpen={CORE_GROUPS.includes(group.id) || anyOn}>
             {group.fields.map((f: FieldDef) => (
               <NumberField
                 key={f.key}
@@ -193,58 +200,58 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
                 value={profile.values[f.key]}
                 enabled={isRuleOn(profile.values, f.key)}
                 onToggle={(on) => onEdit((p) => withRuleEnabled(p, f.key, on))}
-                note={profile.values[f.key] === 0 ? undefined : f.live === false ? 'Not tracked in the live game feed, so it never scores.' : f.approx ? 'Read from ESPN play-by-play wording, so it may be inaccurate.' : undefined}
+                note={profile.values[f.key] === 0 ? undefined : f.live === false ? t(($) => $.leagues.form.notLive) : f.approx ? t(($) => $.leagues.form.approx) : undefined}
                 onChange={(n) => onEdit((p) => withValue(p, f.key, n))}
               />
             ))}
-            {group.title === 'Team defense' && !profile.values.pointsAllowedBands &&
+            {group.id === 'teamDefense' && !profile.values.pointsAllowedBands &&
               POINTS_ALLOWED_TIERS.map((tier, i) => (
-                <NumberField key={tier} label={`${tier} points allowed`} step={1} value={profile.values.pointsAllowed[i] ?? 0} onChange={(n) => onEdit((p) => withTier(p, i, n))} />
+                <NumberField key={tier} label={t(($) => $.leagues.form.tierPointsAllowed, { tier })} step={1} value={profile.values.pointsAllowed[i] ?? 0} onChange={(n) => onEdit((p) => withTier(p, i, n))} />
               ))}
           </Box>
         );
       })}
 
       {profile.values.steps && profile.values.steps.length > 0 && (
-        <Box title="Stepped rules">
+        <Box title={t(($) => $.leagues.form.steppedRules)}>
           {profile.values.steps.map((rule, index) => (
-            <NumberField key={`${rule.stat}-${rule.every}`} label={`Every ${rule.every} ${STEP_LABELS[rule.stat]}`} step={0.5} value={rule.points} onChange={(n) => onEdit((p) => withStepPoints(p, index, n))} />
+            <NumberField key={`${rule.stat}-${rule.every}`} label={stepLabel(rule)} step={0.5} value={rule.points} onChange={(n) => onEdit((p) => withStepPoints(p, index, n))} />
           ))}
-          <p className="field-note">ESPN awards these in whole steps, so 40 passing yards earns one 25-yard step, not 1.6.</p>
+          <p className="field-note">{t(($) => $.leagues.form.stepNote)}</p>
         </Box>
       )}
 
       {profile.values.pointsAllowedBands && (
-        <Box title="Team defense points allowed">
+        <Box title={t(($) => $.leagues.form.bandsTitle)}>
           {profile.values.pointsAllowedBands.map((band, index) => (
             <NumberField
               key={`${band.min}-${band.max ?? 'plus'}`}
-              label={`${band.min}${band.max === null ? '+' : `-${band.max}`} points allowed`}
+              label={t(($) => $.leagues.form.bandPointsAllowed, { range: `${band.min}${band.max === null ? '+' : `-${band.max}`}` })}
               step={0.5}
               value={band.points}
               onChange={(points) => onEdit((p) => withBand(p, index, 'points', points))}
             />
           ))}
-          <button type="button" className="btn" onClick={() => onEdit(withoutBands)}>Use standard points-allowed tiers</button>
+          <button type="button" className="btn" onClick={() => onEdit(withoutBands)}>{t(($) => $.leagues.form.standardTiers)}</button>
         </Box>
       )}
 
       {stored.source && (
-        <section className="source-details" aria-label="Imported ESPN source">
-          <h3>ESPN source</h3>
-          <p>{`League ${stored.source.leagueId}, season ${stored.source.season}`}</p>
-          <p>{`Last imported ${new Date(stored.source.importedAt).toLocaleString()}`}</p>
-          {isLocallyModified(stored) && <p className="source-modified" role="status">Modified locally. Refresh will ask how to handle these values.</p>}
-          {stored.source.mappingVersion < ESPN_SCORING_MAP_VERSION && <p className="source-modified" role="status">Imported with an older ESPN stat mapping that missed some rules. Refresh settings to apply the current one.</p>}
+        <section className="source-details" aria-label={t(($) => $.leagues.source.aria)}>
+          <h3>{t(($) => $.leagues.source.heading)}</h3>
+          <p>{t(($) => $.leagues.source.league, { leagueId: stored.source.leagueId, season: stored.source.season })}</p>
+          <p>{t(($) => $.leagues.source.lastImported, { when: new Date(stored.source.importedAt).toLocaleString(i18n.language) })}</p>
+          {isLocallyModified(stored) && <p className="source-modified" role="status">{t(($) => $.leagues.source.modified)}</p>}
+          {stored.source.mappingVersion < ESPN_SCORING_MAP_VERSION && <p className="source-modified" role="status">{t(($) => $.leagues.source.oldMapping)}</p>}
           {stored.source.issues.length > 0 && (
             <details className="compat-warning">
-              <summary>{`Scoring compatibility (${stored.source.issues.length} ${stored.source.issues.length === 1 ? 'warning' : 'warnings'})`}</summary>
-              <ul>{stored.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
+              <summary>{t(($) => $.leagues.source.compat, { count: stored.source.issues.length })}</summary>
+              <ul>{stored.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issueText(issue)}</li>)}</ul>
             </details>
           )}
           <div className="source-actions">
-            <button type="button" className="btn" onClick={onRefresh}>Refresh settings</button>
-            <button type="button" className="btn" onClick={() => disconnectLeagueSource(stored.id)}>Disconnect source</button>
+            <button type="button" className="btn" onClick={onRefresh}>{t(($) => $.leagues.source.refresh)}</button>
+            <button type="button" className="btn" onClick={() => disconnectLeagueSource(stored.id)}>{t(($) => $.leagues.source.disconnect)}</button>
           </div>
         </section>
       )}
@@ -256,13 +263,14 @@ function ProfileForm({ profile, stored, others, onEdit, onRefresh, footer }: { p
 
 /** Delete league, in the left menu. Deleting is not an edit: it happens at once, after the dialog's question. */
 function DeleteControl({ profile, profiles, usedBy, opponents, onDeleted }: { profile: Profile; profiles: Profile[]; usedBy: number; opponents: number; onDeleted: (nextId: string) => void }) {
+  const { t } = useTranslation();
   const others = profiles.filter((p) => p.id !== profile.id);
   const [open, setOpen] = useState(false);
   return (
     <>
       <div className="delete-control">
         <button type="button" className="btn btn-danger" onClick={() => setOpen(true)}>
-          Delete league
+          {t(($) => $.leagues.page.deleteLeague)}
         </button>
       </div>
       <DeleteLeagueDialog open={open} onClose={() => setOpen(false)} profile={profile} others={others} mine={usedBy} opponents={opponents} onDeleted={onDeleted} />
@@ -274,15 +282,11 @@ function DeleteControl({ profile, profiles, usedBy, opponents, onDeleted }: { pr
 const editable = (p: Profile) => JSON.stringify({ name: p.name, color: p.color, preset: p.preset, values: p.values });
 
 /** What the mascot says about a menu button while it is hovered or focused, when there is no league yet. */
-const MENU_HINTS = {
-  add: 'Here you can add a new league from presets (PPR, half-PPR, non-PPR), or completely customize the league rules.',
-  import: 'Import real life leagues directly here. Scoring rules are synced automatically from your fantasy league without you raising a finger. Warning: only ESPN leagues are supported for now!',
-  profile: 'Not exactly new here? Import your already existing leagues and players from another browser or device you own.',
-} as const;
-type MenuHint = keyof typeof MENU_HINTS;
+type MenuHint = 'add' | 'import' | 'profile';
 
 export function LeaguesPage() {
-  usePageTitle('Leagues');
+  const { t } = useTranslation();
+  usePageTitle(t(($) => $.leagues.page.title));
   const profiles = useStore(profilesStore);
   const followed = useStore(followedStore);
   // No league is selected until the user picks one.
@@ -314,12 +318,13 @@ export function LeaguesPage() {
   function save() {
     if (!stored || !draft) return;
     const taken = new Set(others.map((p) => p.name.toLowerCase()));
-    let name = draft.name.trim() || 'Untitled league';
-    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${draft.name.trim() || 'Untitled league'} ${n}`;
+    const untitled = t(($) => $.leagues.defaults.untitled);
+    let name = draft.name.trim() || untitled;
+    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${draft.name.trim() || untitled} ${n}`;
     const saved = { ...stored, name, color: draft.color, preset: draft.preset, values: draft.values };
     profilesStore.set(isNew ? [...profilesStore.get(), saved] : profilesStore.get().map((p) => (p.id === stored.id ? saved : p)));
     if (isNew) setAdding(null);
-    setNotice(`Saved ${name}.`);
+    setNotice(t(($) => $.leagues.page.saved, { name }));
   }
 
   function cancel() {
@@ -330,12 +335,13 @@ export function LeaguesPage() {
   /** Hover and keyboard focus both make the mascot explain a button, and leaving it puts the greeting back. */
   // With the mascot off the hints are tooltips instead, so they are still there for anyone who wants them.
   const mascotOn = useStore(mascotEnabledStore);
+  const hintText = (key: MenuHint) => (key === 'add' ? t(($) => $.leagues.page.hintAdd) : key === 'import' ? t(($) => $.leagues.page.hintImport) : t(($) => $.leagues.page.hintProfile));
   const hintOn = (key: MenuHint) => (mascotOn
     ? { onMouseEnter: () => setHint(key), onMouseLeave: () => setHint(null), onFocus: () => setHint(key), onBlur: () => setHint(null) }
-    : { title: MENU_HINTS[key] });
+    : { title: hintText(key) });
 
   /** Leaving a league with unsaved changes asks first, so they are never lost by a stray click. */
-  const mayLeave = () => !dirty || window.confirm(`Discard the unsaved changes to ${stored?.name}?`);
+  const mayLeave = () => !dirty || window.confirm(t(($) => $.leagues.page.discard, { name: stored?.name ?? '' }));
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -374,9 +380,9 @@ export function LeaguesPage() {
       <main className="wrap">
         <div className="settings-grid">
           {/* Sticky: the menu stays in view while the long form scrolls. */}
-          <aside className="settings-side" aria-label="Profile actions">
-            <h2 className="section-title" tabIndex={-1} data-page-title>Leagues</h2>
-            <h3 className="sr" id="profiles-heading">Profiles</h3>
+          <aside className="settings-side" aria-label={t(($) => $.leagues.page.profileActions)}>
+            <h2 className="section-title" tabIndex={-1} data-page-title>{t(($) => $.leagues.page.title)}</h2>
+            <h3 className="sr" id="profiles-heading">{t(($) => $.leagues.page.profiles)}</h3>
             <ul className="profile-list" aria-labelledby="profiles-heading">
               {profiles.map((p) => (
                 <li key={p.id}>
@@ -391,20 +397,20 @@ export function LeaguesPage() {
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn press" data-camp="add-league" {...hintOn('add')} onClick={() => { if (mayLeave()) { const draft = newProfile('New league', profiles); setAdding(draft); setSelectedId(draft.id); } }}>
-              Add a league
+            <button type="button" className="btn press" data-camp="add-league" {...hintOn('add')} onClick={() => { if (mayLeave()) { const draft = newProfile(t(($) => $.leagues.defaults.newLeague), profiles); setAdding(draft); setSelectedId(draft.id); } }}>
+              {t(($) => $.leagues.page.addLeague)}
             </button>
             <button type="button" className="btn press" data-camp="import-leagues" {...hintOn('import')} onClick={() => { setRefreshProfileId(undefined); setImportOpen(true); }}>
-              Import leagues
+              {t(($) => $.leagues.page.importLeagues)}
             </button>
             <button type="button" className="btn press" {...hintOn('profile')} onClick={() => setImportProfileOpen(true)}>
-              Import StatWatch profile
+              {t(($) => $.leagues.page.importProfile)}
             </button>
-            <button type="button" className="btn press" aria-disabled={profiles.length === 0 || undefined} title={profiles.length === 0 ? 'Add a league first: there is nothing to export yet' : undefined} onClick={() => { if (profiles.length > 0) setExportOpen(true); }}>
-              Export profile
+            <button type="button" className="btn press" aria-disabled={profiles.length === 0 || undefined} title={profiles.length === 0 ? t(($) => $.leagues.page.exportDisabled) : undefined} onClick={() => { if (profiles.length > 0) setExportOpen(true); }}>
+              {t(($) => $.leagues.page.exportProfile)}
             </button>
             {stored && !isNew && <DeleteControl key={stored.id} profile={stored} profiles={profiles} usedBy={inProfile.length - opponents} opponents={opponents} onDeleted={(id) => { refocusProfile.current = id; setSelectedId(id); }} />}
-            {dirty && <SaveActions label="Save or cancel changes" onSave={save} onCancel={cancel} />}
+            {dirty && <SaveActions label={t(($) => $.leagues.page.saveGroup)} onSave={save} onCancel={cancel} />}
           </aside>
           {stored && draft ? (
             <ProfileForm
@@ -414,10 +420,10 @@ export function LeaguesPage() {
               others={others}
               onEdit={onEdit}
               onRefresh={() => { setRefreshProfileId(stored.id); setImportOpen(true); }}
-              footer={dirty ? <SaveActions label="Save or cancel changes, end of form" onSave={save} onCancel={cancel} /> : null}
+              footer={dirty ? <SaveActions label={t(($) => $.leagues.page.saveGroupEnd)} onSave={save} onCancel={cancel} /> : null}
             />
           ) : (
-            <MascotSays pointAt="left" minLines={6} text={hint ? MENU_HINTS[hint] : profiles.length === 0 ? 'You have no leagues yet. Add or import one from the menu to start following players.' : 'Select a league from the menu to edit its scoring, or add or import one.'} />
+            <MascotSays pointAt="left" minLines={6} text={hint ? hintText(hint) : profiles.length === 0 ? t(($) => $.leagues.page.noLeagues) : t(($) => $.leagues.page.selectLeague)} />
           )}
         </div>
         <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">{notice}</p>

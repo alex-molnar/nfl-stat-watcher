@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { getAthlete, getLeagueInjuries, getScoreboard, getSummary, getTeams, searchPlayers } from '../espn/client';
+import { i18n } from '../i18n';
 import { fakeGames, sandboxOn, subscribeSandbox } from '../espn/campSandbox';
 import { parseLeagueInjuries } from '../stats/injury';
 import { normalizeSummary } from '../stats/normalize';
@@ -27,9 +28,9 @@ export function summaryPolling(state: GameInfo['state'] | undefined, paused = fa
 
 export function freshness(isError: boolean, dataUpdatedAt: number): string | null {
   if (!isError) return null;
-  if (!dataUpdatedAt) return 'Live data unavailable, retrying';
-  const time = new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `Updated ${time}, retrying`;
+  if (!dataUpdatedAt) return i18n.t(($) => $.shell.freshness.unavailable);
+  const time = new Date(dataUpdatedAt).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
+  return i18n.t(($) => $.shell.freshness.updated, { time });
 }
 
 // Paused (WCAG 2.2.2): no interval and no focus refetch, loaded data stays on screen.

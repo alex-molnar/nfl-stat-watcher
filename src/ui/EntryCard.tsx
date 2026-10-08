@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { freshness, useAthlete, useGameSummary, useLeagueInjuries } from '../hooks/queries';
 import { useCelebration } from '../hooks/useCelebration';
 import { useHighlights } from '../hooks/useHighlights';
@@ -16,6 +17,7 @@ import { onRightSide } from '../stats/liveOrder';
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
 import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
+import { issueText } from '../leagues/espn/statMap';
 
 interface Props {
   entry: FollowedEntry;
@@ -37,6 +39,7 @@ const SPARKS: CSSProperties[] = Array.from({ length: 18 }, (_, i) => ({ '--a': `
 const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
 export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, movable = true, onMove, onRemove }: Props) {
+  const { t } = useTranslation();
   const name = displayName(entry, useStore(nameDisplayStore));
   const summary = useGameSummary(game, paused);
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
@@ -70,18 +73,19 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const us = game ? (home ? game.home : game.away) : null;
   const them = game ? (home ? game.away : game.home) : null;
   const color = us?.color ?? '#555555';
-  const versus = them ? `${home ? 'vs' : 'at'} ${them.abbr}` : null;
+  const versus = them ? (home ? t(($) => $.shell.entry.versusHome, { opponent: them.abbr }) : t(($) => $.shell.entry.versusAway, { opponent: them.abbr })) : null;
   const note = paused ? null : freshness(summary.isError, summary.dataUpdatedAt); // nothing retries while paused
   const situation = live ? stats?.situation : null;
   const onField = !!situation && !out && onRightSide(entry, situation);
-  const role = entry.kind === 'defense' ? 'Team defense' : entry.position;
+  const role = entry.kind === 'defense' ? t(($) => $.shell.entry.teamDefense) : entry.position;
   const opposing = sideOf(entry) === 'opponent'; // opponent cards never move between leagues
 
   let status: string;
-  if (!game) status = hasSchedule ? 'Bye week' : 'Game status unavailable';
+  const scoreValues = game ? { period: game.period, clock: game.clock, away: game.away.abbr, awayScore: game.away.score, home: game.home.abbr, homeScore: game.home.score } : {};
+  if (!game) status = hasSchedule ? t(($) => $.shell.entry.bye) : t(($) => $.shell.entry.statusUnavailable);
   else if (game.state === 'post') status = resultText(game, entry.teamId);
-  else if (game.state === 'pre') status = `Kickoff ${kickoffText(game.kickoff)}`;
-  else status = `Q${game.period} ${game.clock}, ${game.away.abbr} ${game.away.score} at ${game.home.abbr} ${game.home.score}`;
+  else if (game.state === 'pre') status = t(($) => $.shell.entry.kickoff, { time: kickoffText(game.kickoff) });
+  else status = t(($) => $.shell.entry.live, scoreValues);
 
   return (
     <li
@@ -103,23 +107,23 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           <span key={`tag-${celebration.id}`} className={`play-tag play-${celebration.event.kind}${celebration.event.tone === 'bad' ? ' tone-bad' : ''}`} aria-hidden="true">{celebration.event.label}</span>
         </>
       ))}
-      <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? `${name}: ${celebration.event.label.toLowerCase()}` : ''}</span>
+      <span className="sr" aria-live="polite" aria-atomic="true">{celebration ? t(($) => $.shell.entry.celebration, { name, label: celebration.event.label.toLowerCase() }) : ''}</span>
       <div className="hd">
         <h3 className="nm">{name}</h3>
         <button
           type="button"
           className="pts press"
           aria-expanded={open}
-          aria-label={`${total} fantasy pts, ${profile.name} breakdown${profile.source?.issues.length ? `, ${profile.source.issues.length} scoring warnings` : ''}`}
+          aria-label={profile.source?.issues.length ? t(($) => $.shell.entry.ptsLabelWarnings, { total, league: profile.name, n: profile.source.issues.length }) : t(($) => $.shell.entry.ptsLabel, { total, league: profile.name })}
           onClick={() => setOpen((o) => !o)}
         >
           <Bump value={total} />
-          <span>fantasy pts</span>
+          <span>{t(($) => $.shell.entry.fantasyPts)}</span>
         </button>
         <div className="badge" aria-hidden="true">{entry.teamAbbr}</div>
         <div className="sub">
-          <span>{`${entry.teamAbbr} ${role}${versus ? `, ${versus}` : ''}`}</span>
-          {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? 'Defense on the field' : 'Offense on the field'}</span>}
+          <span>{versus ? t(($) => $.shell.entry.subVersus, { team: entry.teamAbbr, role, versus }) : t(($) => $.shell.entry.sub, { team: entry.teamAbbr, role })}</span>
+          {onField && <span className="sr">{entry.kind === 'defense' || !isOffense(entry.position) ? t(($) => $.shell.entry.defenseOnField) : t(($) => $.shell.entry.offenseOnField)}</span>}
         </div>
         <span className="chip league-chip" style={profile.color ? { background: profile.color, color: textOn(profile.color) } : undefined}>{profile.name}</span>
         {injury && <div className="inj-row"><span className={`inj inj-${injuryTone(injury)}`}>{injuryLabel(injury)}</span></div>}
@@ -129,9 +133,9 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
         <>
           <MiniField game={game} situation={situation} />
           <div className="dd">
-            <span><b>Q{game.period} {game.clock}</b>, {game.away.abbr} {game.away.score} at {game.home.abbr} {game.home.score}</span>
+            <span><Trans t={t} i18nKey={($) => $.shell.entry.liveBold} values={scoreValues} components={{ b: <b /> }} /></span>
             <span>
-              {redZone && <span className="rzt">Red zone </span>}
+              {redZone && <span className="rzt">{t(($) => $.shell.entry.redZone)}{' '}</span>}
               {situation.downDistanceText}
             </span>
           </div>
@@ -150,7 +154,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
             </div>
           ))
         ) : (
-          <div className="stat"><span>{game?.state === 'pre' ? 'No stats until kickoff' : 'No stats'}</span></div>
+          <div className="stat"><span>{game?.state === 'pre' ? t(($) => $.shell.entry.noStatsPre) : t(($) => $.shell.entry.noStats)}</span></div>
         )}
       </div>
 
@@ -161,15 +165,15 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
               <div key={l.label}><dt>{l.label}</dt><dd>{sign(l.points)}</dd></div>
             ))
           ) : (
-            <div><dt>No points yet</dt><dd>0.00</dd></div>
+            <div><dt>{t(($) => $.shell.entry.noPoints)}</dt><dd>0.00</dd></div>
           )}
         </dl>
       )}
 
       {open && profile.source?.issues.length ? (
         <details className="compat-warning" open>
-          <summary>{`Imported scoring limits (${profile.source.issues.length})`}</summary>
-          <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
+          <summary>{t(($) => $.shell.entry.importedLimits, { n: profile.source.issues.length })}</summary>
+          <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issueText(issue)}</li>)}</ul>
         </details>
       ) : null}
 
@@ -177,14 +181,14 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
 
       <div className="ft">
         {clips.length > 0 && (
-          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={`${unseen ? 'New highlights' : 'Highlights'} for ${name}, ${clips.length}`}>
-            <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> Highlights</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
+          <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={unseen ? t(($) => $.shell.entry.highlightsNewLabel, { name, n: clips.length }) : t(($) => $.shell.entry.highlightsLabel, { name, n: clips.length })}>
+            <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> {t(($) => $.shell.entry.highlightsWord)}</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
           </button>
         )}
         {movable && !opposing && (
           <label>
-            League
-            <select aria-label={`League for ${name}`} value={profile.id} onChange={(e) => onMove?.(entry, e.target.value)}>
+            {t(($) => $.shell.entry.league)}
+            <select aria-label={t(($) => $.shell.entry.leagueFor, { name })} value={profile.id} onChange={(e) => onMove?.(entry, e.target.value)}>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
@@ -193,9 +197,9 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
           type="button"
           className="rm"
           onClick={(e) => onRemove(entry, e.currentTarget)}
-          aria-label={`Remove ${name} from ${opposing ? 'opponent side, ' : ''}${profile.name}`}
+          aria-label={opposing ? t(($) => $.shell.entry.removeOpponentLabel, { name, league: profile.name }) : t(($) => $.shell.entry.removeLabel, { name, league: profile.name })}
         >
-          Remove
+          {t(($) => $.shell.entry.remove)}
         </button>
       </div>
       {clips.length > 0 && <HighlightsDialog open={watching} onClose={() => setWatching(false)} playerName={name} clips={clips} onWatched={markSeen} />}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PlayersHandling } from '../storage/followed';
 import type { Profile } from '../scoring/types';
 import { deleteProfile } from '../storage/profiles';
@@ -20,10 +21,9 @@ interface Props {
   onDeleted: (nextId: string) => void;
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-
 /** Deleting a league asks what happens to its players: move them, move the opponent side too, or delete them. */
 export function DeleteLeagueDialog({ open, onClose, profile, others, mine, opponents, onDeleted }: Props) {
+  const { t } = useTranslation();
   const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const hasPlayers = mine + opponents > 0;
@@ -56,52 +56,53 @@ export function DeleteLeagueDialog({ open, onClose, profile, others, mine, oppon
       {others.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
     </select>
   );
-  const bothText = [mine > 0 && plural(mine, 'player'), `${plural(opponents, 'opponent player')}`].filter(Boolean).join(' and ');
+  const myPlayers = t(($) => $.leagues.counts.player, { count: mine });
+  const opponentPlayers = t(($) => $.leagues.counts.opponentPlayer, { count: opponents });
 
   return (
     <dialog ref={ref} data-worried aria-labelledby="delete-league-title" onClose={onClose} {...backdropClose}>
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
-          <h2 id="delete-league-title">Delete {profile.name}?</h2>
-          <button type="button" className="close" aria-label="Close delete dialog" onClick={onClose}>×</button>
+          <h2 id="delete-league-title">{t(($) => $.leagues.deleteLeague.title, { name: profile.name })}</h2>
+          <button type="button" className="close" aria-label={t(($) => $.leagues.deleteLeague.close)} onClick={onClose}>×</button>
         </div>
         {hasPlayers ? (
           <fieldset className="delete-choices">
-            <legend>What should happen to its players?</legend>
-            {!canMove && <p className="muted">This is your last league, so there is nowhere to move players to.</p>}
+            <legend>{t(($) => $.leagues.deleteLeague.question)}</legend>
+            {!canMove && <p className="muted">{t(($) => $.leagues.deleteLeague.lastLeague)}</p>}
             {mine > 0 && (
               <div className="choice-row">
                 <label className="choice">
                   <input type="radio" name="delete-choice" disabled={!canMove} checked={choice === 'move'} onChange={() => setChoice('move')} />
-                  {`Move ${plural(mine, 'player')} to`}
+                  {t(($) => $.leagues.deleteLeague.move, { players: myPlayers })}
                 </label>
-                {select('move', 'League to move your players to')}
-                {opponents > 0 && <span className="muted">{`The ${plural(opponents, 'opponent player')} ${opponents === 1 ? 'is' : 'are'} deleted.`}</span>}
+                {select('move', t(($) => $.leagues.deleteLeague.moveLabel))}
+                {opponents > 0 && <span className="muted">{t(($) => $.leagues.deleteLeague.opponentsDeleted, { count: opponents })}</span>}
               </div>
             )}
             {opponents > 0 && (
               <div className="choice-row">
                 <label className="choice">
                   <input type="radio" name="delete-choice" disabled={!canMove} checked={choice === 'moveBoth'} onChange={() => setChoice('moveBoth')} />
-                  {`Move ${bothText} to`}
+                  {mine > 0 ? t(($) => $.leagues.deleteLeague.moveBoth, { players: myPlayers, opponents: opponentPlayers }) : t(($) => $.leagues.deleteLeague.moveOpponents, { opponents: opponentPlayers })}
                 </label>
-                {select('moveBoth', 'League to move your and the opponent players to')}
+                {select('moveBoth', t(($) => $.leagues.deleteLeague.moveBothLabel))}
               </div>
             )}
             <div className="choice-row">
               <label className="choice">
-                <input type="radio" name="delete-choice" {...hint('The players followed in this league are removed along with it.')} checked={choice === 'delete'} onChange={() => setChoice('delete')} />
-                Delete existing players
+                <input type="radio" name="delete-choice" {...hint(t(($) => $.leagues.deleteLeague.deletePlayersHint))} checked={choice === 'delete'} onChange={() => setChoice('delete')} />
+                {t(($) => $.leagues.deleteLeague.deletePlayers)}
               </label>
             </div>
           </fieldset>
         ) : (
-          <p>No players follow this league.</p>
+          <p>{t(($) => $.leagues.deleteLeague.noPlayers)}</p>
         )}
         <div className="dlg-actions">
-          <button type="button" className="btn btn-primary press" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-danger" {...hint('This cannot be undone.')} onClick={confirm}>Delete league</button>
+          <button type="button" className="btn btn-primary press" onClick={onClose}>{t(($) => $.leagues.deleteLeague.cancel)}</button>
+          <button type="button" className="btn btn-danger" {...hint(t(($) => $.leagues.deleteLeague.confirmHint))} onClick={confirm}>{t(($) => $.leagues.deleteLeague.confirm)}</button>
         </div>
       </div>
     </dialog>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { backdropClose } from './backdropClose';
 import { DialogMascot, useHint } from './DialogMascot';
 import { useQueries } from '@tanstack/react-query';
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Props) {
+  const { t } = useTranslation();
   const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,10 +35,11 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
   const [chosenId, setChosenId] = useState(profiles[0]?.id ?? '');
   const profileId = fixedProfileId ?? chosenId;
   const sideField = side === 'opponent' ? { side: 'opponent' as const } : {}; // mine stays without the key
+  const fixedLeague = profiles.find((p) => p.id === fixedProfileId)?.name ?? '';
   const title =
     fixedProfileId !== undefined
-      ? `Add to ${side === 'opponent' ? 'opponent side' : 'your side'}, ${profiles.find((p) => p.id === fixedProfileId)?.name ?? ''}`
-      : side ? `Add to ${side === 'opponent' ? 'opponent side' : 'your side'}, choose a league` : 'Add a player or defense';
+      ? side === 'opponent' ? t(($) => $.shell.add.titleFixedOpponent, { league: fixedLeague }) : t(($) => $.shell.add.titleFixedMine, { league: fixedLeague })
+      : side ? (side === 'opponent' ? t(($) => $.shell.add.titleOpponent) : t(($) => $.shell.add.titleMine)) : t(($) => $.shell.add.title);
   const term = useDebounced(query.trim(), 300);
   const search = usePlayerSearch(term);
   const teams = useTeams();
@@ -60,7 +63,7 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
   const lower = term.toLowerCase();
   const defenses: EspnTeamRef[] =
     term.length >= 2
-      ? (teams.data ?? []).filter((t) => [t.displayName, t.location, t.name, t.abbreviation].some((s) => s?.toLowerCase().includes(lower)))
+      ? (teams.data ?? []).filter((team) => [team.displayName, team.location, team.name, team.abbreviation].some((s) => s?.toLowerCase().includes(lower)))
       : [];
 
   // Same side and league only, so a player already on the other side can still be added.
@@ -73,8 +76,8 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
     addEntry({ kind: 'player', espnId: a.id, name: a.displayName, teamId: a.team.id, teamAbbr: a.team.abbreviation, position: a.position?.abbreviation ?? '', jersey: a.jersey, profileId, ...sideField });
   }
 
-  function addDefense(t: EspnTeamRef) {
-    addEntry({ kind: 'defense', espnId: t.id, name: t.displayName, teamId: t.id, teamAbbr: t.abbreviation, position: 'D/ST', profileId, ...sideField });
+  function addDefense(team: EspnTeamRef) {
+    addEntry({ kind: 'defense', espnId: team.id, name: team.displayName, teamId: team.id, teamAbbr: team.abbreviation, position: 'D/ST', profileId, ...sideField });
   }
 
   const shown = (name: string) => displayName({ kind: 'player', name }, nameMode);
@@ -87,27 +90,27 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
       data-result={result}
       aria-disabled={done || disabled || undefined}
       onClick={() => { if (!done && !disabled) onClick(); }}
-      aria-label={done ? `${name} added` : `Add ${name}, ${meta}`}
+      aria-label={done ? t(($) => $.shell.add.addedLabel, { name }) : t(($) => $.shell.add.addLabel, { name, meta })}
     >
-      {done ? 'Added' : 'Add'}
+      {done ? t(($) => $.shell.add.added) : t(($) => $.shell.add.add)}
     </button>
   );
 
   let message: string | null = null;
   const nothing = !search.isFetching && hits.length === 0 && defenses.length === 0;
-  if (term.length < 2) message = 'Type at least 2 letters.';
+  if (term.length < 2) message = t(($) => $.shell.add.typeMore);
   else if (search.isError) {
     message = defenses.length > 0
-      ? 'Player search is unavailable right now. Showing team defenses only.'
-      : 'Search is unavailable right now. Try again in a moment.';
+      ? t(($) => $.shell.add.playersDown)
+      : t(($) => $.shell.add.searchDown);
   } else if (teams.isError) {
-    if (nothing) message = `Team defenses are unavailable right now. No NFL player matches "${term}".`;
-    else if (!search.isFetching) message = 'Team defenses are unavailable right now. Showing players only.';
-  } else if (nothing) message = `No NFL player or team matches "${term}".`;
+    if (nothing) message = t(($) => $.shell.add.defensesDownNoMatch, { term });
+    else if (!search.isFetching) message = t(($) => $.shell.add.defensesDown);
+  } else if (nothing) message = t(($) => $.shell.add.noMatch, { term });
 
   const searching = term.length >= 2 && search.isFetching;
   const count = hits.length + defenses.length;
-  const summary = message ?? (searching ? 'Searching' : `${count} ${count === 1 ? 'result' : 'results'}`);
+  const summary = message ?? (searching ? t(($) => $.shell.add.searching) : t(($) => $.shell.add.results, { count }));
 
   return (
     <dialog ref={ref} aria-labelledby="add-title" onClose={onClose} {...backdropClose}>
@@ -115,37 +118,37 @@ export function AddDialog({ open, onClose, side, profileId: fixedProfileId }: Pr
       <div className="dlg">
         <div className="dlg-head">
           <h2 id="add-title">{title}</h2>
-          <button type="button" className="close" aria-label="Close" onClick={onClose}>×</button>
+          <button type="button" className="close" aria-label={t(($) => $.shell.add.close)} onClick={onClose}>×</button>
         </div>
         <label className="field-label" data-camp="add-dialog-search">
-          Search
-          <input type="search" {...hint("Type a player's name, or a team to follow its defense.")} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or team, for example Purdy or Bills" autoComplete="off" ref={inputRef} />
+          {t(($) => $.shell.add.search)}
+          <input type="search" {...hint(t(($) => $.shell.add.searchHint))} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t(($) => $.shell.add.placeholder)} autoComplete="off" ref={inputRef} />
         </label>
         {fixedProfileId === undefined && (
           <label className="field-label" data-camp="add-dialog-league">
-            League
-            <select {...hint("Which league's scoring counts this player's points.")} value={chosenId} onChange={(e) => setChosenId(e.target.value)}>
+            {t(($) => $.shell.add.league)}
+            <select {...hint(t(($) => $.shell.add.leagueHint))} value={chosenId} onChange={(e) => setChosenId(e.target.value)}>
               {profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
         )}
         <p role="status" className={message ? 'muted msg' : 'sr'}>{summary}</p>
         <ul className="results" data-camp="add-dialog-results">
-          {defenses.map((t) => (
-            <li key={`d${t.id}`}>
-              <span className="r"><b>{t.displayName}</b><small>Team defense</small></span>
-              {addButton(t.displayName, 'team defense', isFollowed('defense', t.id), false, () => addDefense(t))}
+          {defenses.map((team) => (
+            <li key={`d${team.id}`}>
+              <span className="r"><b>{team.displayName}</b><small>{t(($) => $.shell.add.teamDefense)}</small></span>
+              {addButton(team.displayName, t(($) => $.shell.add.teamDefenseMeta), isFollowed('defense', team.id), false, () => addDefense(team))}
             </li>
           ))}
           {hits.map((h, i) => {
             const a = details[i]?.data?.athlete;
             const meta = details[i]?.isPending
-              ? 'Loading team'
+              ? t(($) => $.shell.add.loadingTeam)
               : details[i]?.isError
-                ? 'Details unavailable'
+                ? t(($) => $.shell.add.detailsUnavailable)
                 : a?.team
                   ? `${a.team.abbreviation} ${a.position?.abbreviation ?? ''}`.trim()
-                  : 'Free agent';
+                  : t(($) => $.shell.add.freeAgent);
             return (
               <li key={`p${h.id}`}>
                 <span className="r"><b>{shown(h.displayName)}</b><small>{meta}</small></span>

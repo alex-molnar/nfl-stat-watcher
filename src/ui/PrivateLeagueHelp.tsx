@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PrivateHelpButton } from './PrivateHelpButton';
 import { SyncTourButton } from './SyncTourButton';
 import { BookmarkDragGuide } from './BookmarkDragGuide';
@@ -20,6 +21,7 @@ interface Props {
 
 /** Private leagues need the user's own ESPN session, which the app never sees: the data is copied across by the user. */
 export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarklet, espnPage }: Props) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [problem, setProblem] = useState('');
   const [note, setNote] = useState('');
@@ -37,19 +39,19 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   async function copyCode() {
     try {
       await navigator.clipboard.writeText(bookmarklet!);
-      setNote('Copied. Create a bookmark and paste this as its address.');
+      setNote(t(($) => $.sync.help.copied));
       track('help', { step: 'copy_bookmark' });
     } catch {
-      setNote('Your browser would not copy it. Drag the button above to your bookmarks bar instead.');
+      setNote(t(($) => $.sync.help.copyFailed));
     }
   }
 
   const pasteBox = (
     <>
       <label className="field-label">
-        {what === 'settings' && <>Settings JSON for {leagueLabel}</>}
+        {what === 'settings' && t(($) => $.sync.help.settingsJsonFor, { league: leagueLabel })}
         <textarea
-          aria-label={what === 'rosters' ? 'Roster data' : undefined}
+          aria-label={what === 'rosters' ? t(($) => $.sync.help.rosterData) : undefined}
           rows={4}
           value={text}
           onChange={(event) => { if (what === 'rosters') submit(event.target.value); else { setText(event.target.value); setProblem(''); } }}
@@ -59,23 +61,23 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
             event.preventDefault(); // the pasted text replaces the box's content: it is one blob of JSON
             submit(pasted);
           }}
-          placeholder="Paste the copied ESPN data here and it is imported straight away"
+          placeholder={t(($) => $.sync.help.placeholder)}
         />
       </label>
       {problem && <p className="error" role="alert">{problem}</p>}
-      {what === 'settings' && <button type="button" className="btn" disabled={!text.trim()} onClick={() => submit(text)}>Import these settings</button>}
+      {what === 'settings' && <button type="button" className="btn" disabled={!text.trim()} onClick={() => submit(text)}>{t(($) => $.sync.help.importSettings)}</button>}
     </>
   );
 
   if (what === 'settings') return (
     <div className="private-help private-settings">
-      <p role="status">This league is private you need to copy the settings manually</p>
+      <p role="status">{t(($) => $.sync.help.privateSettings)}</p>
       <div className="bubble-actions">
-        {url && <a className="btn btn-primary private-settings-open" href={url} target="_blank" rel="noreferrer" onClick={() => setSettingsOpened(true)} onAuxClick={(event) => { if (event.button === 1) setSettingsOpened(true); }}>Open Settings</a>}
+        {url && <a className="btn btn-primary private-settings-open" href={url} target="_blank" rel="noreferrer" onClick={() => setSettingsOpened(true)} onAuxClick={(event) => { if (event.button === 1) setSettingsOpened(true); }}>{t(($) => $.sync.help.openSettings)}</a>}
         <PrivateHelpButton mode="settings" />
       </div>
       {settingsOpened && <>
-        <p className="muted">Paste the copied settings text below. It is imported straight away.</p>
+        <p className="muted">{t(($) => $.sync.help.pasteSettings)}</p>
         {pasteBox}
       </>}
     </div>
@@ -84,9 +86,9 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
   return (
     <div className="private-help private-rosters">
       {bookmarklet && showBookmarkHelp && <>
-        <h3 className="private-method-title">Create bookmark</h3>
-        <section className="bm-help private-method" aria-label="Create bookmark">
-          <p>Drag the below button to your bookmarks bar, if you have one. Alternatively create a new bookmark, and paste the below copied text to the address. This is a harmless script, that copies the current roster information of your league</p>
+        <h3 className="private-method-title">{t(($) => $.sync.help.createBookmark)}</h3>
+        <section className="bm-help private-method" aria-label={t(($) => $.sync.help.createBookmark)}>
+          <p>{t(($) => $.sync.help.bookmarkIntro)}</p>
           <div className="bm-actions">
             {/* React refuses javascript: URLs in an href prop, so the link is set on the element itself. */}
             <a
@@ -95,29 +97,29 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
               ref={(el) => { bookmarkAnchor.current = el; el?.setAttribute('href', bookmarklet); }}
               onDragStart={() => setDragging(true)}
               onDragEnd={() => setDragging(false)}
-              onClick={(event) => { event.preventDefault(); setNote('Do not click it here: drag it to your bookmarks bar, then click that bookmark on the ESPN tab.'); }}
+              onClick={(event) => { event.preventDefault(); setNote(t(($) => $.sync.help.dontClick)); }}
             >
-              Sync
+              {t(($) => $.sync.help.bookmarkLabel)}
             </a>
-            <span className="muted bm-or">or</span>
-            <button type="button" className="btn" onClick={() => void copyCode()}>Copy bookmark</button>
+            <span className="muted bm-or">{t(($) => $.sync.help.or)}</span>
+            <button type="button" className="btn" onClick={() => void copyCode()}>{t(($) => $.sync.help.copyBookmark)}</button>
             <PrivateHelpButton mode="bookmark" />
             <SyncTourButton />
           </div>
           {!dragging && <BookmarkDragGuide anchor={bookmarkAnchor} />}
-          <p>Now if you go to any page on ESPN, within your league, and click the bookmark you just saved you should be set! You can go ahead and paste the info in the input below</p>
+          <p>{t(($) => $.sync.help.afterBookmark)}</p>
           {note && <p className="muted" role="status">{note}</p>}
           <div className="bm-actions">
-            {espnPage && <a className="btn private-method-link" href={espnPage} target="_blank" rel="noreferrer">Go to league</a>}
-            <button type="button" className="btn" onClick={() => bookmarkHelpStore.set(false)}>Don&rsquo;t show this option again</button>
+            {espnPage && <a className="btn private-method-link" href={espnPage} target="_blank" rel="noreferrer">{t(($) => $.sync.help.goToLeague)}</a>}
+            <button type="button" className="btn" onClick={() => bookmarkHelpStore.set(false)}>{t(($) => $.sync.help.dontShowAgain)}</button>
           </div>
         </section>
-        <p className="muted">Or the manual way:</p>
+        <p className="muted">{t(($) => $.sync.help.manualWay)}</p>
       </>}
-      <section className="private-method" aria-label="Copy roster data manually">
-        <p>Sign in to your league in this browser, then copy the roster data from the league source</p>
+      <section className="private-method" aria-label={t(($) => $.sync.help.manualLabel)}>
+        <p>{t(($) => $.sync.help.manualIntro)}</p>
         <div className="bm-actions">
-          {url && <a className="btn private-method-link" href={url} target="_blank" rel="noreferrer">Go to league source</a>}
+          {url && <a className="btn private-method-link" href={url} target="_blank" rel="noreferrer">{t(($) => $.sync.help.goToSource)}</a>}
           <PrivateHelpButton mode="rosters" />
         </div>
       </section>

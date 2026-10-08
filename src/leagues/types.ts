@@ -1,4 +1,5 @@
-import { isValidScoringValues, type Profile, type ScoringValues } from '../scoring/types';
+import type { Messages } from '../i18n/messages';
+import { isValidScoringValues, type Profile, type ScoringValues, type ValueKey } from '../scoring/types';
 
 export interface EspnScoringItem {
   statId: number;
@@ -28,10 +29,20 @@ export interface EspnLeagueSettings {
 
 export type ImportIssueCode = 'unknown-rule' | 'unrepresentable-rule' | 'stat-limitation';
 
+/** Why an issue was raised, as data, so it can be written in whichever language the page is in when it is shown. */
+export interface IssueReason {
+  key: keyof Messages['leagues']['issues'];
+  statId?: number;
+  group?: 'dstTd' | 'defensiveTd' | 'returnTd';
+  stats?: ValueKey[];
+}
+
 export interface ImportIssue {
   code: ImportIssueCode;
   providerKeys: string[];
+  /** The English text. Profiles saved before `reason` existed have only this. */
   message: string;
+  reason?: IssueReason;
 }
 
 export interface LeagueSource {
@@ -143,7 +154,16 @@ function validImportIssue(value: unknown): value is ImportIssue {
   return ['unknown-rule', 'unrepresentable-rule', 'stat-limitation'].includes(String(value.code))
     && Array.isArray(value.providerKeys) && value.providerKeys.length <= 100
     && value.providerKeys.every((key) => typeof key === 'string' && key.length <= 100)
-    && typeof value.message === 'string' && value.message.length <= 1_000;
+    && typeof value.message === 'string' && value.message.length <= 1_000
+    && (value.reason === undefined || validIssueReason(value.reason));
+}
+
+function validIssueReason(value: unknown): value is IssueReason {
+  if (!isRecord(value)) return false;
+  return typeof value.key === 'string' && value.key.length <= 50
+    && (value.statId === undefined || (typeof value.statId === 'number' && Number.isInteger(value.statId)))
+    && (value.group === undefined || typeof value.group === 'string')
+    && (value.stats === undefined || (Array.isArray(value.stats) && value.stats.length <= 100 && value.stats.every((key) => typeof key === 'string' && key.length <= 50)));
 }
 
 export type ImportedProfile = Profile & { source: LeagueSource };

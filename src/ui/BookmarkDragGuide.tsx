@@ -1,7 +1,9 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /** A non-interactive copy demonstrates dragging the real bookmark to the browser toolbar. */
 export function BookmarkDragGuide({ anchor }: { anchor: RefObject<HTMLAnchorElement | null> }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -56,7 +58,7 @@ export function BookmarkDragGuide({ anchor }: { anchor: RefObject<HTMLAnchorElem
   return (
     <div ref={ref} popover="manual" className="bookmark-drag-guide" aria-hidden="true">
       <div className="bookmark-drag-copy">
-        <span className="btn btn-primary bm-link">Sync</span>
+        <span className="btn btn-primary bm-link">{t(($) => $.sync.help.bookmarkLabel)}</span>
         <svg className="bookmark-drag-cursor" width="26" height="32" viewBox="0 0 26 32" fill="none">
           <path d="M3 2v23l6-6 5 11 5-2-5-10h9L3 2Z" fill="white" stroke="#132016" strokeWidth="2" strokeLinejoin="round" />
         </svg>

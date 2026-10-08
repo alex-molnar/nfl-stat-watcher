@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { AppRoutes, queryDefaults } from '../App';
+import { applyLanguage, languageStore } from '../i18n';
 import type { Profile } from '../scoring/types';
 import { reloadAllStores } from '../storage/store';
 import type { FollowedEntry } from '../storage/types';
@@ -33,4 +34,10 @@ export function seed(followed: FollowedEntry[], profiles: Profile[]) {
 export function declineCamp() {
   localStorage.setItem('nflsw:v1:camp', JSON.stringify({ phase: 'declined', step: 0 }));
   reloadAllStores();
+}
+
+/** Shows the site in Hungarian for the rest of the test (the setup puts English back). Call before rendering. */
+export async function inHungarian() {
+  languageStore.set('hu');
+  await applyLanguage();
 }
