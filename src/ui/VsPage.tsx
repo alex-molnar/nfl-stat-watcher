@@ -7,6 +7,7 @@ import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
+import { useAutoSync } from '../hooks/useAutoSync';
 import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
@@ -29,8 +30,11 @@ const COLUMNS = {
   opponent: { title: 'Opponent players', add: 'Add player to opponent side', empty: 'No opponent players yet' },
 } as const;
 
+const BOTH_SIDES: Side[] = ['mine', 'opponent'];
+
 function VsMatchup() {
   usePageTitle('Matchup');
+  useAutoSync(BOTH_SIDES);
   const profiles = useStore(profilesStore);
   const [pickedId, setPickedId] = useState(profiles[0]!.id); // memory only, never stored
   const paused = usePaused();

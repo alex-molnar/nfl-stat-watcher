@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useScoreboard } from '../hooks/queries';
 import { gameForTeam } from '../stats/scoreboard';
-import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfiles } from '../storage/followed';
+import { entryKey, followedStore, moveEntry, removeEntry, sideOf, withValidProfiles, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import { campStore } from '../storage/camp';
 import { showsDummiesOnly } from '../storage/campLeague';
@@ -18,11 +18,14 @@ import type { FollowedEntry } from '../storage/types';
 import { usePageTitle } from './usePageTitle';
 import { GROUPS } from './gameGroups';
 import { useLiveOrder } from '../hooks/useLiveOrder';
+import { useAutoSync } from '../hooks/useAutoSync';
 
+const MINE: Side[] = ['mine'];
 const NEED_LEAGUE = 'Add a scoring league first to add players';
 
 export function MainPage() {
   usePageTitle('Players');
+  useAutoSync(MINE);
   const profiles = useStore(profilesStore);
   // Only my entries: opponent entries (vs mode) never show here, in cards or in the empty state.
   // In the camp's last drill only the practice players show, whatever else is followed (nothing stored changes).
