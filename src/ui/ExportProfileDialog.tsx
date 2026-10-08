@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { exportProfile, serializeProfile } from '../leagues/profileTransfer';
 import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
@@ -12,6 +13,7 @@ interface Props { open: boolean; onClose: () => void }
 
 /** Shows the whole profile as JSON, to copy or to download. Nothing leaves the browser. */
 export function ExportProfileDialog({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,10 +35,10 @@ export function ExportProfileDialog({ open, onClose }: Props) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(json);
-      setNote('Copied to the clipboard.');
+      setNote(t(($) => $.leagues.exportProfile.copied));
     } catch {
       areaRef.current?.select();
-      setNote('Your browser would not copy it. The text is selected: press Cmd or Ctrl plus C.');
+      setNote(t(($) => $.leagues.exportProfile.copyFailed));
     }
   }
 
@@ -47,7 +49,7 @@ export function ExportProfileDialog({ open, onClose }: Props) {
     link.download = FILE_NAME;
     link.click();
     URL.revokeObjectURL(url);
-    setNote(`Downloaded ${FILE_NAME}.`);
+    setNote(t(($) => $.leagues.exportProfile.downloaded, { file: FILE_NAME }));
   }
 
   return (
@@ -55,13 +57,13 @@ export function ExportProfileDialog({ open, onClose }: Props) {
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
-          <h2 id="export-title">Export profile</h2>
-          <button type="button" className="close" aria-label="Close export dialog" onClick={onClose}>×</button>
+          <h2 id="export-title">{t(($) => $.leagues.exportProfile.title)}</h2>
+          <button type="button" className="close" aria-label={t(($) => $.leagues.exportProfile.close)} onClick={onClose}>×</button>
         </div>
-        <p className="muted">Every league with its scoring and settings, and the players followed in it, on both sides. Import it in another browser to get the same setup.</p>
+        <p className="muted">{t(($) => $.leagues.exportProfile.intro)}</p>
         <div className="json-box">
-          <textarea ref={areaRef} readOnly rows={10} value={json} aria-label="Profile JSON" spellCheck={false} />
-          <button type="button" className="icon-btn" {...hint('Copies the whole profile as text, to paste into another browser or device.')} aria-label="Copy to clipboard" title="Copy to clipboard" onClick={() => void copy()}>
+          <textarea ref={areaRef} readOnly rows={10} value={json} aria-label={t(($) => $.leagues.exportProfile.json)} spellCheck={false} />
+          <button type="button" className="icon-btn" {...hint(t(($) => $.leagues.exportProfile.copyHint))} aria-label={t(($) => $.leagues.exportProfile.copy)} title={t(($) => $.leagues.exportProfile.copy)} onClick={() => void copy()}>
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="9" y="9" width="11" height="11" rx="2" />
               <path d="M5 15V6a2 2 0 0 1 2-2h9" />
@@ -70,8 +72,8 @@ export function ExportProfileDialog({ open, onClose }: Props) {
         </div>
         <p className={note ? 'muted' : 'sr'} role="status" aria-live="polite">{note}</p>
         <div className="dlg-actions">
-          <button type="button" className="btn" onClick={onClose}>Close</button>
-          <button type="button" className="btn btn-primary" {...hint('Saves the profile as a file called statwatch-profile.json.')} onClick={download}>Download</button>
+          <button type="button" className="btn" onClick={onClose}>{t(($) => $.leagues.exportProfile.close2)}</button>
+          <button type="button" className="btn btn-primary" {...hint(t(($) => $.leagues.exportProfile.downloadHint))} onClick={download}>{t(($) => $.leagues.exportProfile.download)}</button>
         </div>
       </div>
     </dialog>

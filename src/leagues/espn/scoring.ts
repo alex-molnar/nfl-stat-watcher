@@ -1,7 +1,7 @@
-import { FIELD_GROUPS } from '../../scoring/fields';
+import { FIELD_GROUPS, fieldLabel } from '../../scoring/fields';
 import { PRESETS, copyValues } from '../../scoring/presets';
 import { VALUE_KEYS, type ScoringValues } from '../../scoring/types';
-import { ESPN_SCORING_MAP_VERSION, ESPN_STAT_MAP, SCOPE_POSITIONS, TOUCHDOWN_GROUPS, effectivePoints, issueForItem, type Scope } from './statMap';
+import { ESPN_SCORING_MAP_VERSION, ESPN_STAT_MAP, SCOPE_POSITIONS, TOUCHDOWN_GROUPS, effectivePoints, issueForItem, newIssue, type Scope } from './statMap';
 import type { EspnLeagueSettings, EspnScoringItem, ImportIssue, LeagueImportDraft } from '../types';
 
 const POINTS_ALLOWED_RANGES: Array<{ min: number; max: number | null; statIds: number[] }> = [
@@ -20,7 +20,7 @@ const TWO_POINT_IDS = [19, 26, 44, 62];
 const TOUCHDOWN_IDS = new Set(TOUCHDOWN_GROUPS.flatMap(({ statIds }) => statIds));
 
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
-const NOT_LIVE_LABELS = new Map(FIELD_GROUPS.flatMap(({ fields }) => fields.filter((field) => field.live === false).map((field) => [field.key, field.label] as const)));
+const NOT_LIVE_KEYS = FIELD_GROUPS.flatMap(({ fields }) => fields.filter((field) => field.live === false).map((field) => field.key));
 
 function addIssue(issues: ImportIssue[], issue: ImportIssue) {
   if (!issues.some((existing) => existing.code === issue.code && existing.providerKeys[0] === issue.providerKeys[0] && existing.message === issue.message)) issues.push(issue);
@@ -51,7 +51,7 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
 
   for (const item of active) {
     if (hasModifier(item)) {
-      addIssue(issues, issueForItem(item, 'stat offsets, periods or distance-specific weights are not represented'));
+      addIssue(issues, issueForItem(item, 'offsets'));
       continue;
     }
     usable.push(item);
@@ -61,19 +61,19 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
   for (const item of usable) {
     const rule = ESPN_STAT_MAP[item.statId];
     if (!rule && !handledElsewhere(item.statId)) {
-      addIssue(issues, issueForItem(item, 'this stat ID is not in the reviewed ESPN stat map', 'unknown-rule'));
+      addIssue(issues, issueForItem(item, 'unknownStat', 'unknown-rule'));
       continue;
     }
     if (handledElsewhere(item.statId)) continue;
     if (!rule?.targets) {
-      addIssue(issues, issueForItem(item, 'this award has no equivalent in this site’s scoring'));
+      addIssue(issues, issueForItem(item, 'noEquivalent'));
       continue;
     }
     // ESPN adds the awards of every stat that scores the same thing, so contributions accumulate.
     for (const target of rule.targets) {
       const points = acrossScope(item, target.scope);
       if (points === null) {
-        addIssue(issues, issueForItem(item, 'position overrides differ and cannot be represented by one profile value'));
+        addIssue(issues, issueForItem(item, 'positionOverrides'));
         continue;
       }
       if (target.step) {
@@ -97,12 +97,12 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
     if (items.length === 0) continue;
     const points = items.map((item) => acrossScope(item, group.scope));
     if (points.some((point) => point === null)) {
-      for (const item of items) addIssue(issues, issueForItem(item, 'position overrides differ and cannot be represented by one profile value'));
+      for (const item of items) addIssue(issues, issueForItem(item, 'positionOverrides'));
       continue;
     }
     const distinct = [...new Set(points as number[])];
     if (distinct.length > 1) {
-      for (const item of items) addIssue(issues, issueForItem(item, `${group.label} have different awards; the site uses one value, so the highest was kept`));
+      for (const item of items) addIssue(issues, issueForItem(item, 'touchdownGroup', 'unrepresentable-rule', { group: group.key }));
     }
     values[group.key] = Math.max(...distinct);
   }
@@ -118,8 +118,8 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
       values.twoPoint = allPoints[0]!;
     } else {
       addIssue(issues, issueForItem(twoPointItems[0]!, overlappingTotals
-        ? 'both total and category-specific 2-point awards are enabled; their stacking cannot be represented as one value'
-        : 'the configured category-specific awards cannot be represented as one combined conversion value'));
+        ? 'twoPointOverlap'
+        : 'twoPointCategories'));
     }
   }
 
@@ -130,33 +130,18 @@ export function normalizeEspnLeague(league: EspnLeagueSettings): LeagueImportDra
       const weights = candidates.map((item) => effectivePoints(item, '16'));
       const conflicting = candidates.length > 1;
       if (conflicting) {
-        for (const item of candidates) addIssue(issues, issueForItem(item, 'conflicts with another ESPN stat ID for the same points-allowed range'));
+        for (const item of candidates) addIssue(issues, issueForItem(item, 'bandConflict'));
       }
       return { min, max, points: conflicting ? 0 : weights[0] ?? 0 };
     });
   }
 
-  const notLive = [...NOT_LIVE_LABELS].filter(([key]) => values[key] !== 0).map(([, label]) => label);
-  if (notLive.length > 0) {
-    addIssue(issues, {
-      code: 'stat-limitation',
-      providerKeys: ['stats:notLive'],
-      message: `Imported, but the live game feed does not supply these stats, so they never score: ${notLive.join(', ')}.`,
-    });
-  }
-  const approx = [...new Set(FIELD_GROUPS.flatMap(({ fields }) => fields.filter((field) => field.approx && values[field.key] !== 0).map((field) => field.label.toLowerCase())))];
-  if (approx.length > 0) {
-    addIssue(issues, {
-      code: 'stat-limitation',
-      providerKeys: ['stats:playText'],
-      message: `These stats are read from ESPN’s play-by-play wording (${approx.join(', ')}), so they might not be accurate if ESPN words a play differently.`,
-    });
-  }
-  addIssue(issues, {
-    code: 'stat-limitation',
-    providerKeys: ['stats:pointsAllowed'],
-    message: 'The site uses the opponent team’s full score and total yards for D/ST rules; ESPN can exclude special teams, safeties or defensive scores.',
-  });
+  const notLive = NOT_LIVE_KEYS.filter((key) => values[key] !== 0);
+  if (notLive.length > 0) addIssue(issues, newIssue('stat-limitation', ['stats:notLive'], { key: 'notLive', stats: notLive }));
+  // Listed by lower-case English label so two fields with one name (Sack, Interception) appear once.
+  const approx = [...new Map(FIELD_GROUPS.flatMap(({ fields }) => fields.filter((field) => field.approx && values[field.key] !== 0).map((field) => [fieldLabel(field.key, 'en').toLowerCase(), field.key] as const))).values()];
+  if (approx.length > 0) addIssue(issues, newIssue('stat-limitation', ['stats:playText'], { key: 'playText', stats: approx }));
+  addIssue(issues, newIssue('stat-limitation', ['stats:pointsAllowed'], { key: 'pointsAllowed' }));
 
   // A league only turns on what it scores; everything else starts off but keeps its slot in the editor.
   const off = VALUE_KEYS.filter((key) => values[key] === 0);

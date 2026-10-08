@@ -1,10 +1,12 @@
-import type { StepStat, ValueKey } from './types';
+import { i18n } from '../i18n';
+import type { StepRule, ValueKey } from './types';
 
 export type { ValueKey };
 
 export interface FieldDef {
   key: ValueKey;
-  label: string;
+  /** In the language of the page at the moment it is read; `fieldLabel(key, 'en')` is the English one. */
+  readonly label: string;
   step: number;
   /** False when the live game feed cannot supply the stat, so the weight is stored but never scores. */
   live?: false;
@@ -14,122 +16,129 @@ export interface FieldDef {
 
 const NOT_LIVE = false as const;
 
-export const FIELD_GROUPS: { title: string; fields: FieldDef[] }[] = [
+/** A field's label, read when asked (never at import time), in the page's language or the given one. */
+export const fieldLabel = (key: ValueKey, lng?: string): string => i18n.t(($) => $.leagues.fields[key], { lng });
+
+const f = (key: ValueKey, step: number, extra: { live?: false; approx?: true } = {}): FieldDef => ({
+  key, step, ...extra, get label() { return fieldLabel(key); },
+});
+
+export type GroupId = 'offense' | 'offenseBonuses' | 'offenseVolume' | 'kicker' | 'idp' | 'teamDefense' | 'yardsAllowed';
+const groupTitle = (id: GroupId): string => i18n.t(($) => $.leagues.groups[id]);
+
+export const FIELD_GROUPS: { id: GroupId; readonly title: string; fields: FieldDef[] }[] = [
   {
-    title: 'Offense',
+    id: 'offense', get title() { return groupTitle('offense'); },
     fields: [
-      { key: 'passYards', label: 'Per passing yard', step: 0.01 },
-      { key: 'passTd', label: 'Passing TD', step: 1 },
-      { key: 'interception', label: 'Interception thrown', step: 1 },
-      { key: 'rushYards', label: 'Per rushing yard', step: 0.01 },
-      { key: 'rushTd', label: 'Rushing TD', step: 1 },
-      { key: 'reception', label: 'Reception', step: 0.5 },
-      { key: 'recYards', label: 'Per receiving yard', step: 0.01 },
-      { key: 'recTd', label: 'Receiving TD', step: 1 },
-      { key: 'twoPoint', label: '2-point conversion', step: 1 },
-      { key: 'fumbleLost', label: 'Fumble lost', step: 1 },
-      { key: 'returnTd', label: 'Kick or punt return TD', step: 1 },
+      f('passYards', 0.01),
+      f('passTd', 1),
+      f('interception', 1),
+      f('rushYards', 0.01),
+      f('rushTd', 1),
+      f('reception', 0.5),
+      f('recYards', 0.01),
+      f('recTd', 1),
+      f('twoPoint', 1),
+      f('fumbleLost', 1),
+      f('returnTd', 1),
     ],
   },
   {
-    title: 'Offense bonuses',
+    id: 'offenseBonuses', get title() { return groupTitle('offenseBonuses'); },
     fields: [
-      { key: 'passTd40', label: '40+ yard passing TD', step: 1 },
-      { key: 'passTd50', label: '50+ yard passing TD', step: 1 },
-      { key: 'pass300', label: '300-399 yard passing game', step: 1 },
-      { key: 'pass400', label: '400+ yard passing game', step: 1 },
-      { key: 'rushTd40', label: '40+ yard rushing TD', step: 1 },
-      { key: 'rushTd50', label: '50+ yard rushing TD', step: 1 },
-      { key: 'rush100', label: '100-199 yard rushing game', step: 1 },
-      { key: 'rush200', label: '200+ yard rushing game', step: 1 },
-      { key: 'recTd40', label: '40+ yard receiving TD', step: 1 },
-      { key: 'recTd50', label: '50+ yard receiving TD', step: 1 },
-      { key: 'rec100', label: '100-199 yard receiving game', step: 1 },
-      { key: 'rec200', label: '200+ yard receiving game', step: 1 },
+      f('passTd40', 1),
+      f('passTd50', 1),
+      f('pass300', 1),
+      f('pass400', 1),
+      f('rushTd40', 1),
+      f('rushTd50', 1),
+      f('rush100', 1),
+      f('rush200', 1),
+      f('recTd40', 1),
+      f('recTd50', 1),
+      f('rec100', 1),
+      f('rec200', 1),
     ],
   },
   {
-    title: 'Offense volume',
+    id: 'offenseVolume', get title() { return groupTitle('offenseVolume'); },
     fields: [
-      { key: 'passAttempt', label: 'Pass attempt', step: 0.01 },
-      { key: 'passCompletion', label: 'Pass completion', step: 0.01 },
-      { key: 'passIncompletion', label: 'Incomplete pass', step: 0.01 },
-      { key: 'rushAttempt', label: 'Rush attempt', step: 0.01 },
-      { key: 'recTarget', label: 'Target', step: 0.1 },
-      { key: 'fumble', label: 'Fumble (lost or not)', step: 1 },
-      { key: 'sacked', label: 'Time sacked', step: 0.5 },
-      { key: 'fumbleRecoveryTd', label: 'Fumble recovered for TD', step: 1, live: NOT_LIVE },
-      { key: 'kickReturnYards', label: 'Per kickoff return yard', step: 0.01 },
-      { key: 'puntReturnYards', label: 'Per punt return yard', step: 0.01 },
+      f('passAttempt', 0.01),
+      f('passCompletion', 0.01),
+      f('passIncompletion', 0.01),
+      f('rushAttempt', 0.01),
+      f('recTarget', 0.1),
+      f('fumble', 1),
+      f('sacked', 0.5),
+      f('fumbleRecoveryTd', 1, { live: NOT_LIVE }),
+      f('kickReturnYards', 0.01),
+      f('puntReturnYards', 0.01),
     ],
   },
   {
-    title: 'Kicker',
+    id: 'kicker', get title() { return groupTitle('kicker'); },
     fields: [
-      { key: 'fg0to39', label: 'Field goal 0-39 yards', step: 1 },
-      { key: 'fg40to49', label: 'Field goal 40-49 yards', step: 1 },
-      { key: 'fg50to59', label: 'Field goal 50-59 yards', step: 1 },
-      { key: 'fg60plus', label: 'Field goal 60+ yards', step: 1 },
-      { key: 'fgMissed', label: 'Missed field goal (any distance)', step: 1 },
-      { key: 'fgMissed0to39', label: 'Missed field goal 0-39 yards', step: 1 },
-      { key: 'fgMissed40to49', label: 'Missed field goal 40-49 yards', step: 1 },
-      { key: 'fgMissed50to59', label: 'Missed field goal 50-59 yards', step: 1 },
-      { key: 'fgMissed60plus', label: 'Missed field goal 60+ yards', step: 1 },
-      { key: 'xpMade', label: 'Extra point', step: 1 },
-      { key: 'xpMissed', label: 'Missed extra point', step: 1 },
+      f('fg0to39', 1),
+      f('fg40to49', 1),
+      f('fg50to59', 1),
+      f('fg60plus', 1),
+      f('fgMissed', 1),
+      f('fgMissed0to39', 1),
+      f('fgMissed40to49', 1),
+      f('fgMissed50to59', 1),
+      f('fgMissed60plus', 1),
+      f('xpMade', 1),
+      f('xpMissed', 1),
     ],
   },
   {
-    title: 'IDP',
+    id: 'idp', get title() { return groupTitle('idp'); },
     fields: [
-      { key: 'soloTackle', label: 'Solo tackle', step: 0.5 },
-      { key: 'assistedTackle', label: 'Assisted tackle', step: 0.5 },
-      { key: 'sack', label: 'Sack', step: 0.5 },
-      { key: 'tackleForLoss', label: 'Tackle for loss or stuff', step: 0.5 },
-      { key: 'stuff', label: 'Stuff (run stopped for no gain or a loss)', step: 0.5, approx: true },
-      { key: 'qbHit', label: 'QB hit', step: 0.5 },
-      { key: 'passDefended', label: 'Pass defended', step: 0.5 },
-      { key: 'idpInterception', label: 'Interception', step: 1 },
-      { key: 'fumbleRecovery', label: 'Fumble recovery', step: 1 },
-      { key: 'forcedFumble', label: 'Forced fumble', step: 1, approx: true },
-      { key: 'defensiveTd', label: 'Defensive TD', step: 1 },
-      { key: 'safety', label: 'Safety', step: 1 },
-      { key: 'blockedKick', label: 'Blocked kick', step: 1, approx: true },
+      f('soloTackle', 0.5),
+      f('assistedTackle', 0.5),
+      f('sack', 0.5),
+      f('tackleForLoss', 0.5),
+      f('stuff', 0.5, { approx: true }),
+      f('qbHit', 0.5),
+      f('passDefended', 0.5),
+      f('idpInterception', 1),
+      f('fumbleRecovery', 1),
+      f('forcedFumble', 1, { approx: true }),
+      f('defensiveTd', 1),
+      f('safety', 1),
+      f('blockedKick', 1, { approx: true }),
     ],
   },
   {
-    title: 'Team defense',
+    id: 'teamDefense', get title() { return groupTitle('teamDefense'); },
     fields: [
-      { key: 'dstSack', label: 'Sack', step: 0.5 },
-      { key: 'dstInterception', label: 'Interception', step: 1 },
-      { key: 'dstFumbleRecovery', label: 'Fumble recovery', step: 1 },
-      { key: 'dstSafety', label: 'Safety', step: 1 },
-      { key: 'dstTd', label: 'Defense or return TD', step: 1 },
-      { key: 'dstBlockedKick', label: 'Blocked kick', step: 1, approx: true },
-      { key: 'twoPointReturn', label: '2-point return', step: 1, live: NOT_LIVE },
-      { key: 'onePointSafety', label: '1-point safety', step: 1, live: NOT_LIVE },
+      f('dstSack', 0.5),
+      f('dstInterception', 1),
+      f('dstFumbleRecovery', 1),
+      f('dstSafety', 1),
+      f('dstTd', 1),
+      f('dstBlockedKick', 1, { approx: true }),
+      f('twoPointReturn', 1, { live: NOT_LIVE }),
+      f('onePointSafety', 1, { live: NOT_LIVE }),
     ],
   },
   {
-    title: 'Team defense yards allowed',
+    id: 'yardsAllowed', get title() { return groupTitle('yardsAllowed'); },
     fields: [
-      { key: 'yardsAllowed0', label: 'Under 100 yards allowed', step: 1 },
-      { key: 'yardsAllowed100', label: '100-199 yards allowed', step: 1 },
-      { key: 'yardsAllowed200', label: '200-299 yards allowed', step: 1 },
-      { key: 'yardsAllowed300', label: '300-349 yards allowed', step: 1 },
-      { key: 'yardsAllowed350', label: '350-399 yards allowed', step: 1 },
-      { key: 'yardsAllowed400', label: '400-449 yards allowed', step: 1 },
-      { key: 'yardsAllowed450', label: '450-499 yards allowed', step: 1 },
-      { key: 'yardsAllowed500', label: '500-549 yards allowed', step: 1 },
-      { key: 'yardsAllowed550', label: '550+ yards allowed', step: 1 },
+      f('yardsAllowed0', 1),
+      f('yardsAllowed100', 1),
+      f('yardsAllowed200', 1),
+      f('yardsAllowed300', 1),
+      f('yardsAllowed350', 1),
+      f('yardsAllowed400', 1),
+      f('yardsAllowed450', 1),
+      f('yardsAllowed500', 1),
+      f('yardsAllowed550', 1),
     ],
   },
 ];
 
 export const isRuleOn = (values: { off?: readonly ValueKey[] }, key: ValueKey): boolean => !values.off?.includes(key);
 
-export const STEP_LABELS: Record<StepStat, string> = {
-  passYards: 'passing yards', rushYards: 'rushing yards', recYards: 'receiving yards', passAttempt: 'pass attempts', passCompletion: 'pass completions',
-  passIncompletion: 'incomplete passes', rushAttempt: 'rush attempts', reception: 'receptions', tackle: 'total tackles',
-  kickReturnYards: 'kickoff return yards', puntReturnYards: 'punt return yards',
-};
+/** "Every 25 passing yards", for a stepped rule, in the page's language. */
+export const stepLabel = (rule: Pick<StepRule, 'stat' | 'every'>): string => i18n.t(($) => $.leagues.steps[rule.stat], { every: rule.every });

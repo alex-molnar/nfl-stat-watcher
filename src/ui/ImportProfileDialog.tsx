@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../i18n';
 import { ProfileFileError, mergeProfile, parseProfileFile, type MergeSummary } from '../leagues/profileTransfer';
 import { followedStore } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
@@ -13,15 +15,18 @@ interface Props {
   onImported: (message: string) => void;
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const leagues = (count: number) => i18n.t(($) => $.leagues.counts.league, { count });
+const players = (count: number) => i18n.t(($) => $.leagues.counts.player, { count });
+const newPlayers = (count: number) => i18n.t(($) => $.leagues.counts.newPlayer, { count });
 
-function headline({ removed, updated, added, players }: MergeSummary): string {
-  if (removed) return `Delete ${plural(removed.leagues, 'league')} and ${plural(removed.players, 'player')} here, then add ${plural(added, 'league')} and ${plural(players, 'player')}`;
-  return `Update ${plural(updated, 'league')}, add ${plural(added, 'league')}, add ${plural(players, 'player')}`;
+function headline({ removed, updated, added, players: gained }: MergeSummary): string {
+  if (removed) return i18n.t(($) => $.leagues.importProfile.headlineReplace, { leagues: leagues(removed.leagues), players: players(removed.players), added: leagues(added), newPlayers: players(gained) });
+  return i18n.t(($) => $.leagues.importProfile.headlineMerge, { updated: leagues(updated), added: leagues(added), players: players(gained) });
 }
 
 /** Paste the JSON, drop a file or browse for one; the file is checked at once and previewed before anything changes. */
 export function ImportProfileDialog({ open, onClose, onImported }: Props) {
+  const { t } = useTranslation();
   const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -49,7 +54,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
     try {
       return { merged: mergeProfile(parseProfileFile(text), profiles, followed, override) };
     } catch (cause) {
-      return { error: cause instanceof ProfileFileError ? cause.message : 'Could not read that file.' };
+      return { error: cause instanceof ProfileFileError ? cause.message : t(($) => $.leagues.importProfile.unreadable) };
     }
   }, [text, profiles, followed, override]);
   const merged = checked && 'merged' in checked ? checked.merged : null;
@@ -61,7 +66,7 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
       setText(await file.text());
       setReadError('');
     } catch {
-      setReadError('Could not read that file.');
+      setReadError(t(($) => $.leagues.importProfile.unreadable));
     }
   }
 
@@ -76,12 +81,12 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
     if (!merged) return;
     profilesStore.set(merged.profiles);
     followedStore.set(merged.followed);
-    const { updated, added, players, removed } = merged.summary;
+    const { updated, added, players: gained, removed } = merged.summary;
     if (removed) {
-      onImported(`Replaced everything: deleted ${plural(removed.leagues, 'league')} and ${plural(removed.players, 'player')}, imported ${plural(added, 'league')} and ${plural(players, 'player')}.`);
+      onImported(t(($) => $.leagues.importProfile.doneReplaced, { leagues: leagues(removed.leagues), players: players(removed.players), added: leagues(added), newPlayers: players(gained) }));
       return;
     }
-    onImported(`Imported ${plural(updated + added, 'league')}: ${updated} updated, ${added} added, ${plural(players, 'player')} added.`);
+    onImported(t(($) => $.leagues.importProfile.doneMerged, { leagues: leagues(updated + added), updated, added, players: players(gained) }));
   }
 
   return (
@@ -89,19 +94,19 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
-          <h2 id="import-profile-title">Import StatWatch profile</h2>
-          <button type="button" className="close" aria-label="Close import dialog" onClick={onClose}>×</button>
+          <h2 id="import-profile-title">{t(($) => $.leagues.importProfile.title)}</h2>
+          <button type="button" className="close" aria-label={t(($) => $.leagues.importProfile.close)} onClick={onClose}>×</button>
         </div>
-        <p className="muted">Paste the profile JSON, drop the file on the box or browse for it. A league that is already here is updated; other leagues are added. Nothing is removed.</p>
+        <p className="muted">{t(($) => $.leagues.importProfile.intro)}</p>
         <label className="field-label">
-          Profile JSON
+          {t(($) => $.leagues.importProfile.json)}
           <textarea
             rows={8}
-            {...hint('Paste the profile text here, or drop the .json file on this box. It is checked as soon as it arrives.')}
+            {...hint(t(($) => $.leagues.importProfile.jsonHint))}
             className={dragging ? 'dragging' : undefined}
             value={text}
             spellCheck={false}
-            placeholder="Paste the JSON here, or drop a .json file"
+            placeholder={t(($) => $.leagues.importProfile.jsonPlaceholder)}
             onChange={(event) => { setText(event.target.value); setReadError(''); }}
             onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
@@ -109,35 +114,35 @@ export function ImportProfileDialog({ open, onClose, onImported }: Props) {
           />
         </label>
         <div>
-          <button type="button" className="btn" onClick={() => picker.current?.click()}>Browse computer</button>
+          <button type="button" className="btn" onClick={() => picker.current?.click()}>{t(($) => $.leagues.importProfile.browse)}</button>
           <input
             ref={picker}
             type="file"
             accept=".json,application/json"
             hidden
-            aria-label="Profile file"
+            aria-label={t(($) => $.leagues.importProfile.file)}
             onChange={(event) => { void load(event.target.files?.[0]); event.target.value = ''; }}
           />
         </div>
         <label className="check-row">
-          <input type="checkbox" {...hint('Careful: everything here is deleted first, and only what is in the file is kept.')} checked={override} onChange={(event) => setOverride(event.target.checked)} />
-          Override existing profiles
+          <input type="checkbox" {...hint(t(($) => $.leagues.importProfile.overrideHint))} checked={override} onChange={(event) => setOverride(event.target.checked)} />
+          {t(($) => $.leagues.importProfile.override)}
         </label>
-        {override && <p className="error">Everything here is deleted first: every league and every followed player. Only what is in the file is kept.</p>}
+        {override && <p className="error">{t(($) => $.leagues.importProfile.overrideWarning)}</p>}
         {problem && <p className="error" role="alert">{problem}</p>}
         {merged && (
-          <section className="plan" aria-label="What this import will do">
+          <section className="plan" aria-label={t(($) => $.leagues.importProfile.plan)}>
             <h3>{headline(merged.summary)}</h3>
             <ul className="starter-list">
               {merged.summary.leagues.map((league) => (
-                <li key={league.id}><b>{league.kind === 'update' ? 'Update' : 'Add'}</b> {league.name} ({plural(league.players, 'new player')})</li>
+                <li key={league.id}><b>{league.kind === 'update' ? t(($) => $.leagues.importProfile.update) : t(($) => $.leagues.importProfile.add)}</b> {t(($) => $.leagues.importProfile.leagueLine, { name: league.name, players: newPlayers(league.players) })}</li>
               ))}
             </ul>
           </section>
         )}
         <div className="dlg-actions">
-          <button type="button" className="btn" onClick={onClose}>Cancel</button>
-          <button type="button" className={`btn ${override ? 'btn-danger' : 'btn-primary'}`} disabled={!merged} onClick={apply}>{override ? 'Replace everything' : 'Import'}</button>
+          <button type="button" className="btn" onClick={onClose}>{t(($) => $.leagues.importProfile.cancel)}</button>
+          <button type="button" className={`btn ${override ? 'btn-danger' : 'btn-primary'}`} disabled={!merged} onClick={apply}>{override ? t(($) => $.leagues.importProfile.replaceEverything) : t(($) => $.leagues.importProfile.import)}</button>
         </div>
       </div>
     </dialog>

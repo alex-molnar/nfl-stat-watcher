@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 import { PRESETS } from '../scoring/presets';
 import { isHexColor, nextLeagueColor } from '../scoring/leagueColor';
 import { isValidScoringValues, type Profile } from '../scoring/types';
@@ -38,19 +39,18 @@ export const serializeProfile = (file: ProfileFile) => JSON.stringify(file, null
 const fail = (message: string): never => { throw new ProfileFileError(message); };
 
 function readLeague(raw: unknown, position: number): ExportedLeague {
-  const where = `League ${position}`;
-  if (typeof raw !== 'object' || raw === null) return fail(`${where} is not an object.`);
+    if (typeof raw !== 'object' || raw === null) return fail(i18n.t(($) => $.leagues.errors.profile.notObject, { position }));
   const league = raw as Record<string, unknown>;
-  if (typeof league.id !== 'string' || !/^[\w-]{1,64}$/.test(league.id)) return fail(`${where} has no valid id.`);
-  if (typeof league.name !== 'string' || !league.name.trim() || league.name.length > 120) return fail(`${where} has no valid name.`);
-  if (league.preset !== 'custom' && !(typeof league.preset === 'string' && league.preset in PRESETS)) return fail(`${league.name} has an unknown scoring preset.`);
-  if (!isValidScoringValues(league.values)) return fail(`${league.name} has invalid scoring settings.`);
-  if (league.color !== undefined && !isHexColor(league.color)) return fail(`${league.name} has an invalid color.`);
-  if (league.source !== undefined && !isLeagueSource(league.source)) return fail(`${league.name} has an invalid ESPN source.`);
-  if (!Array.isArray(league.players) || league.players.length > MAX_PLAYERS) return fail(`${league.name} has an invalid player list.`);
+  if (typeof league.id !== 'string' || !/^[\w-]{1,64}$/.test(league.id)) return fail(i18n.t(($) => $.leagues.errors.profile.noId, { position }));
+  if (typeof league.name !== 'string' || !league.name.trim() || league.name.length > 120) return fail(i18n.t(($) => $.leagues.errors.profile.noName, { position }));
+  if (league.preset !== 'custom' && !(typeof league.preset === 'string' && league.preset in PRESETS)) return fail(i18n.t(($) => $.leagues.errors.profile.unknownPreset, { name: league.name }));
+  if (!isValidScoringValues(league.values)) return fail(i18n.t(($) => $.leagues.errors.profile.invalidScoring, { name: league.name }));
+  if (league.color !== undefined && !isHexColor(league.color)) return fail(i18n.t(($) => $.leagues.errors.profile.invalidColor, { name: league.name }));
+  if (league.source !== undefined && !isLeagueSource(league.source)) return fail(i18n.t(($) => $.leagues.errors.profile.invalidSource, { name: league.name }));
+  if (!Array.isArray(league.players) || league.players.length > MAX_PLAYERS) return fail(i18n.t(($) => $.leagues.errors.profile.invalidPlayers, { name: league.name }));
   const players = league.players.map((player: unknown) => {
     const entry = { ...(typeof player === 'object' && player !== null ? player : {}), profileId: league.id };
-    if (!isEntry(entry)) return fail(`${league.name} has an invalid player.`);
+    if (!isEntry(entry)) return fail(i18n.t(($) => $.leagues.errors.profile.invalidPlayer, { name: league.name }));
     const { profileId: _profileId, kind, espnId, name, teamId, teamAbbr, position: role, jersey, side } = entry;
     return { kind, espnId, name, teamId, teamAbbr, position: role, ...(jersey !== undefined ? { jersey } : {}), ...(side ? { side } : {}) };
   });
@@ -67,19 +67,19 @@ function readLeague(raw: unknown, position: number): ExportedLeague {
 
 /** Checks the whole file before anything is used: one bad entry rejects it all. */
 export function parseProfileFile(text: string): ProfileFile {
-  if (text.length > MAX_BYTES) return fail('That file is too large to be a StatWatch profile.');
+  if (text.length > MAX_BYTES) return fail(i18n.t(($) => $.leagues.errors.profile.tooLarge));
   let json: unknown;
   try {
     json = JSON.parse(text);
   } catch {
-    return fail('That is not valid JSON.');
+    return fail(i18n.t(($) => $.leagues.errors.profile.notJson));
   }
   const file = json as Partial<ProfileFile> | null;
-  if (typeof file !== 'object' || file === null || file.app !== PROFILE_APP) return fail('That is not a StatWatch profile.');
-  if (file.version !== PROFILE_VERSION) return fail(`This profile has version ${String(file.version)}, which this app cannot read.`);
-  if (!Array.isArray(file.leagues) || file.leagues.length === 0 || file.leagues.length > MAX_LEAGUES) return fail(`A profile holds 1 to ${MAX_LEAGUES} leagues.`);
+  if (typeof file !== 'object' || file === null || file.app !== PROFILE_APP) return fail(i18n.t(($) => $.leagues.errors.profile.notProfile));
+  if (file.version !== PROFILE_VERSION) return fail(i18n.t(($) => $.leagues.errors.profile.version, { version: String(file.version) }));
+  if (!Array.isArray(file.leagues) || file.leagues.length === 0 || file.leagues.length > MAX_LEAGUES) return fail(i18n.t(($) => $.leagues.errors.profile.leagueCount, { max: MAX_LEAGUES }));
   const leagues = file.leagues.map(readLeague);
-  if (new Set(leagues.map((league) => league.id)).size !== leagues.length) return fail('Two leagues in this profile share an id.');
+  if (new Set(leagues.map((league) => league.id)).size !== leagues.length) return fail(i18n.t(($) => $.leagues.errors.profile.sharedId));
   return { app: PROFILE_APP, version: PROFILE_VERSION, exportedAt: typeof file.exportedAt === 'string' ? file.exportedAt : '', leagues };
 }
 
