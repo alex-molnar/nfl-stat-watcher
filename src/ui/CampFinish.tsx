@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
 import { campStore, endCamp } from '../storage/camp';
 import { mascotEnabledStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
@@ -29,6 +30,7 @@ function hop(el: Element | null) {
  * from the one into the other. Until it is answered it holds the page's own mascots away, so there is only ever the one.
  */
 export function CampFinish() {
+  const { t } = useTranslation();
   const { phase } = useStore(campStore);
   const mascotOn = useStore(mascotEnabledStore);
   const flying = useSyncExternalStore(subscribeMascotFlight, isMascotFlying, () => false);
@@ -65,12 +67,12 @@ export function CampFinish() {
     <dialog ref={ref} data-instant aria-labelledby="finish-title" aria-describedby="finish-text" onClose={() => { if (campStore.get().phase === 'finished') endCamp('done'); }}>
       <DialogMascot />
       <div className="dlg">
-        <h2 id="finish-title"><TypedText text="Touchdown!" hold={!landed || flying} /></h2>
+        <h2 id="finish-title"><TypedText text={t(($) => $.camp.finish.title)} hold={!landed || flying} /></h2>
         <p id="finish-text">
-          <TypedText text="That is practice done. You are on the team! You can take it again from Settings any time." hold={!landed || flying} />
+          <TypedText text={t(($) => $.camp.finish.body)} hold={!landed || flying} />
         </p>
         <div className="dlg-actions">
-          <button type="button" className="btn btn-primary press" onClick={() => endCamp('done')}>Done</button>
+          <button type="button" className="btn btn-primary press" onClick={() => endCamp('done')}>{t(($) => $.camp.finish.done)}</button>
         </div>
       </div>
     </dialog>

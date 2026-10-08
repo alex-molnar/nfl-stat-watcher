@@ -1,4 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
 import { campStore, endCamp, startCamp } from '../storage/camp';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { profilesStore } from '../storage/profiles';
@@ -16,6 +17,7 @@ const DELAY_MS = 700; // the page settles before the greeting, so it does not sl
  * dialog goes away because the answer is in the store, not because it was closed, so the mascot's jump is the same as for any other dialog.
  */
 export function CampWelcome() {
+  const { t } = useTranslation();
   const { phase } = useStore(campStore);
   const mascotOn = useStore(mascotEnabledStore);
   const name = useStore(mascotNameStore);
@@ -37,15 +39,15 @@ export function CampWelcome() {
     <dialog ref={ref} aria-labelledby="welcome-title" aria-describedby="welcome-text" onClose={() => { if (campStore.get().phase === 'idle') endCamp('declined'); }}>
       <DialogMascot />
       <div className="dlg">
-        <h2 id="welcome-title">Hi, I’m {name}!</h2>
+        <h2 id="welcome-title">{t(($) => $.camp.welcome.title, { name })}</h2>
         <p id="welcome-text">
-          <TypedText text="I’m the football in glasses who keeps an eye on the stats around here. Want to join my training camp? It’s a handful of short drills on the real app, and you’ll know your way around in a few minutes. And if I’m ever in the way, you can turn me off at any point in Settings." delay={350} hold={flying} />
+          <TypedText text={t(($) => $.camp.welcome.body)} delay={350} hold={flying} />
         </p>
         <div className="dlg-actions">
           {/* Enter is first, so it takes the focus the dialog opens with. */}
-          <button type="button" className="btn btn-primary press" {...hint('A few drills, each one done on the real pages.')} onClick={startCamp}>Enter training camp</button>
-          <button type="button" className="btn press" {...hint('You can start it later from Settings.')} onClick={() => endCamp('declined')}>Skip</button>
-          <button type="button" className="btn press" {...hint('Turns me off. You can switch me back on in Settings.')} onClick={() => { endCamp('declined'); mascotEnabledStore.set(false); }}>Skip and disable {name}</button>
+          <button type="button" className="btn btn-primary press" {...hint(t(($) => $.camp.welcome.enterHint))} onClick={startCamp}>{t(($) => $.camp.welcome.enter)}</button>
+          <button type="button" className="btn press" {...hint(t(($) => $.camp.welcome.skipHint))} onClick={() => endCamp('declined')}>{t(($) => $.camp.welcome.skip)}</button>
+          <button type="button" className="btn press" {...hint(t(($) => $.camp.welcome.skipDisableHint))} onClick={() => { endCamp('declined'); mascotEnabledStore.set(false); }}>{t(($) => $.camp.welcome.skipDisable, { name })}</button>
         </div>
       </div>
     </dialog>
