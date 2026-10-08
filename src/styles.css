@@ -564,7 +564,7 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 @media (prefers-reduced-motion: reduce) { .mascot .m-brow, .mascot .m-mouth { transition: none; } }
 
 /* Rookie camp: a ring around the control the drill is about (it never takes a click), and the mascot's card beside it. */
-.camp-ring { position: fixed; z-index: 29; pointer-events: none; border: 3px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent); }
+.camp-ring { position: fixed; z-index: 29; pointer-events: none; border: 3px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent), 0 0 0 100vmax rgba(0, 0, 0, .4); } /* the second shadow dims all the page outside the ring: only what is ringed is live (the camp's card, above it, is not dimmed) */
 .camp-ring::after { content: ""; position: absolute; inset: -3px; border-radius: inherit; border: 3px solid var(--accent); animation: camp-pulse 1.6s ease-out infinite; }
 @keyframes camp-pulse { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.12); } }
 .camp { position: fixed; z-index: 30; box-sizing: border-box; padding: 14px 16px; border-radius: 16px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); box-shadow: 0 10px 28px rgba(0, 0, 0, .35); }
