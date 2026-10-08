@@ -60,6 +60,7 @@ main.wrap { padding-bottom: 48px; }
 @keyframes live-glow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } 50% { box-shadow: 0 0 12px 3px color-mix(in srgb, var(--accent) 55%, transparent); } }
 /* Reduced motion: nothing turns or pulses; the accent border still says it is live. */
 @media (prefers-reduced-motion: reduce) { .live-btn.is-live, .live-btn.is-live .live-refresh { animation: none; } }
+.page-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .page-note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 .msg { margin: 0; padding: 8px 6px; font-size: 14px; }
 

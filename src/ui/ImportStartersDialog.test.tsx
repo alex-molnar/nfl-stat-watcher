@@ -13,7 +13,7 @@ const draft = normalizeEspnLeague(parseEspnLeagueSettings(settings));
 const league = { id: 'p1', name: 'Tapai', preset: 'custom' as const, values: draft.values, source: draft.source };
 const followed = (): { espnId: string; side?: string; position: string; teamAbbr: string }[] => JSON.parse(localStorage.getItem('nflsw:v1:followed') ?? '[]');
 // The header's button: with nobody followed the empty state offers one too, in the speech bubble.
-const opener = () => within(screen.getByRole('banner')).getByRole('button', { name: 'Sync starters' });
+const opener = () => within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Sync starters' });
 const sync = () => userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Sync starters' }));
 const routes = { scoreboard: scoreboardFixture, standings, 'leagues/1900128084?view=mRoster': lineups };
 

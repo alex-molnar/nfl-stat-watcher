@@ -18,7 +18,7 @@ vi.mock('./track', () => ({ track: vi.fn(), trackBeat: vi.fn(), trackVital: vi.f
 const draft = normalizeEspnLeague(parseEspnLeagueSettings(settings));
 const league = { id: 'p1', name: 'Tapai', preset: 'custom' as const, values: draft.values, source: draft.source };
 const routes = { scoreboard: scoreboardFixture, standings, 'leagues/1900128084?view=mRoster': lineups };
-const opener = () => within(screen.getByRole('banner')).getByRole('button', { name: 'Sync starters' });
+const opener = () => within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Sync starters' });
 const events = (name: string) => vi.mocked(track).mock.calls.filter(([event]) => event === name);
 
 async function loadLeague(id = '1900128084') {

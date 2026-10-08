@@ -372,7 +372,7 @@ describe('rookie camp', () => {
       seed([], profilesFixture);
       setCamp('running', 1);
       renderAt('/');
-      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(camp().closest('dialog')).not.toBeNull()); // the card moves into the open dialog: nothing outside a modal can be pressed
       expect(camp().querySelector('.mascot')).toBeNull(); // and the mascot is on the dialog's edge instead
       expect(mascots()).toHaveLength(1);
