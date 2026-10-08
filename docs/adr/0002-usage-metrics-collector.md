@@ -33,5 +33,5 @@ The app reports named events to `POST /api/e`. nginx forwards them to a collecto
 - Counters live in the collector's memory: a restart resets them (Prometheus copes) and the deployment stays at one replica.
 - The endpoint is public and unauthenticated, so counts can be inflated by anyone, though never by more than the allowlist allows. Accepted for a hobby app; a rate limit at the ingress is the upgrade.
 - A visit is a page load, not a person. There is no way to count unique visitors, on purpose.
-- The Privacy page now has to stay true to `events.ts`; adding an event means updating both (`docs/metrics.md`, "Adding an event").
+- The Privacy page now has to stay true to `events.ts`; adding an event means updating both (`docs/metrics/metrics.md`, "Adding an event").
 - Google Fonts is loaded from Google's servers and the Privacy page says so; self-hosting the fonts would remove that disclosure.

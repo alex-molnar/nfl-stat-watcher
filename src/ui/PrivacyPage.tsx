@@ -3,7 +3,7 @@ import { usePageTitle } from './usePageTitle';
 
 const ISSUES = 'https://github.com/alex-molnar/nfl-stat-watcher/issues';
 
-/** The privacy notice. Keep it in step with src/metrics/events.ts and docs/metrics.md: what is counted there is what is promised here. */
+/** The privacy notice. Keep it in step with src/metrics/events.ts and docs/metrics/metrics.md: what is counted there is what is promised here. */
 export function PrivacyPage() {
   usePageTitle('Privacy');
   return (

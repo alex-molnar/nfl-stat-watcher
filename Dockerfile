@@ -6,7 +6,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# The usage-metrics collector (docs/metrics.md): its own image, run beside the web container. It sits above the final stage so a plain build still makes the web image.
+# The usage-metrics collector (docs/metrics/metrics.md): its own image, run beside the web container. It sits above the final stage so a plain build still makes the web image.
 FROM node:22-alpine AS collector
 WORKDIR /app
 COPY collector ./collector

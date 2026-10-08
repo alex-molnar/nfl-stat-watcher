@@ -48,9 +48,13 @@ Use `$__range` (the dashboard's time range) for totals. All counters are `increa
 | Sync starters usage | `sum by (side, leagues) (increase(statwatch_sync_total[$__range]))` |
 | Private sync setup, by step | `sum by (step) (increase(statwatch_help_total[$__range]))` next to `sum(increase(statwatch_sync_load_total{result="private"}[$__range]))` |
 | Core Web Vitals, 75th percentile | `histogram_quantile(0.75, sum by (le, name) (increase(statwatch_web_vital_bucket[$__range])))` |
-| Share of "good" LCP | `sum(increase(statwatch_web_vital_bucket{name="LCP",le="2500"}[$__range])) / sum(increase(statwatch_web_vital_count{name="LCP"}[$__range]))` |
+| Share of "good" LCP | `` sum(increase(statwatch_web_vital_bucket{name="LCP",le=~`2500(\.0)?`}[$__range])) / sum(increase(statwatch_web_vital_count{name="LCP"}[$__range])) `` (the regex because Prometheus 3 stores `le="2500"` as `le="2500.0"`) |
 | Errors | `sum(increase(statwatch_js_error_total[$__range]))`, `sum by (kind) (increase(statwatch_fetch_error_total[$__range]))` |
 | Collector health | `increase(statwatch_events_rejected_total[1h])` should stay near 0. A rise means the app and `events.ts` disagree, or someone is posting junk. |
+
+## Example dashboard
+
+`docs/metrics/example-dashboard.json` is a ready Grafana dashboard ("Stat Watch usage") built from the queries above, in four rows: Visitors, Leagues, Syncing starters and Health. In Grafana choose Dashboards, New, Import, upload the file and pick your Prometheus under "Data source" (it is a dashboard variable, so nothing in the file needs editing). It needs Grafana 10 or newer, and every query was run against a Prometheus 3 scraping the collector. The stat panels use the dashboard's time range, so change it at the top right to look at a day, a week or a month; the time series panels show a rolling 24 hours.
 
 ## Limits
 

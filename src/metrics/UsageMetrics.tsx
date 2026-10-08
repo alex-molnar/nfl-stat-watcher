@@ -18,7 +18,7 @@ const subscribeVisibility = (onChange: () => void) => {
 };
 const isVisible = () => document.visibilityState === 'visible';
 
-/** Reports anonymous usage (see docs/metrics.md and the Privacy page): page loads and views, how fast and how broken the page is, and how many tabs are live syncing. Renders nothing. */
+/** Reports anonymous usage (see docs/metrics/metrics.md and the Privacy page): page loads and views, how fast and how broken the page is, and how many tabs are live syncing. Renders nothing. */
 export function UsageMetrics() {
   const { pathname } = useLocation();
   const following = useStore(followedStore).length > 0;

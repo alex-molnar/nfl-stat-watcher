@@ -57,7 +57,7 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-        # Counts the anonymous usage events nginx forwards from /api/e and serves them to Prometheus (docs/metrics.md).
+        # Counts the anonymous usage events nginx forwards from /api/e and serves them to Prometheus (docs/metrics/metrics.md).
         # Its counters live in memory, so this stays one replica: with more, each pod would count only part of the tabs.
         - name: collector
           image: ${COLLECTOR_IMAGE}

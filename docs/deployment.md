@@ -63,7 +63,7 @@ host (for HTTP-01, public DNS pointing at the ingress).
 
 ## Usage metrics
 
-The pod runs a second container, the usage-metrics collector (`docs/metrics.md`), and `k8s/app.yaml` ends with a `ServiceMonitor` so Prometheus scrapes it. The deployer's Role needs to be allowed to manage ServiceMonitors, so **before the first deployment of a version that has them**, a cluster admin applies the roles again:
+The pod runs a second container, the usage-metrics collector (`docs/metrics/metrics.md`), and `k8s/app.yaml` ends with a `ServiceMonitor` so Prometheus scrapes it. The deployer's Role needs to be allowed to manage ServiceMonitors, so **before the first deployment of a version that has them**, a cluster admin applies the roles again:
 
 ```sh
 kubectl apply -f k8s/rbac.yaml
