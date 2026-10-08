@@ -61,7 +61,9 @@ jobs:
           fi
 
       - name: Image name
-        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_ENV" # GHCR names must be lower case
+        run: | # GHCR names must be lower case; the collector is another tag of the same package, so it needs no package setup of its own
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "COLLECTOR_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}-collector" >> "$GITHUB_ENV"
 
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -74,8 +76,17 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+      - name: Build and push the usage-metrics collector
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: collector
+          push: true
+          tags: ${{ env.COLLECTOR_IMAGE }}
+          cache-from: type=gha,scope=collector
+          cache-to: type=gha,scope=collector,mode=max
 
       - name: Connect to the cluster as the namespace's deployer
         env:
@@ -97,7 +108,7 @@ jobs:
         run: |
           # The single quotes are deliberate: envsubst must receive the names, not their (empty) shell values.
           # shellcheck disable=SC2016
-          envsubst '${IMAGE} ${HOST}' < k8s/app.yaml | kubectl apply --namespace "$NAMESPACE" -f -
+          envsubst '${IMAGE} ${COLLECTOR_IMAGE} ${HOST}' < k8s/app.yaml | kubectl apply --namespace "$NAMESPACE" -f -
 
       - name: Wait for the rollout
         run: |

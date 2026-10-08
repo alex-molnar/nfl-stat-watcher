@@ -2,12 +2,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router';
 import './storage/campLeague'; // keeps Rookie camp's practice players in step with the camp
+import { UsageMetrics } from './metrics/UsageMetrics';
 import { MainPage } from './ui/MainPage';
 import { CampFinish } from './ui/CampFinish';
 import { CampTour } from './ui/CampTour';
 import { CampWelcome } from './ui/CampWelcome';
 import { RookieCamp } from './ui/RookieCamp';
 import { LeaguesPage } from './ui/LeaguesPage';
+import { PrivacyPage } from './ui/PrivacyPage';
+import { SiteFooter } from './ui/SiteFooter';
 import { SettingsPage } from './ui/SettingsPage';
 import { VsPage } from './ui/VsPage';
 
@@ -37,8 +40,10 @@ export function AppRoutes() {
         <Route path="/vs" element={<VsPage />} />
         <Route path="/leagues" element={<LeaguesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <SiteFooter />
       <FocusPageHeading />
       <RookieCamp />
       <CampWelcome />
@@ -52,6 +57,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <UsageMetrics />
         <AppRoutes />
       </BrowserRouter>
     </QueryClientProvider>

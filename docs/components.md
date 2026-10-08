@@ -184,6 +184,16 @@ Clips come from the `videos` list in the game summary the card already polls (ev
 The source is ESPN, not `api.nfl.com/content/v1/videos`: that endpoint answers 401 (`x-nfl-jwtstatus: FAILED`) to any request without an NFL-issued token, and a token sent from the browser would be visible to every user.
 
 
+## Privacy page and footer
+
+`SiteFooter` (`src/ui/SiteFooter.tsx`) is rendered once in `AppRoutes`, under every page: a `footer` landmark holding a link to `/privacy`. It takes no props and has no states.
+
+`PrivacyPage` (`/privacy`) takes no props and has no states. Under the usual header it has the "Privacy" heading (the focus target after navigating, like the other pages) and plain-language sections: what stays in the browser, the anonymous usage counts and how to opt out (Do Not Track, Global Privacy Control, blocking `/api/e`), server logs, other companies (ESPN and Google Fonts see the visitor's IP address) and rights and contact (the repository's issues page). The text promises what `src/metrics/events.ts` allows, so a new event or a change to what is collected means updating it (see `docs/metrics/metrics.md`).
+
+## UsageMetrics
+
+`UsageMetrics` (`src/metrics/UsageMetrics.tsx`) renders nothing and takes no props. `App` mounts it once, inside the router, and it reports anonymous usage through `track` (`src/metrics/track.ts`): a visit on load, a page view for each screen (`/`, `/vs`, `/leagues`, `/settings`, `/privacy`; a path that redirects counts nothing), Core Web Vitals from `web-vitals`, script errors and unhandled rejections (five per page load at most), and a heartbeat once a minute while the tab is visible, updates are not paused and something is followed. The heartbeat's random tab id lives in a `useState` only. Where a user imports a league, syncs starters or opens the private league help, the dialogs call `track` themselves. `track` does nothing in development and tests and for browsers that send Do Not Track or Global Privacy Control; `UsageMetrics` then registers no listeners at all. Full list, collector and dashboard queries: `docs/metrics/metrics.md`.
+
 ## Closing dialogs from the backdrop
 
 Every dialog (add player, import leagues, import starters, highlights) also closes when the dimmed area around it is clicked, through the shared `backdropClose` props in `src/ui/backdropClose.ts`. The dialog fills its own box, so a click whose target is the `<dialog>` element itself landed on the backdrop. The press must also have started there, so selecting text inside a dialog and releasing the mouse outside it does not close it. The native `close` event still runs each dialog's own cleanup (aborting a running import, stopping the video, restoring focus).

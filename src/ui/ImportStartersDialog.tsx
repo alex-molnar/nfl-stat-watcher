@@ -3,6 +3,7 @@ import { backdropClose } from './backdropClose';
 import { DialogMascot, useHint } from './DialogMascot';
 import { useTeams } from '../hooks/queries';
 import { ALL_LEAGUES } from '../hooks/useMatchup';
+import { track } from '../metrics/track';
 import { setLeagueRemoveNonStarters, setLeagueTeam } from '../leagues/import';
 import { EspnLoadError } from '../leagues/espn/client';
 import { rosterBookmarklet } from '../leagues/espn/bookmarklet';
@@ -89,10 +90,14 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
     if (!pendingId || !leagueId || !season) return; // closing keeps the last result, which is announced outside the dialog
     const controller = new AbortController();
     fetchLeagueLineups(leagueId, season, controller.signal).then(
-      (lineups) => setLineupsBy((current) => ({ ...current, [pendingId]: lineups })),
+      (lineups) => {
+        if (!controller.signal.aborted) track('sync_load', { result: 'ok' });
+        setLineupsBy((current) => ({ ...current, [pendingId]: lineups }));
+      },
       (cause: unknown) => {
         if (controller.signal.aborted) return;
         const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
+        track('sync_load', { result: needsAccess ? 'private' : 'error' });
         setFailure({ id: pendingId, needsAccess, message: needsAccess ? 'This league is private, and the requested data cannot be obtained automatically. There are two ways to set it up. Via a bookmark, or copying the data manually.' : cause instanceof Error ? cause.message : 'Could not load this league.' });
       },
     );
@@ -103,6 +108,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   function pasted(text: string): string | null {
     try {
       const lineups = readLineups(text, leagueId!, season!);
+      track('sync_load', { result: 'ok' });
       setLineupsBy((current) => ({ ...current, [pendingId!]: lineups }));
       return null;
     } catch (cause) {
@@ -175,6 +181,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
     setStatus(both
       ? applicable.map((panel) => `${sideLabel(panel.side)}: ${describe(panel.plan!)}.`).join(' ')
       : `${describe(applicable[0]!.plan!)}.`);
+    track('sync', { side, leagues: everyLeague ? 'many' : 'one' });
     ref.current?.close(); // the native close runs onClose and returns focus to the button that opened the dialog
   }
 

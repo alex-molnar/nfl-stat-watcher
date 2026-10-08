@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react';
+import { track } from '../metrics/track';
 import { PrivateSettingsGuide, type PrivateHelpMode } from './PrivateSettingsGuide';
 
 /** The same compact Fumble hint for each private-league setup method. */
@@ -9,7 +10,7 @@ export function PrivateHelpButton({ mode }: { mode: PrivateHelpMode }) {
   return <>
     <button ref={anchor} type="button" className="btn" aria-describedby={open ? id : undefined}
       onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => { setOpen(true); track('help', { step: `how_${mode}` }); }}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); setOpen(false); }
       }}>How?</button>

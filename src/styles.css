@@ -561,3 +561,10 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .camp-name { font-weight: 800; }
 .camp-text { font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { .camp-ring::after { animation: none; } }
+
+/* Privacy page and the footer link under every page */
+.privacy-page { max-width: 760px; }
+.privacy-page h3 { font: 800 15px/1.2 Anybody, sans-serif; font-stretch: 115%; margin: 28px 0 6px; }
+.privacy-page p, .privacy-page li { max-width: 68ch; }
+.privacy-page li { margin: 4px 0; }
+.site-foot { padding-top: 8px; padding-bottom: 28px; font-size: 13px; color: var(--muted); }

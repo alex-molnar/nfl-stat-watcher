@@ -1,3 +1,4 @@
+import { track } from '../metrics/track';
 import { fakeAthlete, fakeClipAthletes, fakeSearch, fakeSummary } from './campSandbox';
 import type {
   EspnAthleteResponse,
@@ -20,9 +21,24 @@ export class EspnError extends Error {
   }
 }
 
+// Live polling would report the same outage every ten seconds, so each kind of failure is counted once a minute per tab.
+const lastReported: Record<string, number> = {};
+function reportFailure(kind: 'network' | '4xx' | '5xx') {
+  const now = Date.now();
+  if (now - (lastReported[kind] ?? 0) < 60_000) return;
+  lastReported[kind] = now;
+  track('fetch_error', { kind });
+}
+
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new EspnError(res.status, url);
+  const res = await fetch(url).catch((error: unknown) => {
+    reportFailure('network');
+    throw error;
+  });
+  if (!res.ok) {
+    reportFailure(res.status >= 500 ? '5xx' : '4xx');
+    throw new EspnError(res.status, url);
+  }
   return (await res.json()) as T;
 }
 
