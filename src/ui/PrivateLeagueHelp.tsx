@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { PrivateHelpButton } from './PrivateHelpButton';
 import { SyncTourButton } from './SyncTourButton';
 import { BookmarkDragGuide } from './BookmarkDragGuide';
+import { track } from '../metrics/track';
 import { bookmarkHelpStore } from '../storage/bookmarkHelp';
 import { useStore } from '../storage/useStore';
 
@@ -37,6 +38,7 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
     try {
       await navigator.clipboard.writeText(bookmarklet!);
       setNote('Copied. Create a bookmark and paste this as its address.');
+      track('help', { step: 'copy_bookmark' });
     } catch {
       setNote('Your browser would not copy it. Drag the button above to your bookmarks bar instead.');
     }

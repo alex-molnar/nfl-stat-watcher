@@ -8,8 +8,8 @@ Two GitHub Actions workflows deploy the app to Kubernetes:
 | any other branch | `.github/workflows/deploy-test.yml` | `nfl-stat-watcher-test` | `test` |
 
 Both call `.github/workflows/_deploy.yml`, which does the same four things for either target: type check and run the tests,
-build the image and push it to `ghcr.io/<owner>/<repo>:<commit>`, connect to the cluster as that namespace's service
-account, apply `k8s/app.yaml` (Deployment, Service, Ingress) and wait for the rollout. A failed check stops everything
+build the web image and the usage-metrics collector image and push them to `ghcr.io/<owner>/<repo>` (tags `<commit>` and `<commit>-collector`), connect to the cluster as that namespace's service
+account, apply `k8s/app.yaml` (Deployment, Service, Ingress, ServiceMonitor) and wait for the rollout. A failed check stops everything
 before an image is built.
 
 The test namespace is one slot: a newer push to any branch replaces a deployment still running. Live deployments queue
@@ -26,7 +26,7 @@ kubectl apply -f k8s/rbac.yaml
 ```
 
 This creates both namespaces (with the `restricted` pod security level the app already meets) and, in each, a
-`github-deployer` service account with a token Secret. Its Role covers only this app's Deployment, Service and Ingress
+`github-deployer` service account with a token Secret. Its Role covers only this app's Deployment, Service, Ingress and ServiceMonitor
 (create, update, patch, read), plus read access to ReplicaSets, Pods and Events so a failed rollout can be explained. It
 is a namespace-scoped Role, never a ClusterRole, so the account has no access to any other namespace, to cluster-wide
 resources, or to Secrets, and it cannot delete anything or change RBAC. Neither account can use the other's namespace.
@@ -61,6 +61,18 @@ the work, so the pipeline's account needs no access to Secrets or certificates. 
 or two to get a certificate; check with `kubectl -n NS get certificate`. The ClusterIssuer must be able to validate the
 host (for HTTP-01, public DNS pointing at the ingress).
 
+## Usage metrics
+
+The pod runs a second container, the usage-metrics collector (`docs/metrics.md`), and `k8s/app.yaml` ends with a `ServiceMonitor` so Prometheus scrapes it. The deployer's Role needs to be allowed to manage ServiceMonitors, so **before the first deployment of a version that has them**, a cluster admin applies the roles again:
+
+```sh
+kubectl apply -f k8s/rbac.yaml
+```
+
+Without it the Apply step fails with `servicemonitors.monitoring.coreos.com is forbidden`. The ServiceMonitor is the last document in the file, so the Deployment, Service and Ingress have been applied by then, but the rollout wait is skipped. Apply the roles and run the job again.
+
+Prometheus has to select the ServiceMonitor in both namespaces. This cluster's selects every one (`serviceMonitorSelector: {}`); check the namespaces too with `kubectl get prometheus -A -o yaml | grep -A3 serviceMonitorNamespaceSelector`. After a deployment the target appears under Status, Targets in Prometheus as `serviceMonitor/<namespace>/stat-watch`. Without Prometheus at hand: `kubectl -n NS port-forward deploy/stat-watch 9100:9100`, then `curl localhost:9100/metrics`.
+
 ## Pulling the image
 
 If the GHCR package is public nothing more is needed. If it is private, create a pull secret once per namespace (the
@@ -71,7 +83,7 @@ kubectl -n NS create secret docker-registry ghcr-pull \
   --docker-server=ghcr.io --docker-username=<github user> --docker-password=<token with read:packages>
 ```
 
-`k8s/app.yaml` already references `ghcr-pull`; a missing secret is only a warning when the image is public.
+The collector image is another tag of the same package, so the same secret serves both. `k8s/app.yaml` already references `ghcr-pull`; a missing secret is only a warning when the image is public.
 
 ## Not covered
 

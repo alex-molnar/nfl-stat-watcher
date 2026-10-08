@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { track } from '../metrics/track';
 import { backdropClose } from './backdropClose';
 import { DialogMascot } from './DialogMascot';
 
@@ -8,6 +9,7 @@ export function SyncTourButton() {
   const close = () => ref.current?.close();
   const open = () => {
     ref.current?.showModal();
+    track('help', { step: 'video' });
     // The click is the user's gesture, so the browser lets it play with sound; a refusal just leaves the controls to start it.
     void ref.current?.querySelector('video')?.play().catch(() => {});
   };

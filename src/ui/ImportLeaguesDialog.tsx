@@ -10,6 +10,7 @@ import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { commitLeagueImports, isLocallyModified, leagueIdentity, type LeagueImportTarget } from '../leagues/import';
 import type { EspnLeagueSettings, LeagueImportDraft } from '../leagues/types';
 import { FIELD_GROUPS, STEP_LABELS } from '../scoring/fields';
+import { track } from '../metrics/track';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 
@@ -127,10 +128,13 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
       });
       if (signal?.aborted) return;
       applySettings(key, value, settings, selected);
+      track('league_load', { result: 'ok' });
     } catch (cause) {
       if (signal?.aborted) return;
       const text = cause instanceof Error ? cause.message : 'Could not load this league.';
-      upsert({ key, input: value, state: 'error', error: text, needsAccess: cause instanceof EspnLoadError && cause.kind === 'access-denied', selected, acknowledged: false, targetId: '' });
+      const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
+      track('league_load', { result: needsAccess ? 'private' : 'error' });
+      upsert({ key, input: value, state: 'error', error: text, needsAccess, selected, acknowledged: false, targetId: '' });
     }
   }
 
@@ -236,6 +240,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
         localEditDecision: entry.localEditDecision,
       }));
       const result = commitLeagueImports(selected.map((entry) => entry.draft!), targets);
+      for (const entry of selected) track('league_import', { transport: entry.draft!.source.transport, mode: profiles.find((profile) => profile.id === entry.targetId)?.source ? 'refresh' : 'new', issues: entry.draft!.source.issues.length ? 'some' : 'none' });
       onImported(result.persisted
         ? `Imported ${result.importedIds.length} ${result.importedIds.length === 1 ? 'league' : 'leagues'} and saved the profiles.`
         : `Imported ${result.importedIds.length} ${result.importedIds.length === 1 ? 'league' : 'leagues'} for this session; browser storage could not save them.`);

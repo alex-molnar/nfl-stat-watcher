@@ -7,9 +7,10 @@
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true, // the collector runs under Node, which strips the types and needs the extension
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "types": ["vitest/globals", "node", "vite/client"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "collector", "vite.config.ts"]
 }
