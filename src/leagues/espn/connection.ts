@@ -1,3 +1,5 @@
+import { i18n } from '../../i18n';
+
 const CONNECTOR_CHANNEL = 'stat-watch-espn-connector-v1';
 const CONNECT_TIMEOUT_MS = 120_000;
 
@@ -64,9 +66,9 @@ export async function loadSettingsWithBrowserSession(
   const reply = signal ? await Promise.race([request, abort]) : await request;
   if (abortHandler) signal?.removeEventListener('abort', abortHandler);
   if (reply?.status === 'access-denied') {
-    throw new Error('ESPN denied access to this league. Check the active ESPN account or league membership, then retry this league.');
+    throw new Error(i18n.t(($) => $.leagues.errors.espn.deniedCheck));
   }
-  if (reply && reply.ok !== true && reply.status) throw new Error(`ESPN settings could not be loaded (${reply.status}).`);
+  if (reply && reply.ok !== true && reply.status) throw new Error(i18n.t(($) => $.leagues.errors.espn.couldNotLoad, { status: reply.status }));
   if (!reply || reply.ok !== true || reply.requestId !== requestId || reply.nonce !== nonce || reply.leagueId !== leagueId || reply.season !== season) return null;
   return reply.payload ?? null;
 }

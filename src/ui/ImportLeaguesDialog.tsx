@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { i18n } from '../i18n';
 import { backdropClose } from './backdropClose';
 import { DialogMascot, useHint } from './DialogMascot';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,7 +11,8 @@ import { EspnSettingsError, parseEspnLeagueInput, parsePastedEspnSettings } from
 import { normalizeEspnLeague } from '../leagues/espn/scoring';
 import { commitLeagueImports, isLocallyModified, leagueIdentity, type LeagueImportTarget } from '../leagues/import';
 import type { EspnLeagueSettings, LeagueImportDraft } from '../leagues/types';
-import { FIELD_GROUPS, STEP_LABELS } from '../scoring/fields';
+import { FIELD_GROUPS, stepLabel } from '../scoring/fields';
+import { issueText } from '../leagues/espn/statMap';
 import { track } from '../metrics/track';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
@@ -37,7 +40,7 @@ interface Props {
 
 function summarizeLineup(counts: Record<string, number>): string {
   const active = Object.entries(counts).filter(([id, count]) => id !== '20' && id !== '21' && count > 0);
-  return active.length ? active.map(([id, count]) => `slot ${id} × ${count}`).join(', ') : 'No active lineup slots listed';
+  return active.length ? active.map(([id, count]) => i18n.t(($) => $.leagues.importLeagues.slot, { id, count })).join(', ') : i18n.t(($) => $.leagues.importLeagues.noSlots);
 }
 
 function importedValues(draft: LeagueImportDraft): string[] {
@@ -45,12 +48,12 @@ function importedValues(draft: LeagueImportDraft): string[] {
   for (const group of FIELD_GROUPS) {
     for (const field of group.fields) {
       const points = draft.values[field.key];
-      if (points !== 0) values.push(`${field.label}: ${points}`);
+      if (points !== 0) values.push(i18n.t(($) => $.leagues.importLeagues.valueLine, { label: field.label, points }));
     }
   }
-  for (const rule of draft.values.steps ?? []) values.push(`Every ${rule.every} ${STEP_LABELS[rule.stat]}: ${rule.points}`);
-  if (draft.values.pointsAllowedBands) values.push(`${draft.values.pointsAllowedBands.length} D/ST points-allowed ranges`);
-  else if (draft.values.pointsAllowed.some((points) => points !== 0)) values.push('D/ST points-allowed scoring');
+  for (const rule of draft.values.steps ?? []) values.push(i18n.t(($) => $.leagues.importLeagues.valueLine, { label: stepLabel(rule), points: rule.points }));
+  if (draft.values.pointsAllowedBands) values.push(i18n.t(($) => $.leagues.importLeagues.bandRanges, { n: draft.values.pointsAllowedBands.length }));
+  else if (draft.values.pointsAllowed.some((points) => points !== 0)) values.push(i18n.t(($) => $.leagues.importLeagues.bandScoring));
   return values;
 }
 
@@ -65,6 +68,7 @@ function settingsUrl(input: string, season: string): string | null {
 }
 
 export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileId }: Props) {
+  const { t } = useTranslation();
   const hint = useHint();
   const ref = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -116,7 +120,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
     try {
       const parsed = parseEspnLeagueInput(value);
       const requestedSeason = season || parsed.season || '';
-      if (!requestedSeason) throw new Error('Choose a season before loading leagues.');
+      if (!requestedSeason) throw new Error(t(($) => $.leagues.importLeagues.chooseSeason));
       const settings = await queryClient.fetchQuery({
         queryKey: espnSettingsQueryKey(parsed.leagueId, requestedSeason),
         queryFn: ({ signal: querySignal }) => loadEspnLeagueSettings(value, requestedSeason, signal ?? querySignal),
@@ -131,7 +135,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
       track('league_load', { result: 'ok' });
     } catch (cause) {
       if (signal?.aborted) return;
-      const text = cause instanceof Error ? cause.message : 'Could not load this league.';
+      const text = cause instanceof Error ? cause.message : t(($) => $.leagues.importLeagues.loadFailed);
       const needsAccess = cause instanceof EspnLoadError && cause.kind === 'access-denied';
       track('league_load', { result: needsAccess ? 'private' : 'error' });
       upsert({ key, input: value, state: 'error', error: text, needsAccess, selected, acknowledged: false, targetId: '' });
@@ -161,18 +165,18 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
       applySettings(entry.key, entry.input, parsePastedEspnSettings(text, parsed.leagueId, requestedSeason), entry.selected);
       return null;
     } catch (cause) {
-      return cause instanceof EspnSettingsError || cause instanceof Error ? cause.message : 'Could not read those settings.';
+      return cause instanceof EspnSettingsError || cause instanceof Error ? cause.message : t(($) => $.leagues.importLeagues.readFailed);
     }
   }
 
   async function loadAll() {
     const inputs = leagueInputs.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
     if (!/^\d{4}$/.test(season)) {
-      setError('Choose a season to load these leagues.');
+      setError(t(($) => $.leagues.importLeagues.chooseSeasonToLoad));
       return;
     }
     if (inputs.length === 0) {
-      setError('Paste at least one ESPN league link or ID.');
+      setError(t(($) => $.leagues.importLeagues.pasteOne));
       return;
     }
     const existing = new Set<string>();
@@ -184,7 +188,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
     });
     setError('');
     setBusy(true);
-    setMessage(`Loading ${unique.length} ${unique.length === 1 ? 'league' : 'leagues'}…`);
+    setMessage(t(($) => $.leagues.importLeagues.loading, { count: unique.length }));
     const controller = new AbortController();
     const dialog = ref.current as (HTMLDialogElement & { __importAbort?: AbortController }) | null;
     if (dialog) dialog.__importAbort = controller;
@@ -197,7 +201,7 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
       }
     };
     await Promise.all(Array.from({ length: Math.min(3, unique.length) }, worker));
-    if (!controller.signal.aborted) setMessage('Review each loaded league, then import the selected profiles.');
+    if (!controller.signal.aborted) setMessage(t(($) => $.leagues.importLeagues.review));
     setBusy(false);
   }
 
@@ -242,10 +246,10 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
       const result = commitLeagueImports(selected.map((entry) => entry.draft!), targets);
       for (const entry of selected) track('league_import', { transport: entry.draft!.source.transport, mode: profiles.find((profile) => profile.id === entry.targetId)?.source ? 'refresh' : 'new', issues: entry.draft!.source.issues.length ? 'some' : 'none' });
       onImported(result.persisted
-        ? `Imported ${result.importedIds.length} ${result.importedIds.length === 1 ? 'league' : 'leagues'} and saved the profiles.`
-        : `Imported ${result.importedIds.length} ${result.importedIds.length === 1 ? 'league' : 'leagues'} for this session; browser storage could not save them.`);
+        ? t(($) => $.leagues.importLeagues.imported, { count: result.importedIds.length })
+        : t(($) => $.leagues.importLeagues.importedSession, { count: result.importedIds.length }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save these profiles.');
+      setError(cause instanceof Error ? cause.message : t(($) => $.leagues.importLeagues.saveFailed));
     }
   }
 
@@ -254,88 +258,88 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
       <DialogMascot />
       <div className="dlg import-dlg">
         <div className="dlg-head">
-          <h2 id="import-title">Import ESPN leagues</h2>
-          <button type="button" className="close" aria-label="Close import leagues dialog" onClick={cancel}>×</button>
+          <h2 id="import-title">{t(($) => $.leagues.importLeagues.title)}</h2>
+          <button type="button" className="close" aria-label={t(($) => $.leagues.importLeagues.close)} onClick={cancel}>×</button>
         </div>
         <label className="field-label" data-camp="import-links">
-          ESPN fantasy football league links or IDs, one per line
-          <textarea ref={inputRef} rows={3} {...hint('Paste the link of each ESPN league, or just its ID: the number after leagueId= in the address.')} value={leagueInputs} disabled={busy} onChange={(event) => { setLeagueInputs(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="Paste league links or decimal IDs" />
+          {t(($) => $.leagues.importLeagues.links)}
+          <textarea ref={inputRef} rows={3} {...hint(t(($) => $.leagues.importLeagues.linksHint))} value={leagueInputs} disabled={busy} onChange={(event) => { setLeagueInputs(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder={t(($) => $.leagues.importLeagues.linksPlaceholder)} />
         </label>
         <label className="field-label" data-camp="import-season">
-          Season
-          <input type="number" min="2000" max="2100" step="1" {...hint('The year the season started, for example 2026. It is the season of the league settings that is loaded.')} value={season} disabled={busy} onChange={(event) => { setSeason(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder="For example, 2026" />
+          {t(($) => $.leagues.importLeagues.season)}
+          <input type="number" min="2000" max="2100" step="1" {...hint(t(($) => $.leagues.importLeagues.seasonHint))} value={season} disabled={busy} onChange={(event) => { setSeason(event.target.value); setEntries([]); setMessage(''); setError(''); }} placeholder={t(($) => $.leagues.importLeagues.seasonPlaceholder)} />
         </label>
-        <p className="muted">Public settings load anonymously. For a private league you copy its settings page across from your own signed-in ESPN tab; Stat Watch never asks for your ESPN password.</p>
-        <button type="button" className="btn btn-primary" data-camp="import-load" {...hint('Looks the leagues up on ESPN. Nothing changes here until you choose what to import.')} onClick={() => void loadAll()} disabled={busy}>Load leagues</button>
+        <p className="muted">{t(($) => $.leagues.importLeagues.privacy)}</p>
+        <button type="button" className="btn btn-primary" data-camp="import-load" {...hint(t(($) => $.leagues.importLeagues.loadHint))} onClick={() => void loadAll()} disabled={busy}>{t(($) => $.leagues.importLeagues.load)}</button>
         {(message || error) && <p className={error ? 'error msg' : 'muted msg'} role={error ? 'alert' : 'status'} aria-live="polite">{error || message}</p>}
         {entries.length > 0 && (
-          <section className="import-results" aria-label="League import results">
+          <section className="import-results" aria-label={t(($) => $.leagues.importLeagues.results)}>
             {entries.map((entry) => {
               const draft = entry.draft;
               const cardId = `league-card-${encodeURIComponent(entry.key)}`;
-              const leagueLabel = draft ? `league ${draft.source.leagueId}, season ${draft.source.season}` : `league ${entry.input.slice(0, 120)}, season ${season}`;
+              const leagueLabel = draft ? t(($) => $.leagues.importLeagues.leagueLabel, { league: draft.source.leagueId, season: draft.source.season }) : t(($) => $.leagues.importLeagues.leagueLabel, { league: entry.input.slice(0, 120), season });
               const existing = draft?.source ? profiles.find((profile) => profile.source && leagueIdentity(profile.source) === leagueIdentity(draft.source)) : undefined;
               const target = entry.targetId ? profiles.find((profile) => profile.id === entry.targetId) : undefined;
               const locallyModified = !!target && isLocallyModified(target);
               return (
                 <article className="import-card" key={entry.key} aria-labelledby={`${cardId}-title`}>
-                  <h3 id={`${cardId}-title`}>{draft?.name ?? `League ${entry.input.slice(0, 120)}`}</h3>
+                  <h3 id={`${cardId}-title`}>{draft?.name ?? t(($) => $.leagues.importLeagues.cardTitle, { league: entry.input.slice(0, 120) })}</h3>
                   {draft && (
                     <label className="import-select">
                       <input type="checkbox" aria-labelledby={`${cardId}-title ${cardId}-meta`} checked={entry.selected} onChange={(event) => upsert({ ...entry, selected: event.target.checked })} />
-                      <span><small id={`${cardId}-meta`}>League {draft.source.leagueId} · Season {draft.source.season} · {draft.source.transport === 'browser-session' ? 'Connected ESPN session' : draft.source.transport === 'settings-file' ? 'Settings file' : 'Public settings'}</small></span>
+                      <span><small id={`${cardId}-meta`}>{t(($) => $.leagues.importLeagues.meta, { league: draft.source.leagueId, season: draft.source.season, transport: draft.source.transport === 'browser-session' ? t(($) => $.leagues.importLeagues.transportSession) : draft.source.transport === 'settings-file' ? t(($) => $.leagues.importLeagues.transportFile) : t(($) => $.leagues.importLeagues.transportPublic) })}</small></span>
                     </label>
                   )}
-                  {entry.state === 'loading' && <p role="status">Loading {leagueLabel}…</p>}
+                  {entry.state === 'loading' && <p role="status">{t(($) => $.leagues.importLeagues.loadingLeague, { leagueLabel })}</p>}
                   {entry.state === 'error' && (
                     <div>
                       {!entry.needsAccess && <p className="error" role="status">{entry.error}</p>}
-                      {entry.needsAccess && isConnectorConfigured() && <button type="button" className="btn" aria-label={`Connect ESPN and retry ${leagueLabel}`} disabled={busy} onClick={() => {
+                      {entry.needsAccess && isConnectorConfigured() && <button type="button" className="btn" aria-label={t(($) => $.leagues.importLeagues.connectRetryLabel, { leagueLabel })} disabled={busy} onClick={() => {
                         const controller = new AbortController();
                         const dialog = ref.current as (HTMLDialogElement & { __importAbort?: AbortController }) | null;
                         if (dialog) dialog.__importAbort = controller;
                         setBusy(true);
                         void loadOne(entry.input, controller.signal, entry.selected).finally(() => setBusy(false));
-                      }}>Connect ESPN and retry</button>}
+                      }}>{t(($) => $.leagues.importLeagues.connectRetry)}</button>}
                       {entry.needsAccess && <PrivateLeagueHelp url={settingsUrl(entry.input, season)} what="settings" leagueLabel={leagueLabel} onImport={(text) => importPasted(entry, text)} />}
                     </div>
                   )}
                   {draft && (
                     <div className="import-preview">
-                      <p className="muted">Lineup slots: {summarizeLineup(draft.source.lineupSlotCounts)}</p>
-                      <p>{importedValues(draft).length ? importedValues(draft).join(' · ') : 'No scoring rules map directly to this site’s scoring fields.'}</p>
+                      <p className="muted">{t(($) => $.leagues.importLeagues.lineupSlots, { slots: summarizeLineup(draft.source.lineupSlotCounts) })}</p>
+                      <p>{importedValues(draft).length ? importedValues(draft).join(' · ') : t(($) => $.leagues.importLeagues.noRules)}</p>
                       {existing && (
                         <label className="field-label">
-                          Import target for {leagueLabel}
+                          {t(($) => $.leagues.importLeagues.target, { leagueLabel })}
                           <select value={entry.targetId} onChange={(event) => upsert({ ...entry, targetId: event.target.value, localEditDecision: undefined })}>
-                            {profiles.filter((profile) => !profile.source || profile.id === existing.id).map((profile) => <option key={profile.id} value={profile.id}>{profile.id === existing.id ? `Refresh ${profile.name}` : `Replace ${profile.name}`}</option>)}
+                            {profiles.filter((profile) => !profile.source || profile.id === existing.id).map((profile) => <option key={profile.id} value={profile.id}>{profile.id === existing.id ? t(($) => $.leagues.importLeagues.refreshTarget, { name: profile.name }) : t(($) => $.leagues.importLeagues.replaceTarget, { name: profile.name })}</option>)}
                           </select>
                         </label>
                       )}
                       {!existing && (
                         <label className="field-label">
-                          Import target for {leagueLabel}
+                          {t(($) => $.leagues.importLeagues.target, { leagueLabel })}
                           <select value={entry.targetId} onChange={(event) => upsert({ ...entry, targetId: event.target.value, localEditDecision: undefined })}>
-                            <option value="">Create a new profile</option>
-                            {profiles.filter((profile) => !profile.source).map((profile) => <option key={profile.id} value={profile.id}>Use {profile.name}</option>)}
+                            <option value="">{t(($) => $.leagues.importLeagues.newProfile)}</option>
+                            {profiles.filter((profile) => !profile.source).map((profile) => <option key={profile.id} value={profile.id}>{t(($) => $.leagues.importLeagues.useTarget, { name: profile.name })}</option>)}
                           </select>
                         </label>
                       )}
                       {locallyModified && (
                         <label className="field-label">
-                          This profile has local scoring edits for {leagueLabel}. Choose what to do
+                          {t(($) => $.leagues.importLeagues.localEdits, { leagueLabel })}
                           <select value={entry.localEditDecision ?? ''} onChange={(event) => upsert({ ...entry, localEditDecision: event.target.value as 'replace' | 'preserve' || undefined })}>
-                            <option value="">Choose an update</option>
-                            <option value="replace">Replace local values with ESPN settings</option>
-                            <option value="preserve">Keep my local values and update the source snapshot</option>
+                            <option value="">{t(($) => $.leagues.importLeagues.chooseUpdate)}</option>
+                            <option value="replace">{t(($) => $.leagues.importLeagues.replaceLocal)}</option>
+                            <option value="preserve">{t(($) => $.leagues.importLeagues.keepLocal)}</option>
                           </select>
                         </label>
                       )}
                       {draft.source.issues.length > 0 && (
                         <fieldset className="import-issues">
-                          <legend>Scoring compatibility for {leagueLabel} ({draft.source.issues.length})</legend>
-                          <ul>{draft.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
-                          <label><input type="checkbox" checked={entry.acknowledged} onChange={(event) => upsert({ ...entry, acknowledged: event.target.checked })} /> Import the approximate profile for {leagueLabel} and keep these warnings visible</label>
+                          <legend>{t(($) => $.leagues.importLeagues.compat, { leagueLabel, n: draft.source.issues.length })}</legend>
+                          <ul>{draft.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issueText(issue)}</li>)}</ul>
+                          <label><input type="checkbox" checked={entry.acknowledged} onChange={(event) => upsert({ ...entry, acknowledged: event.target.checked })} /> {t(($) => $.leagues.importLeagues.acknowledge, { leagueLabel })}</label>
                         </fieldset>
                       )}
                     </div>
@@ -346,8 +350,8 @@ export function ImportLeaguesDialog({ open, onClose, onImported, refreshProfileI
           </section>
         )}
         <div className="dlg-actions">
-          <button type="button" className="btn" onClick={cancel}>Cancel</button>
-          <button type="button" className="btn btn-primary" data-camp="import-commit" disabled={!canImport} onClick={commit}>Import selected leagues ({selected.length})</button>
+          <button type="button" className="btn" onClick={cancel}>{t(($) => $.leagues.importLeagues.cancel)}</button>
+          <button type="button" className="btn btn-primary" data-camp="import-commit" disabled={!canImport} onClick={commit}>{t(($) => $.leagues.importLeagues.commit, { n: selected.length })}</button>
         </div>
       </div>
     </dialog>

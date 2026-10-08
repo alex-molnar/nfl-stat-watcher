@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 import { copyValues } from '../scoring/presets';
 import { nextLeagueColor } from '../scoring/leagueColor';
 import { isValidScoringValues, type Profile, type ScoringValues } from '../scoring/types';
@@ -41,14 +42,14 @@ export function isLocallyModified(profile: Profile): boolean {
 }
 
 function availableName(raw: string, profiles: Profile[], excludingId?: string): string {
-  const base = raw.trim() || 'Untitled league';
+  const base = raw.trim() || i18n.t(($) => $.leagues.defaults.untitled);
   const used = new Set(profiles.filter((profile) => profile.id !== excludingId).map((profile) => profile.name.toLocaleLowerCase()));
   if (!used.has(base.toLocaleLowerCase())) return base;
   for (let suffix = 2; suffix < 10_000; suffix += 1) {
     const candidate = `${base} (${suffix})`;
     if (!used.has(candidate.toLocaleLowerCase())) return candidate;
   }
-  throw new Error('Could not create a unique profile name');
+  throw new Error(i18n.t(($) => $.leagues.errors.import.noUniqueName));
 }
 
 export interface LeagueImportTarget {
@@ -62,14 +63,14 @@ export function commitLeagueImports(
   targets: LeagueImportTarget[],
 ): LeagueImportResult {
   if (drafts.length === 0 || drafts.length > 50 || drafts.some((draft) => !isValidLeagueImportDraft(draft))) {
-    throw new Error('The selected league settings could not be validated. Nothing was imported.');
+    throw new Error(i18n.t(($) => $.leagues.errors.import.invalidDrafts));
   }
-  if (targets.length !== drafts.length) throw new Error('Choose where every selected league should be imported.');
+  if (targets.length !== drafts.length) throw new Error(i18n.t(($) => $.leagues.errors.import.chooseTargets));
   const current = profilesStore.get();
   const targetByIdentity = new Map(targets.map((target) => [target.sourceIdentity, target.profileId]));
-  if (targetByIdentity.size !== targets.length) throw new Error('The import contains duplicate league targets.');
+  if (targetByIdentity.size !== targets.length) throw new Error(i18n.t(($) => $.leagues.errors.import.duplicateTargets));
   const identities = drafts.map(({ source }) => identity(source));
-  if (new Set(identities).size !== identities.length) throw new Error('The same ESPN league and season appear more than once.');
+  if (new Set(identities).size !== identities.length) throw new Error(i18n.t(($) => $.leagues.errors.import.duplicateLeague));
 
   const claimedProfiles = new Set<string>();
   let next = [...current];
@@ -78,16 +79,16 @@ export function commitLeagueImports(
     const key = identity(draft.source);
     const existingIdentity = current.find((profile) => profile.source && identity(profile.source) === key);
     const targetId = targetByIdentity.get(key);
-    if (targetId === undefined) throw new Error('Choose where every selected league should be imported.');
-    if (existingIdentity && targetId !== existingIdentity.id) throw new Error(`${draft.name} already has an imported profile. Refresh that profile to preserve followed entries.`);
+    if (targetId === undefined) throw new Error(i18n.t(($) => $.leagues.errors.import.chooseTargets));
+    if (existingIdentity && targetId !== existingIdentity.id) throw new Error(i18n.t(($) => $.leagues.errors.import.alreadyImported, { name: draft.name }));
     const target = targetId ? current.find((profile) => profile.id === targetId) : undefined;
-    if (targetId && !target) throw new Error('A selected profile no longer exists. Load the preview again.');
-    if (target?.source && identity(target.source) !== key) throw new Error('Choose a manual profile or the matching imported profile.');
+    if (targetId && !target) throw new Error(i18n.t(($) => $.leagues.errors.import.profileGone));
+    if (target?.source && identity(target.source) !== key) throw new Error(i18n.t(($) => $.leagues.errors.import.wrongTarget));
     const targetModified = !!target?.source && !sameValues(target.values, target.source.baselineValues);
     if (targetModified && !targets.find((candidate) => candidate.sourceIdentity === key)?.localEditDecision) {
-      throw new Error(`Choose whether to replace or keep local changes in ${target.name}.`);
+      throw new Error(i18n.t(($) => $.leagues.errors.import.chooseLocal, { name: target.name }));
     }
-    if (targetId && claimedProfiles.has(targetId)) throw new Error('Choose a different profile for each selected league.');
+    if (targetId && claimedProfiles.has(targetId)) throw new Error(i18n.t(($) => $.leagues.errors.import.differentProfile));
     if (targetId) claimedProfiles.add(targetId);
 
     const profileId = target?.id ?? crypto.randomUUID();
@@ -135,13 +136,13 @@ export function disconnectLeagueSource(profileId: string): void {
 }
 
 export function createEspnDraft(settings: EspnLeagueSettings): LeagueImportDraft {
-  if (!validSettingsShape(settings)) throw new Error('The ESPN settings response is invalid.');
+  if (!validSettingsShape(settings)) throw new Error(i18n.t(($) => $.leagues.errors.import.invalidResponse));
   // Imported values are supplied by the pure scoring adapter; this guard prevents an unvalidated
   // provider object from bypassing its persisted source allowlist.
   const rawSettings = {
     scoringSettings: { scoringItems: settings.scoringItems },
     rosterSettings: { lineupSlotCounts: settings.lineupSlotCounts },
   };
-  if (new TextEncoder().encode(JSON.stringify(rawSettings)).byteLength > 1_000_000) throw new Error('The ESPN settings response exceeds 1 MB.');
+  if (new TextEncoder().encode(JSON.stringify(rawSettings)).byteLength > 1_000_000) throw new Error(i18n.t(($) => $.leagues.errors.import.tooLarge));
   return normalizeEspnLeague({ ...settings, rawSettings });
 }
