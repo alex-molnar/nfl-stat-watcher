@@ -1,5 +1,7 @@
+import type { EspnTeamRef } from '../espn/types';
 import { sameEntry, sideOf, type Side } from '../storage/followed';
 import type { FollowedEntry } from '../storage/types';
+import type { Starter } from './espn/lineup';
 
 export interface StarterPlan {
   /** Starters not followed yet. */
@@ -24,5 +26,21 @@ export function planStarterImport(incoming: FollowedEntry[], followed: FollowedE
     added: incoming.filter((starter) => !here.some((entry) => sameEntry(entry, starter))),
     unchanged: here.filter((entry) => isStarter(entry) || !dropping),
     removed: dropping ? here.filter((entry) => !isStarter(entry)) : [],
+  };
+}
+
+/** A starter as a followed card for this league and side, or null while its NFL team is unknown. */
+export function starterEntry(starter: Starter, side: Side, profileId: string, nflTeams: EspnTeamRef[]): FollowedEntry | null {
+  const nfl = nflTeams.find((team) => team.id === starter.nflTeamId);
+  if (!nfl) return null;
+  return {
+    kind: starter.kind,
+    espnId: starter.espnId,
+    name: starter.kind === 'defense' ? nfl.displayName : starter.name,
+    teamId: nfl.id,
+    teamAbbr: nfl.abbreviation,
+    position: starter.position,
+    profileId,
+    ...(side === 'opponent' ? { side: 'opponent' as const } : {}),
   };
 }

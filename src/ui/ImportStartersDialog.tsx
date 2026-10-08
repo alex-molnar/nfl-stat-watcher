@@ -9,7 +9,7 @@ import { EspnLoadError } from '../leagues/espn/client';
 import { rosterBookmarklet } from '../leagues/espn/bookmarklet';
 import { LineupError, fetchLeagueLineups, lineupsUrl, readLineups, type LeagueLineups, type Starter } from '../leagues/espn/lineup';
 import type { Profile } from '../scoring/types';
-import { planStarterImport, type StarterPlan } from '../leagues/starterPlan';
+import { planStarterImport, starterEntry, type StarterPlan } from '../leagues/starterPlan';
 import { addEntry, followedStore, removeEntry, type Side } from '../storage/followed';
 import { profilesStore } from '../storage/profiles';
 import type { FollowedEntry } from '../storage/types';
@@ -123,20 +123,7 @@ export function ImportStartersDialog({ open, onClose, side = 'mine', profileId: 
   const leagueOf = (entry: FollowedEntry) => profiles.find((candidate) => candidate.id === entry.profileId);
   const myTeamIn = (target: Profile, lineups: LeagueLineups) => (target.source?.teamId && lineups.teams.some((team) => team.id === target.source?.teamId) ? target.source.teamId : '');
 
-  function toEntry(starter: Starter, forSide: Side, target: Profile): FollowedEntry | null {
-    const nfl = teams.data?.find((team) => team.id === starter.nflTeamId);
-    if (!nfl) return null;
-    return {
-      kind: starter.kind,
-      espnId: starter.espnId,
-      name: starter.kind === 'defense' ? nfl.displayName : starter.name,
-      teamId: nfl.id,
-      teamAbbr: nfl.abbreviation,
-      position: starter.position,
-      profileId: target.id,
-      ...(forSide === 'opponent' ? { side: 'opponent' as const } : {}),
-    };
-  }
+  const toEntry = (starter: Starter, forSide: Side, target: Profile) => (teams.data ? starterEntry(starter, forSide, target.id, teams.data) : null);
 
   // One panel per side being synced. Each gathers every loaded league: whose team it is there, their starters
   // and what the import would do to that side. With several leagues the lists are the leagues' plans put together.

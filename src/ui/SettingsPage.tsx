@@ -14,10 +14,11 @@ import { DEFAULT_POSITION_ORDER, type PositionGroup } from '../stats/positionOrd
 import { positionOrderStore } from '../storage/positionOrder';
 import { PositionOrderInput } from './PositionOrderInput';
 import { bookmarkHelpStore } from '../storage/bookmarkHelp';
+import { autoSyncStore } from '../storage/autoSync';
 
 const MODE_LABELS: Record<NameDisplayMode, string> = { full: 'Full', initial: 'Initial', formal: 'Formal' };
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
-type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean };
+type SettingsDraft = { mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean; autoSync: boolean };
 const CATEGORIES = ['General', 'Position order', 'Site settings'] as const;
 type Category = (typeof CATEGORIES)[number];
 
@@ -30,6 +31,7 @@ export function SettingsPage() {
   const storedName = useStore(mascotNameStore);
   const storedPositions = useStore(positionOrderStore);
   const storedBookmarkHelp = useStore(bookmarkHelpStore);
+  const storedAutoSync = useStore(autoSyncStore);
   const [category, setCategory] = useState<Category>('General');
   const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState('');
@@ -39,8 +41,9 @@ export function SettingsPage() {
   const name = draft?.name ?? storedName;
   const positions = draft?.positions ?? storedPositions;
   const bookmarkHelp = draft?.bookmarkHelp ?? storedBookmarkHelp;
-  const change = (patch: Partial<SettingsDraft>) => setDraft({ mode, mascot, name, positions, bookmarkHelp, ...patch });
-  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp;
+  const autoSync = draft?.autoSync ?? storedAutoSync;
+  const change = (patch: Partial<SettingsDraft>) => setDraft({ mode, mascot, name, positions, bookmarkHelp, autoSync, ...patch });
+  const dirty = mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp || autoSync !== storedAutoSync;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -56,6 +59,7 @@ export function SettingsPage() {
     mascotNameStore.set(name.trim() || DEFAULT_MASCOT_NAME);
     positionOrderStore.set([...positions]);
     bookmarkHelpStore.set(bookmarkHelp);
+    autoSyncStore.set(autoSync);
     setDraft(null);
     setNotice('Saved settings.');
   }
@@ -94,7 +98,8 @@ export function SettingsPage() {
           </aside>
           <section id="settings-category" className="profile-form" aria-labelledby="settings-category-title">
             <h3 id="settings-category-title" className="settings-category-title">{category}</h3>
-            {category === 'General' && <fieldset>
+            {category === 'General' && <>
+              <fieldset>
               <legend>Name display mode</legend>
               <p className="muted">How player names are shown on cards and in lists.</p>
               <div className="choice-list">
@@ -109,7 +114,16 @@ export function SettingsPage() {
                   </div>
                 ))}
               </div>
-            </fieldset>}
+              </fieldset>
+              <fieldset>
+                <legend>Starters</legend>
+                <label className="choice">
+                  <input type="checkbox" checked={autoSync} aria-describedby="auto-sync-help" onChange={(event) => change({ autoSync: event.target.checked })} />
+                  Sync public leagues automatically
+                </label>
+                <p id="auto-sync-help" className="muted">Each time you open Players or Vs, the starters of your public leagues are synced again. Every card of those leagues that is not a starter is removed, whatever each league&rsquo;s own setting says. Private leagues are not touched: they need the bookmark.</p>
+              </fieldset>
+            </>}
             {category === 'Position order' && <fieldset>
               <legend>Position order</legend>
               <p id="position-order-help" className="muted">Use this position order within every game-status group on Players and Vs. During live games, activity comes first: red zone, on the field, then inactive.</p>
