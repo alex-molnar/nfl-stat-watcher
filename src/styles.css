@@ -52,6 +52,7 @@ main.wrap { padding-bottom: 48px; }
 .section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin: 26px 0 12px; }
 .section-head .section-title { margin: 0; }
 .auto-sync-toggle { font-size: 13px; font-weight: 600; color: var(--muted); }
+.page-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .page-note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 .msg { margin: 0; padding: 8px 6px; font-size: 14px; }
 

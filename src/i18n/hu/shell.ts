@@ -16,6 +16,7 @@ export const shell: Messages['shell'] = {
     title: 'Játékosok',
     needLeague: 'Játékosok hozzáadásához előbb adj hozzá egy pontozó ligát',
     addPlayer: 'Játékos hozzáadása',
+    actions: 'Oldal műveletei',
     syncStarters: 'Kezdők szinkronizálása',
     followed: 'Követettek',
     noLeague: 'Játékosok követéséhez előbb adj hozzá egy pontozó ligát.',

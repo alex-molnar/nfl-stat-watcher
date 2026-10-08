@@ -140,7 +140,7 @@ describe('rookie camp steps', () => {
       setCamp('running', 1);
       renderAt('/');
       expect(camp()).toHaveTextContent('Press Add player');
-      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
       expect(camp()).toHaveTextContent('Leagues matter because each one scores differently');
       expect(camp()).toHaveTextContent('Maye');
@@ -166,7 +166,7 @@ describe('rookie camp steps', () => {
         seed([], profilesFixture);
         setCamp('running', 1);
         renderAt('/');
-        await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+        await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
         await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
         return screen.getByLabelText('Search');
       };
@@ -211,7 +211,7 @@ describe('rookie camp steps', () => {
         seed([], profilesFixture);
         practice();
         renderAt('/');
-        await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+        await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
         await waitFor(() => expect(camp()).toHaveTextContent('choose the Practice league'));
         expect(camp()).toHaveTextContent('Try searching for Whitmore');
         expect(within(document.querySelector('dialog[open]')!).getByRole('combobox', { name: 'League' })).toHaveValue('camp-league'); // the dialog starts on the practice league
@@ -238,7 +238,7 @@ describe('rookie camp steps', () => {
       seed([], profilesFixture);
       setCamp('running', 1);
       renderAt('/');
-      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(camp().closest('dialog')).not.toBeNull());
       await userEvent.click(within(camp()).getByRole('button', { name: 'Leave camp' }));
       expect(document.querySelector('dialog[open]')).toBeNull();
@@ -251,7 +251,7 @@ describe('rookie camp steps', () => {
       seed([], profilesFixture);
       setCamp('running', 1);
       renderAt('/');
-      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
       const dialog = document.querySelector('dialog')!;
       await userEvent.click(dialog); // the backdrop: swallowed
@@ -275,7 +275,7 @@ describe('rookie camp steps', () => {
       seed([], profilesFixture);
       setCamp('running', 1);
       renderAt('/');
-      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
       const dialog = document.querySelector('dialog')!;
       expect(dialog).toHaveAttribute('open');
@@ -290,7 +290,7 @@ describe('rookie camp steps', () => {
       seed([], profilesFixture);
       setCamp('running', 1);
       renderAt('/');
-      await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' }));
+      await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' }));
       await waitFor(() => expect(camp()).toHaveTextContent('Search for a player'));
       await act(async () => { document.querySelector('dialog')!.close(); }); // what Escape does
       await waitFor(() => expect(camp()).toHaveTextContent('Press Add player'), { timeout: 2000 });

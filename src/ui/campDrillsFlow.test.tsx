@@ -138,7 +138,7 @@ describe('drill 5: syncing starters', () => {
     setCamp(4);
     renderAt('/');
     await cardSays('Press Sync starters');
-    await userEvent.click(within(screen.getByRole('banner')).getByRole('button', { name: 'Sync starters' }));
+    await userEvent.click(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Sync starters' }));
     await cardSays('choose your own team');
     await userEvent.selectOptions(await screen.findByLabelText('Your team in this league'), '1');
     await cardSays('stop following players');

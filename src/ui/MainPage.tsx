@@ -66,12 +66,12 @@ export function MainPage() {
   function remove(entry: FollowedEntry, button: HTMLElement) {
     const all = [...document.querySelectorAll<HTMLElement>('.card .pts')];
     const i = all.indexOf(button.closest('.card')!.querySelector<HTMLElement>('.pts')!);
-    (all[i + 1] ?? all[i - 1] ?? headerAdd.current)?.focus();
+    (all[i + 1] ?? all[i - 1] ?? addRef.current)?.focus();
     removeEntry(entry);
   }
 
   const opener = useRef<HTMLElement | null>(null);
-  const headerAdd = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
   const addButton = (ref?: React.Ref<HTMLButtonElement>) => (
     <button type="button" ref={ref} className="btn btn-primary press" data-camp="add-player" aria-disabled={noLeagues || undefined} title={needLeague} onClick={(e) => { if (noLeagues) return; opener.current = e.currentTarget; setAdding(true); }}>
       {t(($) => $.shell.main.addPlayer)}
@@ -81,23 +81,18 @@ export function MainPage() {
   // When the opener was unmounted (adding from the empty state), hand focus to the header button.
   function closeDialog() {
     setAdding(false);
-    if (!opener.current?.isConnected) headerAdd.current?.focus();
+    if (!opener.current?.isConnected) addRef.current?.focus();
   }
 
   return (
     <>
-      <Header
-        pageMascot={followed.length === 0}
-        actions={
-          <>
-            <PauseButton />
-            {(hasImported || noLeagues) && <button type="button" className="btn press" data-camp="sync-starters" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>{t(($) => $.shell.main.syncStarters)}</button>}
-            {addButton(headerAdd)}
-          </>
-        }
-      />
+      <Header pageMascot={followed.length === 0} actions={<PauseButton />} />
       <main className="wrap">
         <h2 className="sr" tabIndex={-1} data-page-title>{t(($) => $.shell.main.title)}</h2>
+        <div className="page-actions" role="group" aria-label={t(($) => $.shell.main.actions)}>
+          {addButton(addRef)}
+          {(hasImported || noLeagues) && <button type="button" className="btn press" data-camp="sync-starters" aria-disabled={noLeagues || undefined} title={needLeague} onClick={() => { if (!noLeagues) setImporting(true); }}>{t(($) => $.shell.main.syncStarters)}</button>}
+        </div>
         <p className="page-note" role="status">{note}</p>
         {followed.length === 0 ? (
           noLeagues ? (
