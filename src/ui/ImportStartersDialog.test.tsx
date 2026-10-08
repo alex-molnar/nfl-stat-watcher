@@ -119,13 +119,20 @@ describe('sync starters', () => {
     renderAt('/');
     await userEvent.click(opener());
     const bookmarkBox = await screen.findByRole('region', { name: 'Create bookmark' });
-    expect(document.querySelector('.hl-dlg')).not.toHaveAttribute('open');
-    await userEvent.click(within(bookmarkBox).getByRole('button', { name: 'Watch video' }));
     const tour = document.querySelector<HTMLDialogElement>('.hl-dlg')!;
+    const video = tour.querySelector('video')!;
+    expect(tour).not.toHaveAttribute('open');
+    expect(video).toHaveAttribute('preload', 'auto'); // fetched in the background as soon as the private-league help shows
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    await userEvent.click(within(bookmarkBox).getByRole('button', { name: 'Watch video' }));
     expect(tour).toHaveAttribute('open');
-    expect(tour.querySelector('video')).toHaveAttribute('src', '/sync-tour.mp4');
+    expect(video).toHaveAttribute('src', '/sync-tour.mp4');
+    expect(play).toHaveBeenCalledTimes(1); // starts at once, without a second click on the play button
     await userEvent.click(within(tour).getByRole('button', { name: 'Close video' }));
     expect(tour).not.toHaveAttribute('open');
+    expect(screen.getByRole('region', { name: 'Create bookmark' })).toBeVisible(); // the sync dialog stays open behind it
+    expect(document.querySelector('.sync-all, dialog[aria-labelledby="starters-title"]')).toHaveAttribute('open');
+    play.mockRestore();
   });
 
   it('explains bookmark setup and manual copying in separate hover hints', async () => {

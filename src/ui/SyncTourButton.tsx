@@ -6,10 +6,18 @@ import { DialogMascot } from './DialogMascot';
 export function SyncTourButton() {
   const ref = useRef<HTMLDialogElement>(null);
   const close = () => ref.current?.close();
+  const open = () => {
+    ref.current?.showModal();
+    // The click is the user's gesture, so the browser lets it play with sound; a refusal just leaves the controls to start it.
+    void ref.current?.querySelector('video')?.play().catch(() => {});
+  };
   return <>
-    <button type="button" className="btn" onClick={() => ref.current?.showModal()}>Watch video</button>
+    <button type="button" className="btn" onClick={open}>Watch video</button>
     <dialog ref={ref} className="hl-dlg" aria-labelledby="sync-tour-title"
-      onClose={(event) => event.currentTarget.querySelector('video')?.pause()} {...backdropClose}>
+      onClose={(event) => {
+        event.stopPropagation(); // React bubbles close through the tree: without this the sync dialog this sits in would close as well
+        event.currentTarget.querySelector('video')?.pause();
+      }} {...backdropClose}>
       <DialogMascot />
       <div className="dlg">
         <div className="dlg-head">
@@ -17,7 +25,7 @@ export function SyncTourButton() {
           <button type="button" className="close" aria-label="Close video" onClick={close}>×</button>
         </div>
         <figure className="hl-player">
-          <video src="/sync-tour.mp4" controls playsInline preload="none" aria-label="Fumble shows how to sync your starters with the bookmark" />
+          <video src="/sync-tour.mp4" controls playsInline preload="auto" aria-label="Fumble shows how to sync your starters with the bookmark" />
         </figure>
       </div>
     </dialog>
