@@ -9,6 +9,7 @@ import { showsDummiesOnly } from '../storage/campLeague';
 import { isFake } from '../espn/campSandbox';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
+import { AutoSyncToggle } from './AutoSyncToggle';
 import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
@@ -115,11 +116,15 @@ export function MainPage() {
             const group = rows.filter((r) => (r.game?.state ?? 'none') === key);
             group.sort(liveOrder); // activity first in live games, position in every group; ties stay stable
             if (group.length === 0) return null;
+            const first = GROUPS.find((g) => rows.some((r) => (r.game?.state ?? 'none') === g.key))?.key === key;
             return (
               <section key={key} aria-labelledby={`group-${key}`}>
-                <h2 className="section-title" id={`group-${key}`}>
-                  {key === 'none' && !hasSchedule ? 'Followed' : title}
-                </h2>
+                <div className="section-head">
+                  <h2 className="section-title" id={`group-${key}`}>
+                    {key === 'none' && !hasSchedule ? 'Followed' : title}
+                  </h2>
+                  {first && hasImported && <AutoSyncToggle />}
+                </div>
                 <ul className={`grid${key === 'in' ? ' live' : ''}`}>
                   {group.map(({ entry, game }) => (
                     <EntryCard

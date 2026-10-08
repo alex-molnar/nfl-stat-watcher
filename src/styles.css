@@ -49,6 +49,9 @@ main.wrap { padding-bottom: 48px; }
 .press { transition: transform 120ms ease-out; }
 .press:active:not([aria-disabled="true"]) { transform: scale(.97); }
 .section-title { font: 800 17px/1 Anybody, sans-serif; font-stretch: 120%; margin: 26px 0 12px; color: var(--muted); }
+.section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin: 26px 0 12px; }
+.section-head .section-title { margin: 0; }
+.auto-sync-toggle { font-size: 13px; font-weight: 600; color: var(--muted); }
 .page-note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 .msg { margin: 0; padding: 8px 6px; font-size: 14px; }
 
@@ -434,6 +437,10 @@ dialog { overflow: visible; max-height: none; }
 /* Vs mode: the league picker and the button that syncs both sides share a line. */
 .vs-league-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
 .vs-league-row .vs-league { margin-top: 0; flex: 1 1 220px; }
+/* The select, the button and the checkbox share one height and sit on one line, with the label above the select only. */
+.vs-league-row { --control-h: 44px; }
+.vs-league-row .vs-league select, .vs-league-row > .btn { box-sizing: border-box; height: var(--control-h); }
+.vs-league-row > .auto-sync-toggle { min-height: var(--control-h); }
 /* Sync all starters: the two sides' previews sit next to each other, one below the other on a narrow screen. */
 dialog.sync-all { width: min(1000px, calc(100vw - 32px)); }
 .plan-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
