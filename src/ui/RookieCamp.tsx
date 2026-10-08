@@ -1,13 +1,14 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { campStore, patchCamp } from '../storage/camp';
 import { followedStore, sideOf } from '../storage/followed';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { profilesStore } from '../storage/profiles';
 import { useStore } from '../storage/useStore';
 import { CAMP_PROFILE_ID } from '../espn/campSandbox';
-import { DRILLS, choosePractice, leaveCamp, skipDrill, stepOn, stepText, toNextDrill, type Ctx, type Facts } from './campDrills';
+import { DRILLS, choosePractice, leaveCamp, said, skipDrill, stepOn, stepText, toNextDrill, type Ctx, type Facts } from './campDrills';
 import { dialogsOpen, registerCampMascot, subscribeDialogs } from './dialogsOpen';
 import { Mascot, SEAT_Y } from './Mascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
@@ -113,6 +114,7 @@ const topDialog = () => Array.from(document.querySelectorAll('dialog[open]')).at
  * Settings it is neither offered nor run.
  */
 export function RookieCamp() {
+  const { t } = useTranslation(); // also makes the card render again when the language changes
   const { phase, step, sub } = useStore(campStore);
   const mascotOn = useStore(mascotEnabledStore);
   const name = useStore(mascotNameStore);
@@ -275,14 +277,14 @@ export function RookieCamp() {
 
   // Hovering or focusing what ends the practice early makes the mascot worried.
   const wary = { onMouseEnter: () => setWorried(true), onMouseLeave: () => setWorried(false), onFocus: () => setWorried(true), onBlur: () => setWorried(false) };
-  const text = here ? (off && current!.nudge ? current!.nudge.text(facts) : stepText(current!, facts)) : current!.go ?? drill!.go!;
+  const text = here ? (off && current!.nudge ? current!.nudge.text(facts) : stepText(current!, facts)) : said(current!.go ?? drill!.go!);
   const last = sub + 1 >= drill!.steps.length;
   const buttons = (
     <>
-      {here && sub === 0 && drill!.practice && <button type="button" className="btn btn-primary press" onClick={() => { choosePractice(); nextDrill(true); }}>Use a practice league</button>}
-      {here && current!.next && <button type="button" className="btn btn-primary press" onClick={() => nextStep(last)}>{last ? 'Complete drill' : current!.next}</button>}
-      <button type="button" className="btn press" {...wary} onClick={() => { moved.current = where; skipDrill(step); }}>Skip drill</button>
-      <button type="button" className="btn btn-danger press" {...wary} onClick={leaveCamp}>Leave camp</button>
+      {here && sub === 0 && drill!.practice && <button type="button" className="btn btn-primary press" onClick={() => { choosePractice(); nextDrill(true); }}>{t(($) => $.camp.usePractice)}</button>}
+      {here && current!.next && <button type="button" className="btn btn-primary press" onClick={() => nextStep(last)}>{last ? t(($) => $.camp.completeDrill) : said(current!.next)}</button>}
+      <button type="button" className="btn press" {...wary} onClick={() => { moved.current = where; skipDrill(step); }}>{t(($) => $.camp.skipDrill)}</button>
+      <button type="button" className="btn btn-danger press" {...wary} onClick={leaveCamp}>{t(($) => $.camp.leaveCamp)}</button>
     </>
   );
 
@@ -292,7 +294,7 @@ export function RookieCamp() {
   const card = (
     <>
       {rect && <div className="camp-ring" aria-hidden="true" style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + 2 * pad, height: rect.height + 2 * pad }} />}
-      <section className={`camp${flying ? ' waiting' : ''}`} aria-label="Rookie camp" style={pos}>
+      <section className={`camp${flying ? ' waiting' : ''}`} aria-label={t(($) => $.camp.label)} style={pos}>
         {/* The mascot is on the card when there is no dialog; in one he is on its edge. Keyed by where the card was measured for: a new place is a new mascot, matched with the old one, so it jumps. */}
         {!inDialog && (
           <div className="dialog-perch">
@@ -300,7 +302,7 @@ export function RookieCamp() {
           </div>
         )}
         <div className="camp-body">
-          <p className="camp-name">{name}<span className="muted"> · drill {step + 1} of {DRILLS.length}</span></p>
+          <p className="camp-name">{name}<span className="muted"> · {t(($) => $.camp.drillOf, { step: step + 1, total: DRILLS.length })}</span></p>
           {/* A polite live region: each new step is announced once, whole, however it is typed on screen. */}
           <p className="camp-text" aria-live="polite"><TypedText text={text} hold={flying} /></p>
           <div className="bubble-actions">{buttons}</div>

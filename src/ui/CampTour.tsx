@@ -1,12 +1,15 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { campStore, patchCamp } from '../storage/camp';
 import { mascotEnabledStore, mascotNameStore } from '../storage/mascot';
 import { useStore } from '../storage/useStore';
-import { DRILLS, leaveCamp, skipDrill, stepOn, toNextDrill } from './campDrills';
+import { DRILLS, leaveCamp, said, skipDrill, stepOn, stepText, toNextDrill, type Facts } from './campDrills';
 import { DialogMascot } from './DialogMascot';
 import { isMascotFlying, subscribeMascotFlight } from './mascotFlight';
 import { TypedText } from './TypedText';
+
+const NO_FACTS: Facts = { leagues: 0, followed: 0, path: '', imported: false, practice: false }; // a tour's text is fixed, it asks nothing of the state
 
 /**
  * A step that explains a whole page (`modal` in `campDrills.ts`) is a dialog in the middle of the screen, like the welcome: the mascot jumps onto its
@@ -15,6 +18,7 @@ import { TypedText } from './TypedText';
  * away meanwhile, so there is only the one.
  */
 export function CampTour() {
+  const { t } = useTranslation();
   const { phase, step, sub } = useStore(campStore);
   const mascotOn = useStore(mascotEnabledStore);
   const name = useStore(mascotNameStore);
@@ -37,12 +41,12 @@ export function CampTour() {
     <dialog ref={ref} data-instant aria-labelledby="tour-title" aria-describedby="tour-text" onClose={() => { const c = campStore.get(); if (c.phase === 'running' && c.step === step && c.sub === sub) next(); }}>
       <DialogMascot />
       <div className="dlg">
-        <h2 id="tour-title">{name}<span className="muted"> · drill {step + 1} of {DRILLS.length}</span></h2>
-        <p id="tour-text"><TypedText text={typeof current.text === 'string' ? current.text : ''} /* a tour's text is fixed */ delay={350} hold={flying} /></p>
+        <h2 id="tour-title">{name}<span className="muted"> · {t(($) => $.camp.drillOf, { step: step + 1, total: DRILLS.length })}</span></h2>
+        <p id="tour-text"><TypedText text={stepText(current, NO_FACTS)} delay={350} hold={flying} /></p>
         <div className="dlg-actions">
-          <button type="button" className="btn btn-primary press" onClick={next}>{last ? 'Complete drill' : current.next ?? 'Next'}</button>
-          <button type="button" className="btn press" onClick={() => skipDrill(step)}>Skip drill</button>
-          <button type="button" className="btn btn-danger press" onClick={leaveCamp}>Leave camp</button>
+          <button type="button" className="btn btn-primary press" onClick={next}>{last ? t(($) => $.camp.completeDrill) : current.next ? said(current.next) : t(($) => $.camp.next)}</button>
+          <button type="button" className="btn press" onClick={() => skipDrill(step)}>{t(($) => $.camp.skipDrill)}</button>
+          <button type="button" className="btn btn-danger press" onClick={leaveCamp}>{t(($) => $.camp.leaveCamp)}</button>
         </div>
       </div>
     </dialog>
