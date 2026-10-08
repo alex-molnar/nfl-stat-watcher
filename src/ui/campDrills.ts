@@ -234,6 +234,7 @@ export const DRILLS: Drill[] = [
     go: () => i18n.t(($) => $.camp.drills.highlight.go),
     // The camp's league holds three practice players for this drill (`storage/campLeague.ts`): one playing now, one still to play, one with a final score and a clip.
     steps: [
+      { target: ['[data-camp="live-toggle"]'], wait: true, next: () => i18n.t(($) => $.camp.next), text: () => i18n.t(($) => $.camp.drills.highlight.liveButton) },
       { target: CARD_LIVE, wait: true, optional: true, next: () => i18n.t(($) => $.camp.next), text: () => i18n.t(($) => $.camp.drills.highlight.live) },
       { target: CARD_PRE, wait: true, optional: true, next: () => i18n.t(($) => $.camp.next), text: () => i18n.t(($) => $.camp.drills.highlight.pre) },
       { target: CARD_FINAL, wait: true, optional: true, next: () => i18n.t(($) => $.camp.next), text: () => i18n.t(($) => $.camp.drills.highlight.final) },

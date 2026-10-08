@@ -47,6 +47,10 @@ describe('rookie camp, the last drill', () => {
 
   it('walks over the three cards with Next, then asks for the highlight, and that one is a real clip of the final game’s player', async () => {
     await start();
+    expect(camp()).toHaveTextContent('this button up here'); // the live button is explained first
+    expect(document.querySelector('[data-camp="live-toggle"]')).toHaveAttribute('aria-label', 'Pause live updates');
+    expect(document.querySelector('.camp-ring')).not.toBeNull();
+    await userEvent.click(within(camp()).getByRole('button', { name: 'Next' }));
     expect(camp()).toHaveTextContent('playing right now');
     await userEvent.click(within(camp()).getByRole('button', { name: 'Next' }));
     expect(camp()).toHaveTextContent('has not started yet');
@@ -63,9 +67,9 @@ describe('rookie camp, the last drill', () => {
   });
 
   it('ends with the congratulation once the highlights are closed, and then leaves nothing of the practice players behind', async () => {
-    await start(3);
+    await start(4);
     await userEvent.click(await screen.findByRole('button', { name: /highlights for Jalen Whitmore/i }));
-    await waitFor(() => expect(campStore.get()).toMatchObject({ phase: 'running', step: 5, sub: 4 }), { timeout: 3000 }); // the video step: press the X to go back
+    await waitFor(() => expect(campStore.get()).toMatchObject({ phase: 'running', step: 5, sub: 5 }), { timeout: 3000 }); // the video step: press the X to go back
     await waitFor(() => expect(camp()).toHaveTextContent('Press the X to go back'));
     expect(camp()).toHaveTextContent('clicking outside the dialog or Escape also works');
     expect(document.querySelector('.camp-ring')).not.toBeNull();
