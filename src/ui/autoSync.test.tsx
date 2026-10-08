@@ -90,3 +90,40 @@ describe('the setting', () => {
     expect(localStorage.getItem('nflsw:v1:autoSync')).toBe('true');
   });
 });
+
+describe('the shortcut checkbox', () => {
+  const box = () => screen.getByRole('checkbox', { name: 'Sync public leagues automatically' });
+
+  it('on Players it sits on the first group title only, and applies at once', async () => {
+    mockFetch(routes);
+    seed([{ ...bench(), teamId: '1' }, { ...bench(), espnId: '998', teamId: '2' }], [league]);
+    renderAt('/');
+    const boxes = await screen.findAllByRole('checkbox', { name: 'Sync public leagues automatically' });
+    expect(boxes).toHaveLength(1);
+    const heading = screen.getAllByRole('heading', { level: 2 }).find((h) => h.id.startsWith('group-'))!;
+    expect(heading.parentElement).toContainElement(boxes[0]!);
+    expect(boxes[0]).not.toBeChecked();
+    await userEvent.click(boxes[0]!);
+    expect(localStorage.getItem('nflsw:v1:autoSync')).toBe('true');
+  });
+
+  it('on Players it is hidden without an imported league', async () => {
+    mockFetch(routes);
+    seed([bench()], [{ ...league, source: undefined }]);
+    renderAt('/');
+    await screen.findByText('Bench Guy');
+    expect(screen.queryByRole('checkbox', { name: 'Sync public leagues automatically' })).not.toBeInTheDocument();
+  });
+
+  it('on Vs it sits next to Sync all starters and shares the setting', async () => {
+    mockFetch(routes);
+    seed([], [league]);
+    renderAt('/vs');
+    const sync = screen.getByRole('button', { name: 'Sync all starters' });
+    expect(sync.parentElement).toContainElement(box());
+    await userEvent.click(box());
+    expect(localStorage.getItem('nflsw:v1:autoSync')).toBe('true');
+    await userEvent.click(within(screen.getByRole('banner')).getByRole('link', { name: 'Settings' }));
+    expect(screen.getByRole('checkbox', { name: 'Sync public leagues automatically' })).toBeChecked();
+  });
+});

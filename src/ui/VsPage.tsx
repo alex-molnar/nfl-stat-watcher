@@ -8,6 +8,7 @@ import type { FollowedEntry } from '../storage/types';
 import { useStore } from '../storage/useStore';
 import { AddDialog } from './AddDialog';
 import { useAutoSync } from '../hooks/useAutoSync';
+import { AutoSyncToggle } from './AutoSyncToggle';
 import { ImportStartersDialog } from './ImportStartersDialog';
 import { EntryCard } from './EntryCard';
 import { Header } from './Header';
@@ -163,6 +164,7 @@ function VsMatchup() {
               Sync all starters
             </button>
           )}
+          {canSync && <AutoSyncToggle />}
         </div>
         {/* The one status line: the page note, plus the leader, which changes only when the lead changes hands. */}
         <p className="page-note" role="status">
