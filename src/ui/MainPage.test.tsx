@@ -118,7 +118,7 @@ describe('main page', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove Patrick Mahomes from Friends league' }));
     expect(pts('Pittsburgh Steelers')).toHaveFocus();
     await userEvent.click(screen.getByRole('button', { name: 'Remove Pittsburgh Steelers from Office league' }));
-    expect(within(screen.getByRole('banner')).getByRole('button', { name: 'Add player' })).toHaveFocus();
+    expect(within(screen.getByRole('group', { name: 'Page actions' })).getByRole('button', { name: 'Add player' })).toHaveFocus();
   });
 
   it('shows a retry note when the game summary fails', async () => {

@@ -15,6 +15,7 @@ export const shell = {
     title: 'Players',
     needLeague: 'Add a scoring league first to add players',
     addPlayer: 'Add player',
+    actions: 'Page actions',
     syncStarters: 'Sync starters',
     followed: 'Followed',
     noLeague: 'Add a scoring league first to start following players.',
