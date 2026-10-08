@@ -17,6 +17,7 @@ import { onRightSide } from '../stats/liveOrder';
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
 import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
+import { issueText } from '../leagues/espn/statMap';
 
 interface Props {
   entry: FollowedEntry;
@@ -172,7 +173,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       {open && profile.source?.issues.length ? (
         <details className="compat-warning" open>
           <summary>{t(($) => $.shell.entry.importedLimits, { n: profile.source.issues.length })}</summary>
-          <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
+          <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issueText(issue)}</li>)}</ul>
         </details>
       ) : null}
 

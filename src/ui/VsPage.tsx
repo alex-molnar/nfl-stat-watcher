@@ -19,6 +19,7 @@ import { LEADER_TEXT, ScoreBar, leaderOf } from './ScoreBar';
 import { usePageTitle } from './usePageTitle';
 import { GROUPS } from './gameGroups';
 import { useLiveOrder } from '../hooks/useLiveOrder';
+import { issueText } from '../leagues/espn/statMap';
 
 /** Programmatic focus that also scrolls clear of the sticky bar: scrollIntoView honours scroll-padding (WCAG 2.4.11). */
 function focusVisible(el: HTMLElement | null | undefined) {
@@ -172,7 +173,7 @@ function VsMatchup() {
         {!all && profile.source?.issues.length ? (
           <details className="compat-warning matchup-warning">
             <summary>{t(($) => $.shell.vs.limits, { name: profile.name, n: profile.source.issues.length })}</summary>
-            <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issue.message}</li>)}</ul>
+            <ul>{profile.source.issues.map((issue, index) => <li key={`${issue.providerKeys[0]}-${index}`}>{issueText(issue)}</li>)}</ul>
           </details>
         ) : null}
         <div className="vs">
