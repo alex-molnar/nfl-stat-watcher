@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { setPaused } from '../storage/pause';
+import { applyLanguage, i18n } from '../i18n';
 import { reloadAllStores } from '../storage/store';
 
 // Tests never reach the network. Tests that need data call mockFetch().
@@ -10,11 +11,12 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('not mocked', { status: 404 })));
 });
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   setPaused(false);
   localStorage.clear();
   reloadAllStores();
+  if (i18n.language !== 'en') await applyLanguage(); // back to English, which every test but the Hungarian ones reads
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
