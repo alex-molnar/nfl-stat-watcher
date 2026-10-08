@@ -34,6 +34,8 @@ Device is `bot` for crawlers and requests with no User-Agent, so filter with `de
 
 Use `$__range` (the dashboard's time range) for totals. All counters are `increase()`d, which copes with the collector restarting.
 
+The queries below leave out the environment. Prometheus tags every series with the `namespace` it was scraped from (`nfl-stat-watcher` is live, `nfl-stat-watcher-test` is test), so with both deployed, add `namespace="nfl-stat-watcher"` inside each `statwatch_*{...}` selector or the two are added together. The example dashboard does this with a variable.
+
 | Panel | Query |
 | --- | --- |
 | Visits per day (people) | `sum(increase(statwatch_visit_total{device!="bot"}[1d]))` |
@@ -54,7 +56,7 @@ Use `$__range` (the dashboard's time range) for totals. All counters are `increa
 
 ## Example dashboard
 
-`docs/metrics/example-dashboard.json` is a ready Grafana dashboard ("Stat Watch usage") built from the queries above, in four rows: Visitors, Leagues, Syncing starters and Health. In Grafana choose Dashboards, New, Import, upload the file and pick your Prometheus under "Data source" (it is a dashboard variable, so nothing in the file needs editing). It needs Grafana 10 or newer, and every query was run against a Prometheus 3 scraping the collector. The stat panels use the dashboard's time range, so change it at the top right to look at a day, a week or a month; the time series panels show a rolling 24 hours.
+`docs/metrics/example-dashboard.json` is a ready Grafana dashboard ("Stat Watch usage") built from the queries above, in four rows: Visitors, Leagues, Syncing starters and Health. In Grafana choose Dashboards, New, Import, upload the file and pick your Prometheus under "Data source". Both it and the "Namespace" dropdown at the top are dashboard variables, so nothing in the file needs editing. Namespace lists the environments Prometheus has data for and starts on `nfl-stat-watcher` (live); every panel shows only the selected one, so test traffic never lands in the live numbers. It needs Grafana 10 or newer, and every query was run against a Prometheus 3 scraping the collector. The stat panels use the dashboard's time range, so change it at the top right to look at a day, a week or a month; the time series panels show a rolling 24 hours.
 
 ## Limits
 

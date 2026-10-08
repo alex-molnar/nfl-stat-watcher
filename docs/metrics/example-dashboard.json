@@ -40,6 +40,31 @@
         "hide": 0,
         "refresh": 1,
         "regex": ""
+      },
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${ds}"
+        },
+        "hide": 0,
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "description": "Which deployment's data to show: nfl-stat-watcher is live, nfl-stat-watcher-test is test.",
+        "definition": "label_values(statwatch_active_sessions, namespace)",
+        "query": {
+          "query": "label_values(statwatch_active_sessions, namespace)",
+          "refId": "StandardVariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": "nfl-stat-watcher",
+          "value": "nfl-stat-watcher"
+        }
       }
     ]
   },
@@ -81,7 +106,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "statwatch_active_sessions",
+          "expr": "statwatch_active_sessions{namespace=\"$namespace\"}",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -136,7 +161,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "max_over_time(statwatch_active_sessions[$__range])",
+          "expr": "max_over_time(statwatch_active_sessions{namespace=\"$namespace\"}[$__range])",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -191,7 +216,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_visit_total{device!=\"bot\"}[$__range]))",
+          "expr": "sum(increase(statwatch_visit_total{namespace=\"$namespace\",device!=\"bot\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -246,7 +271,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_visit_total{device=\"bot\"}[$__range]))",
+          "expr": "sum(increase(statwatch_visit_total{namespace=\"$namespace\",device=\"bot\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -301,7 +326,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_page_view_total[$__range])) / sum(increase(statwatch_visit_total[$__range]))",
+          "expr": "sum(increase(statwatch_page_view_total{namespace=\"$namespace\"}[$__range])) / sum(increase(statwatch_visit_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -356,7 +381,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_visit_total{device!=\"bot\"}[1d]))",
+          "expr": "sum(increase(statwatch_visit_total{namespace=\"$namespace\",device!=\"bot\"}[1d]))",
           "refId": "A",
           "legendFormat": "visits"
         }
@@ -413,7 +438,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "statwatch_active_sessions",
+          "expr": "statwatch_active_sessions{namespace=\"$namespace\"}",
           "refId": "A",
           "legendFormat": "active"
         }
@@ -470,7 +495,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (browser) (increase(statwatch_visit_total{device!=\"bot\"}[$__range]))",
+          "expr": "sum by (browser) (increase(statwatch_visit_total{namespace=\"$namespace\",device!=\"bot\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{browser}}",
           "instant": true,
@@ -534,7 +559,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (os) (increase(statwatch_visit_total{device!=\"bot\"}[$__range]))",
+          "expr": "sum by (os) (increase(statwatch_visit_total{namespace=\"$namespace\",device!=\"bot\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{os}}",
           "instant": true,
@@ -598,7 +623,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (device) (increase(statwatch_visit_total{device!=\"bot\"}[$__range]))",
+          "expr": "sum by (device) (increase(statwatch_visit_total{namespace=\"$namespace\",device!=\"bot\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{device}}",
           "instant": true,
@@ -662,7 +687,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (route) (increase(statwatch_page_view_total[$__range]))",
+          "expr": "sum by (route) (increase(statwatch_page_view_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{route}}",
           "instant": true,
@@ -730,7 +755,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_league_import_total{transport=\"public-api\"}[$__range]))",
+          "expr": "sum(increase(statwatch_league_import_total{namespace=\"$namespace\",transport=\"public-api\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -785,7 +810,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_league_import_total{transport!=\"public-api\"}[$__range]))",
+          "expr": "sum(increase(statwatch_league_import_total{namespace=\"$namespace\",transport!=\"public-api\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -840,7 +865,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_league_import_total{transport!=\"public-api\"}[$__range])) / sum(increase(statwatch_league_load_total{result=\"private\"}[$__range]))",
+          "expr": "sum(increase(statwatch_league_import_total{namespace=\"$namespace\",transport!=\"public-api\"}[$__range])) / sum(increase(statwatch_league_load_total{namespace=\"$namespace\",result=\"private\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -903,7 +928,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_league_load_total{result=\"error\"}[$__range]))",
+          "expr": "sum(increase(statwatch_league_load_total{namespace=\"$namespace\",result=\"error\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -962,7 +987,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_league_import_total{issues=\"some\"}[$__range])) / sum(increase(statwatch_league_import_total[$__range]))",
+          "expr": "sum(increase(statwatch_league_import_total{namespace=\"$namespace\",issues=\"some\"}[$__range])) / sum(increase(statwatch_league_import_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1017,7 +1042,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (transport) (increase(statwatch_league_import_total[$__range]))",
+          "expr": "sum by (transport) (increase(statwatch_league_import_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{transport}}",
           "instant": true,
@@ -1081,7 +1106,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (mode) (increase(statwatch_league_import_total[$__range]))",
+          "expr": "sum by (mode) (increase(statwatch_league_import_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{mode}}",
           "instant": true,
@@ -1145,7 +1170,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (result) (increase(statwatch_league_load_total[$__range]))",
+          "expr": "sum by (result) (increase(statwatch_league_load_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{result}}",
           "instant": true,
@@ -1209,7 +1234,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (transport) (increase(statwatch_league_import_total[1d]))",
+          "expr": "sum by (transport) (increase(statwatch_league_import_total{namespace=\"$namespace\"}[1d]))",
           "refId": "A",
           "legendFormat": "{{transport}}"
         }
@@ -1279,7 +1304,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (side, leagues) (increase(statwatch_sync_total[$__range]))",
+          "expr": "sum by (side, leagues) (increase(statwatch_sync_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{side}} / {{leagues}}",
           "instant": true,
@@ -1334,7 +1359,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (step) (increase(statwatch_help_total[$__range]))",
+          "expr": "sum by (step) (increase(statwatch_help_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{step}}",
           "instant": true,
@@ -1389,7 +1414,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (result) (increase(statwatch_sync_load_total[$__range]))",
+          "expr": "sum by (result) (increase(statwatch_sync_load_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "{{result}}",
           "instant": true,
@@ -1453,7 +1478,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_sync_total[1d]))",
+          "expr": "sum(increase(statwatch_sync_total{namespace=\"$namespace\"}[1d]))",
           "refId": "A",
           "legendFormat": "syncs"
         }
@@ -1510,7 +1535,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_sync_load_total{result=\"private\"}[1d]))",
+          "expr": "sum(increase(statwatch_sync_load_total{namespace=\"$namespace\",result=\"private\"}[1d]))",
           "refId": "A",
           "legendFormat": "private"
         },
@@ -1519,7 +1544,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_sync_load_total{result=\"ok\"}[1d]))",
+          "expr": "sum(increase(statwatch_sync_load_total{namespace=\"$namespace\",result=\"ok\"}[1d]))",
           "refId": "B",
           "legendFormat": "ok"
         }
@@ -1589,7 +1614,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{name=\"LCP\"}[$__range])))",
+          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{namespace=\"$namespace\",name=\"LCP\"}[$__range])))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1652,7 +1677,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{name=\"INP\"}[$__range])))",
+          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{namespace=\"$namespace\",name=\"INP\"}[$__range])))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1715,7 +1740,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{name=\"CLS\"}[$__range])))",
+          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{namespace=\"$namespace\",name=\"CLS\"}[$__range])))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1778,7 +1803,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_web_vital_bucket{name=\"LCP\",le=~`2500(\\.0)?`}[$__range])) / sum(increase(statwatch_web_vital_count{name=\"LCP\"}[$__range]))",
+          "expr": "sum(increase(statwatch_web_vital_bucket{namespace=\"$namespace\",name=\"LCP\",le=~`2500(\\.0)?`}[$__range])) / sum(increase(statwatch_web_vital_count{namespace=\"$namespace\",name=\"LCP\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1841,7 +1866,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_js_error_total[$__range]))",
+          "expr": "sum(increase(statwatch_js_error_total{namespace=\"$namespace\"}[$__range]))",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1904,7 +1929,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "increase(statwatch_events_rejected_total[1h])",
+          "expr": "increase(statwatch_events_rejected_total{namespace=\"$namespace\"}[1h])",
           "refId": "A",
           "legendFormat": "",
           "instant": true,
@@ -1967,7 +1992,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{name=\"LCP\"}[1h])))",
+          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{namespace=\"$namespace\",name=\"LCP\"}[1h])))",
           "refId": "A",
           "legendFormat": "LCP (ms)"
         },
@@ -1976,7 +2001,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{name=\"INP\"}[1h])))",
+          "expr": "histogram_quantile(0.75, sum by (le) (increase(statwatch_web_vital_bucket{namespace=\"$namespace\",name=\"INP\"}[1h])))",
           "refId": "B",
           "legendFormat": "INP (ms)"
         }
@@ -2033,7 +2058,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum(increase(statwatch_js_error_total[$__rate_interval]))",
+          "expr": "sum(increase(statwatch_js_error_total{namespace=\"$namespace\"}[$__rate_interval]))",
           "refId": "A",
           "legendFormat": "script errors"
         },
@@ -2042,7 +2067,7 @@
             "type": "prometheus",
             "uid": "${ds}"
           },
-          "expr": "sum by (kind) (increase(statwatch_fetch_error_total[$__rate_interval]))",
+          "expr": "sum by (kind) (increase(statwatch_fetch_error_total{namespace=\"$namespace\"}[$__rate_interval]))",
           "refId": "B",
           "legendFormat": "ESPN {{kind}}"
         }
