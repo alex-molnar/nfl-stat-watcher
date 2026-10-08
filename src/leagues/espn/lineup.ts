@@ -1,3 +1,4 @@
+import { i18n } from '../../i18n';
 import { EspnLoadError, failure } from './client';
 
 const API = 'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons';
@@ -33,9 +34,9 @@ const asId = (value: unknown): string | null => (typeof value === 'number' || ty
 /** Reads only lineups and pairings from ESPN's roster view; every other field is ignored and nothing else is kept. */
 export function parseLeagueLineups(value: unknown, leagueId: string, season: string): LeagueLineups {
   const root = record(value);
-  if (!root || !Array.isArray(root.teams) || root.teams.length === 0 || root.teams.length > 40) throw new LineupError('The ESPN response has no team rosters');
-  if (asId(root.id) !== leagueId) throw new LineupError('ESPN returned rosters for a different league');
-  if (asId(root.seasonId) !== season) throw new LineupError('ESPN returned rosters for a different season');
+  if (!root || !Array.isArray(root.teams) || root.teams.length === 0 || root.teams.length > 40) throw new LineupError(i18n.t(($) => $.sync.lineup.noRosters));
+  if (asId(root.id) !== leagueId) throw new LineupError(i18n.t(($) => $.sync.lineup.differentLeague));
+  if (asId(root.seasonId) !== season) throw new LineupError(i18n.t(($) => $.sync.lineup.differentSeason));
 
   const teams: LeagueLineups['teams'] = [];
   const starters: LeagueLineups['starters'] = {};
@@ -43,8 +44,8 @@ export function parseLeagueLineups(value: unknown, leagueId: string, season: str
     const team = record(raw);
     const id = asId(team?.id);
     const entries = record(team?.roster)?.entries;
-    if (!team || !id || !Array.isArray(entries) || entries.length > 60) throw new LineupError('The ESPN response has an invalid team roster');
-    teams.push({ id, name: typeof team.name === 'string' && team.name.trim() ? team.name.trim().slice(0, 80) : `Team ${id}` });
+    if (!team || !id || !Array.isArray(entries) || entries.length > 60) throw new LineupError(i18n.t(($) => $.sync.lineup.invalidRoster));
+    teams.push({ id, name: typeof team.name === 'string' && team.name.trim() ? team.name.trim().slice(0, 80) : i18n.t(($) => $.sync.lineup.teamFallback, { id }) });
     starters[id] = entries.flatMap((rawEntry): Starter[] => {
       const entry = record(rawEntry);
       const slot = entry?.lineupSlotId;
@@ -80,14 +81,14 @@ export function lineupsUrl(leagueId: string, season: string): string {
 }
 
 export async function fetchLeagueLineups(leagueId: string, season: string, signal?: AbortSignal): Promise<LeagueLineups> {
-  if (!/^\d{1,20}$/.test(leagueId) || !/^\d{4}$/.test(season)) throw new EspnLoadError('malformed', 'Invalid ESPN league ID or season');
+  if (!/^\d{1,20}$/.test(leagueId) || !/^\d{4}$/.test(season)) throw new EspnLoadError('malformed', i18n.t(($) => $.sync.lineup.invalidId));
   const timeout = AbortSignal.timeout(TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch(lineupsUrl(leagueId, season), { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new EspnLoadError('network-error', 'ESPN could not be reached. Check the connection and try again.');
+    throw new EspnLoadError('network-error', i18n.t(($) => $.sync.lineup.unreachable));
   }
   if (!response.ok) throw failure(response.status);
   return readLineups(await response.text(), leagueId, season);
@@ -95,8 +96,8 @@ export async function fetchLeagueLineups(leagueId: string, season: string, signa
 
 /** Shared by the fetch and by pasted text, so both go through the same size limit and validation. */
 export function readLineups(text: string, leagueId: string, season: string): LeagueLineups {
-  if (new TextEncoder().encode(text).byteLength > MAX_BYTES) throw new LineupError('The ESPN rosters exceed 8 MB');
+  if (new TextEncoder().encode(text).byteLength > MAX_BYTES) throw new LineupError(i18n.t(($) => $.sync.lineup.tooBig));
   let json: unknown;
-  try { json = JSON.parse(text); } catch { throw new LineupError('That is not valid JSON. Open the link, select everything on the page and copy it again.'); }
+  try { json = JSON.parse(text); } catch { throw new LineupError(i18n.t(($) => $.sync.lineup.notJson)); }
   return parseLeagueLineups(json, leagueId, season);
 }
