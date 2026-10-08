@@ -76,7 +76,8 @@ export const camp: Messages['camp'] = {
     },
     highlight: {
       go: 'Utolsó gyakorlat: nézz meg egy kiemelt pillanatot. Nyisd meg a Játékosok oldalt.',
-      live: 'Utolsó gyakorlat: a kártyáid. A következőkhöz kölcsönadtam pár gyakorlójátékost. Ő most játszik: a pontjai élőben frissülnek, és amikor a csapata a 20-as vonalon belülre kerül, piros zóna zászló jelenik meg a pályán.',
+      liveButton: 'Utolsó gyakorlat: először ez a gomb itt fent. Amíg a nyilak forognak és a fény pulzál, az élő frissítés be van kapcsolva, és a számok maguktól frissülnek. Nyomd meg a szüneteltetéshez: az ikon lejátszás gombra vált, és minden megáll. Nyomd meg újra a folytatáshoz, és azonnal frissül minden.',
+      live: 'Most a kártyáid. A következőkhöz kölcsönadtam pár gyakorlójátékost. Ő most játszik: a pontjai élőben frissülnek, és amikor a csapata a 20-as vonalon belülre kerül, piros zóna zászló jelenik meg a pályán.',
       pre: 'Az ő meccse még nem kezdődött el. A kártyáján látszik, kik az ellenfelei és mikor a kezdés, és a meccs indulásakor kitöltődik.',
       final: 'Ez a meccs pedig véget ért: a kártya megőrzi a végeredményt és a fantasy-pontjainak összegét.',
       button: 'A nagy játékokhoz ▶ Kiemelések gomb jár a játékos kártyáján, mint itt. Nyomd meg, hogy megnézd a felvételt.',

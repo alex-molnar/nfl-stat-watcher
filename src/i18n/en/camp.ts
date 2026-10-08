@@ -75,7 +75,8 @@ export const camp = {
     },
     highlight: {
       go: 'Last drill: watch a highlight. Open Players.',
-      live: 'Last drill: your cards. For the next few I have lent you some practice players. This one is playing right now: his points update live, and when his team gets inside the 20 a red zone flag shows up on the field.',
+      liveButton: 'Last drill: first, this button up here. While the arrows turn and the glow pulses, live updates are on and the numbers refresh by themselves. Press it to pause: the icon becomes a play button and everything stands still. Press it again to resume and refresh right away.',
+      live: 'Now your cards. For the next few I have lent you some practice players. This one is playing right now: his points update live, and when his team gets inside the 20 a red zone flag shows up on the field.',
       pre: 'This one’s game has not started yet. His card shows who they play and when the kickoff is, and fills in once the game begins.',
       final: 'And this game is over: the card keeps the final score and his total fantasy points.',
       button: 'Big plays get a ▶ Highlights button on a player’s card, like this one. Press it to watch the clip.',

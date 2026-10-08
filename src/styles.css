@@ -52,6 +52,14 @@ main.wrap { padding-bottom: 48px; }
 .section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin: 26px 0 12px; }
 .section-head .section-title { margin: 0; }
 .auto-sync-toggle { font-size: 13px; font-weight: 600; color: var(--muted); }
+.live-btn { display: inline-flex; align-items: center; gap: 10px; padding: 9px 16px; }
+.live-btn svg { width: 20px; height: 20px; flex: none; }
+.live-btn.is-live { border-color: var(--accent); animation: live-glow 2.4s ease-in-out infinite; }
+.live-btn.is-live .live-refresh { animation: live-spin 3s linear infinite; }
+@keyframes live-spin { to { transform: rotate(360deg); } }
+@keyframes live-glow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } 50% { box-shadow: 0 0 12px 3px color-mix(in srgb, var(--accent) 55%, transparent); } }
+/* Reduced motion: nothing turns or pulses; the accent border still says it is live. */
+@media (prefers-reduced-motion: reduce) { .live-btn.is-live, .live-btn.is-live .live-refresh { animation: none; } }
 .page-note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 .msg { margin: 0; padding: 8px 6px; font-size: 14px; }
 
