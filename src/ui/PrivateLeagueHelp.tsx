@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { PrivateHelpButton } from './PrivateHelpButton';
+import { SyncTourButton } from './SyncTourButton';
 import { BookmarkDragGuide } from './BookmarkDragGuide';
 import { bookmarkHelpStore } from '../storage/bookmarkHelp';
 import { useStore } from '../storage/useStore';
@@ -99,6 +100,7 @@ export function PrivateLeagueHelp({ url, what, leagueLabel, onImport, bookmarkle
             <span className="muted bm-or">or</span>
             <button type="button" className="btn" onClick={() => void copyCode()}>Copy bookmark</button>
             <PrivateHelpButton mode="bookmark" />
+            <SyncTourButton />
           </div>
           {!dragging && <BookmarkDragGuide anchor={bookmarkAnchor} />}
           <p>Now if you go to any page on ESPN, within your league, and click the bookmark you just saved you should be set! You can go ahead and paste the info in the input below</p>

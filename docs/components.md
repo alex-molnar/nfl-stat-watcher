@@ -177,6 +177,10 @@ Clips come from the `videos` list in the game summary the card already polls (ev
 
 `HighlightsDialog` is a native `<dialog>`. A clip with a direct `.mp4` file plays inside it (a `video` element with controls); a single clip starts straight away. A clip with only a page opens that page in a new window (`noopener,noreferrer`). Only https links are accepted, and only `.mp4` files are played in the dialog.
 
+## Sync walkthrough video
+
+`SyncTourButton` ("Watch video") sits beside "How?" in the Create bookmark section of the private-league help. It opens a native `<dialog>` (the `hl-dlg` styling of the highlights dialog, with the mascot) that plays `public/sync-tour.mp4`: Fumble narrates the bookmark setup, with the page text drawn as skeletons. The video loads only when played (`preload="none"`) and is paused when the dialog closes. States: closed, open. The only prop-free state is the dialog's own `open`.
+
 The source is ESPN, not `api.nfl.com/content/v1/videos`: that endpoint answers 401 (`x-nfl-jwtstatus: FAILED`) to any request without an NFL-issued token, and a token sent from the browser would be visible to every user.
 
 

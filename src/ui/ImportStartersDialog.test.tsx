@@ -113,6 +113,21 @@ describe('sync starters', () => {
     expect(document.querySelector('.bookmark-drag-guide')).not.toBeInTheDocument();
   });
 
+  it('plays Fumble\'s walkthrough video from a button next to How?', async () => {
+    mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
+    seed([], [league]);
+    renderAt('/');
+    await userEvent.click(opener());
+    const bookmarkBox = await screen.findByRole('region', { name: 'Create bookmark' });
+    expect(document.querySelector('.hl-dlg')).not.toHaveAttribute('open');
+    await userEvent.click(within(bookmarkBox).getByRole('button', { name: 'Watch video' }));
+    const tour = document.querySelector<HTMLDialogElement>('.hl-dlg')!;
+    expect(tour).toHaveAttribute('open');
+    expect(tour.querySelector('video')).toHaveAttribute('src', '/sync-tour.mp4');
+    await userEvent.click(within(tour).getByRole('button', { name: 'Close video' }));
+    expect(tour).not.toHaveAttribute('open');
+  });
+
   it('explains bookmark setup and manual copying in separate hover hints', async () => {
     mockFetch({ ...routes, 'leagues/1900128084?view=mRoster': status(401) });
     seed([], [league]);
