@@ -179,7 +179,7 @@ Clips come from the `videos` list in the game summary the card already polls (ev
 
 ## Sync walkthrough video
 
-`SyncTourButton` ("Watch video") sits beside "How?" in the Create bookmark section of the private-league help. It opens a native `<dialog>` (the `hl-dlg` styling of the highlights dialog, with the mascot) that plays `public/sync-tour.mp4`: Fumble narrates the bookmark setup, with the page text drawn as skeletons. The video loads only when played (`preload="none"`) and is paused when the dialog closes. States: closed, open. The only prop-free state is the dialog's own `open`.
+`SyncTourButton` ("Watch video") sits beside "How?" in the Create bookmark section of the private-league help. It opens a native `<dialog>` (the `hl-dlg` styling of the highlights dialog, with the mascot) that plays `public/sync-tour.mp4`: Fumble narrates the bookmark setup, with the page text drawn as skeletons. The video is fetched in the background (`preload="auto"`) as soon as the private-league help shows, since the button is only rendered there, and starts playing the moment the button is clicked. Closing the dialog pauses it and leaves the sync dialog behind it open (the `close` event is stopped so it does not reach that dialog's own `onClose`). States: closed, open. The only prop-free state is the dialog's own `open`.
 
 The source is ESPN, not `api.nfl.com/content/v1/videos`: that endpoint answers 401 (`x-nfl-jwtstatus: FAILED`) to any request without an NFL-issued token, and a token sent from the browser would be visible to every user.
 
