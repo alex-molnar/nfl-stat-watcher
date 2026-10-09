@@ -578,9 +578,14 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .camp-text { font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { .camp-ring::after { animation: none; } }
 
-/* Privacy page and the footer link under every page */
+/* Privacy page and the site-wide footer */
 .privacy-page { max-width: 760px; }
 .privacy-page h3 { font: 800 15px/1.2 Anybody, sans-serif; font-stretch: 115%; margin: 28px 0 6px; }
 .privacy-page p, .privacy-page li { max-width: 68ch; }
 .privacy-page li { margin: 4px 0; }
-.site-foot { padding-top: 8px; padding-bottom: 28px; font-size: 13px; color: var(--muted); }
+.site-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; padding-top: 16px; padding-bottom: 28px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
+.site-foot-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 20px; }
+.site-foot-links a { padding: 6px 0; text-decoration: none; }
+.site-foot-links a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.site-foot-coffee { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; text-decoration: none; }
+.site-foot-coffee:hover { filter: brightness(1.08); }
