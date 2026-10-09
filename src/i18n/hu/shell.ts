@@ -2,7 +2,7 @@ import type { Messages } from '../messages';
 
 export const shell: Messages['shell'] = {
   nav: { label: 'Főmenü', players: 'Játékosok', vs: 'Párharc', leagues: 'Ligák', settings: 'Beállítások' },
-  footer: { privacy: 'Adatvédelem' },
+  footer: { privacy: 'Adatvédelem', github: 'GitHub', buyMeCoffee: 'Meghívsz egy kávéra?' },
   theme: { light: 'Világos mód', dark: 'Sötét mód' },
   pause: {
     pause: 'Élő frissítés szüneteltetése',
