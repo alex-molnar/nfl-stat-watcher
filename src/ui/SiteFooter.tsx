@@ -11,6 +11,9 @@ export function SiteFooter() {
         <a href="https://github.com/alex-molnar" target="_blank" rel="noreferrer">
           {t(($) => $.shell.footer.github)}
         </a>
+        <a href="mailto:molnar.alex98@gmail.com">
+          {t(($) => $.shell.footer.email)}
+        </a>
       </div>
       <a
         className="btn btn-primary site-foot-coffee"
