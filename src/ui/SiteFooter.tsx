@@ -1,12 +1,26 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-/** Under every page: the one link that has to be reachable from anywhere. */
+/** Site-wide privacy, profile and support links. */
 export function SiteFooter() {
   const { t } = useTranslation();
   return (
     <footer className="wrap site-foot">
-      <Link to="/privacy">{t(($) => $.shell.footer.privacy)}</Link>
+      <div className="site-foot-links">
+        <Link to="/privacy">{t(($) => $.shell.footer.privacy)}</Link>
+        <a href="https://github.com/alex-molnar" target="_blank" rel="noreferrer">
+          {t(($) => $.shell.footer.github)}
+        </a>
+      </div>
+      <a
+        className="btn btn-primary site-foot-coffee"
+        href="https://ko-fi.com/R5H524XXQ8"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <span aria-hidden="true">☕</span>
+        {t(($) => $.shell.footer.buyMeCoffee)}
+      </a>
     </footer>
   );
 }
