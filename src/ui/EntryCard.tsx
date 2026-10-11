@@ -19,6 +19,7 @@ import { daznEnabledStore, daznLinksStore, daznModeStore, daznPathFor } from '..
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
 import { displayName, isOffense, isRedZone, kickoffText, resultText, signedPoints, statLine, textOn } from './format';
+import { StatTip } from './StatTip';
 import { issueText } from '../leagues/espn/statMap';
 
 interface Props {
@@ -153,10 +154,10 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       <div className="stats">
         {items.length > 0 ? (
           items.map((s) => (
-            <div className="stat" key={s.label} title={s.rules}>
+            <StatTip key={s.label} rules={s.rules}>
               <Bump value={s.value} />
               <span>{s.label}</span>
-            </div>
+            </StatTip>
           ))
         ) : (
           <div className="stat"><span>{game?.state === 'pre' ? t(($) => $.shell.entry.noStatsPre) : t(($) => $.shell.entry.noStats)}</span></div>
