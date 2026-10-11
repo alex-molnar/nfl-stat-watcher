@@ -19,7 +19,7 @@ function collect(fill: (add: (label: string, points: number) => void) => void): 
 }
 
 /** Switched-off rules score nothing; their stored weight is untouched. */
-function applied(v: ScoringValues): ScoringValues {
+export function applied(v: ScoringValues): ScoringValues {
   if (!v.off?.length) return v;
   const next = { ...v };
   for (const key of v.off) next[key as ValueKey] = 0;

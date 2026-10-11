@@ -1,6 +1,8 @@
 import { i18n } from '../i18n';
 import type { en } from '../i18n/en';
 import type { GameStats } from '../stats/types';
+import { applied } from '../scoring/score';
+import type { ScoringValues, StepStat, ValueKey } from '../scoring/types';
 import type { GameInfo } from '../stats/scoreboard';
 import type { NameDisplayMode } from '../storage/nameDisplay';
 import type { FollowedEntry } from '../storage/types';
@@ -12,44 +14,89 @@ export const isOffense = (position: string) => OFFENSE.has(position);
 
 type StatKey = keyof (typeof en)['shell']['stats'];
 const stat = (key: StatKey) => i18n.t(($) => $.shell.stats[key]);
-const items = (pairs: [number | string, StatKey][]): StatItem[] => pairs.map(([v, key]) => ({ value: String(v), label: stat(key) }));
 
-export function statLine(entry: FollowedEntry, game: GameStats | undefined): StatItem[] {
+/**
+ * The stats the entry's league gives points for (a weight or a step rule that is not 0 and not switched off), in the
+ * breakdown's order, whatever the position. Each shows only when it is not 0, except a team defense's points allowed.
+ */
+export function statLine(entry: FollowedEntry, game: GameStats | undefined, values: ScoringValues): StatItem[] {
   if (!game) return [];
+  const v = applied(values);
+  const steps = new Set((v.steps ?? []).filter((r) => r.points !== 0).map((r) => r.stat));
+  const scores = (...keys: (ValueKey | StepStat)[]) => keys.some((k) => steps.has(k as StepStat) || (k in v && v[k as ValueKey] !== 0));
+  const out: StatItem[] = [];
+  const add = (earns: boolean, value: number, key: StatKey, shown: number | string = value) => {
+    if (earns && value !== 0) out.push({ value: String(shown), label: stat(key) });
+  };
+
   if (entry.kind === 'defense') {
     const d = game.defenses[entry.teamId];
-    return d ? items([[d.sacks, 'sacks'], [d.interceptions, 'int'], [d.fumbleRecoveries, 'fumRec'], [d.pointsAllowed, 'ptsAllowed']]) : [];
+    if (!d) return [];
+    add(scores('dstSack'), d.sacks, 'sacks');
+    add(scores('dstInterception'), d.interceptions, 'int');
+    add(scores('dstFumbleRecovery'), d.fumbleRecoveries, 'fumRec');
+    add(scores('dstSafety'), d.safeties, 'safeties');
+    add(scores('dstBlockedKick'), d.blockedKicks ?? 0, 'blocked');
+    add(scores('dstTd'), d.touchdowns, 'td');
+    add(YARDS_ALLOWED.some((k) => scores(k)), d.yardsAllowed ?? 0, 'ydsAllowed');
+    out.push({ value: String(d.pointsAllowed), label: stat('ptsAllowed') }); // 0 is a shutout, the best a defense can do
+    return out;
   }
+
   const s = game.players[entry.espnId];
   if (!s) return [];
-  const rec = s.receiving ?? { receptions: 0, targets: 0, yards: 0, touchdowns: 0 };
-  const rush = s.rushing ?? { attempts: 0, yards: 0, touchdowns: 0 };
-  // Most skill players never return a kick, so returns show only once they produced something.
-  const ret = s.returns ?? { touchdowns: 0 };
-  const retYards = (ret.kickYards ?? 0) + (ret.puntYards ?? 0);
-  const returns = items(([[retYards, 'retYds'], [ret.touchdowns, 'retTd']] as [number, StatKey][]).filter(([v]) => v !== 0));
-  switch (entry.position) {
-    case 'QB': {
-      const p = s.passing ?? { completions: 0, attempts: 0, yards: 0, touchdowns: 0, interceptions: 0 };
-      return items([[`${p.completions}/${p.attempts}`, 'comp'], [p.yards, 'passYds'], [p.touchdowns, 'passTd'], [p.interceptions, 'int'], [rush.yards, 'rushYds']]);
-    }
-    case 'RB':
-    case 'FB':
-      return items([[rush.attempts, 'carries'], [rush.yards, 'rushYds'], [rec.receptions, 'catches'], [rec.yards, 'recYds'], [rush.touchdowns + rec.touchdowns, 'td']]).concat(returns);
-    case 'WR':
-    case 'TE':
-      return items([[`${rec.receptions}/${rec.targets}`, 'catches'], [rec.yards, 'recYds'], [rec.touchdowns, 'td']]).concat(returns);
-    case 'K':
-    case 'PK': {
-      const k = s.kicking ?? { fgMade: 0, fgAttempts: 0, longest: 0, xpMade: 0, xpAttempts: 0, madeDistances: [] };
-      return items([[`${k.fgMade}/${k.fgAttempts}`, 'fg'], [k.longest, 'long'], [`${k.xpMade}/${k.xpAttempts}`, 'xp']]);
-    }
-    default: {
-      const d = s.defense ?? { totalTackles: 0, soloTackles: 0, sacks: 0, tacklesForLoss: 0, passesDefended: 0, qbHits: 0, touchdowns: 0 };
-      return items([[d.totalTackles, 'tackles'], [d.sacks, 'sacks'], [d.tacklesForLoss, 'tfl'], [d.passesDefended, 'pd'], [s.interceptions?.interceptions ?? 0, 'int']]);
-    }
+  const p = s.passing, ru = s.rushing, re = s.receiving, f = s.fumbles, r = s.returns, k = s.kicking, d = s.defense;
+  if (p) {
+    add(scores('passAttempt', 'passCompletion', 'passIncompletion'), p.attempts, 'comp', `${p.completions}/${p.attempts}`);
+    add(scores('passYards', 'pass300', 'pass400'), p.yards, 'passYds');
+    add(scores('passTd', 'passTd40', 'passTd50'), p.touchdowns, 'passTd');
+    add(scores('interception'), p.interceptions, 'int');
+    add(scores('sacked'), p.sacked ?? 0, 'sacked');
   }
+  if (ru) {
+    add(scores('rushAttempt'), ru.attempts, 'carries');
+    add(scores('rushYards', 'rush100', 'rush200'), ru.yards, 'rushYds');
+    add(scores('rushTd', 'rushTd40', 'rushTd50'), ru.touchdowns, 'rushTd');
+  }
+  if (re) {
+    add(scores('recTarget'), re.targets, 'targets');
+    add(scores('reception'), re.receptions, 'catches');
+    add(scores('recYards', 'rec100', 'rec200'), re.yards, 'recYds');
+    add(scores('recTd', 'recTd40', 'recTd50'), re.touchdowns, 'recTd');
+  }
+  add(scores('twoPoint'), s.twoPointConversions, 'twoPt');
+  if (f) {
+    add(scores('fumble'), f.fumbles, 'fumbles');
+    add(scores('fumbleLost'), f.lost, 'fumLost');
+  }
+  if (r) {
+    add(true, (scores('kickReturnYards') ? r.kickYards ?? 0 : 0) + (scores('puntReturnYards') ? r.puntYards ?? 0 : 0), 'retYds');
+    add(scores('returnTd'), r.touchdowns, 'retTd');
+  }
+  if (k) {
+    add(scores(...FIELD_GOALS), k.fgAttempts, 'fg', `${k.fgMade}/${k.fgAttempts}`);
+    add(scores('xpMade', 'xpMissed'), k.xpAttempts, 'xp', `${k.xpMade}/${k.xpAttempts}`);
+  }
+  if (d) {
+    add(scores('soloTackle', 'assistedTackle', 'tackle'), d.totalTackles, 'tackles');
+    add(scores('sack'), d.sacks, 'sacks');
+    add(scores('tackleForLoss'), d.tacklesForLoss, 'tfl');
+    add(scores('qbHit'), d.qbHits, 'qbHits');
+    add(scores('passDefended'), d.passesDefended, 'pd');
+    add(scores('defensiveTd'), d.touchdowns, 'defTd');
+  }
+  // Only pure defenders score recoveries, as in scorePlayer.
+  if (f && !p && !ru && !re && (d || s.interceptions)) add(scores('fumbleRecovery'), f.recovered, 'fumRec');
+  add(scores('idpInterception'), s.interceptions?.interceptions ?? 0, 'int');
+  add(scores('forcedFumble'), s.forcedFumbles ?? 0, 'ff');
+  add(scores('stuff'), s.stuffs ?? 0, 'stuffs');
+  add(scores('safety'), s.safeties, 'safeties');
+  add(scores('blockedKick'), s.blockedKicks ?? 0, 'blocked');
+  return out;
 }
+
+const FIELD_GOALS: ValueKey[] = ['fg0to39', 'fg40to49', 'fg50to59', 'fg60plus', 'fgMissed', 'fgMissed0to39', 'fgMissed40to49', 'fgMissed50to59', 'fgMissed60plus'];
+const YARDS_ALLOWED: ValueKey[] = ['yardsAllowed0', 'yardsAllowed100', 'yardsAllowed200', 'yardsAllowed300', 'yardsAllowed350', 'yardsAllowed400', 'yardsAllowed450', 'yardsAllowed500', 'yardsAllowed550'];
 
 export function isRedZone(entry: FollowedEntry, game: GameInfo | null, stats: GameStats | undefined): boolean {
   const s = stats?.situation;
