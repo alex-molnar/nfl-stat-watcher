@@ -3,35 +3,60 @@ import type { EspnSummary } from '../espn/types';
 import { normalizeSummary } from '../stats/normalize';
 import type { GameInfo } from '../stats/scoreboard';
 import type { FollowedEntry } from '../storage/types';
+import type { GameStats, PlayerStats } from '../stats/types';
+import { PRESETS } from '../scoring/presets';
+import type { ScoringValues } from '../scoring/types';
 import { displayName, isRedZone, resultText, statLine, textOn } from './format';
 
 const stats = normalizeSummary(summaryJson as unknown as EspnSummary);
 const entry = (over: Partial<FollowedEntry>): FollowedEntry => ({
   kind: 'player', espnId: '8439', name: 'Aaron Rodgers', teamId: '23', teamAbbr: 'PIT', position: 'QB', profileId: 'p1', ...over,
 });
-const line = (e: FollowedEntry) => statLine(e, stats).map((s) => `${s.value} ${s.label}`);
+const ppr = PRESETS.ppr;
+const line = (e: FollowedEntry, v: ScoringValues = ppr, game: GameStats = stats) => statLine(e, game, v).map((s) => `${s.value} ${s.label}`);
+const only = (player: PlayerStats) => ({ ...stats, players: { x: player } });
+const x = entry({ espnId: 'x', position: 'WR' });
 
 describe('statLine', () => {
-  it('formats each position', () => {
-    expect(line(entry({}))).toEqual(['22/40 comp', '299 pass yds', '3 pass TD', '2 INT', '0 rush yds']);
-    expect(line(entry({ espnId: '4569987', position: 'RB' }))).toEqual(['17 carries', '93 rush yds', '3 catches', '33 rec yds', '0 TD']);
-    expect(line(entry({ espnId: '4430802', position: 'TE' }))).toEqual(['3/5 catches', '27 rec yds', '1 TD']);
-    expect(line(entry({ espnId: '17372', position: 'K' }))).toEqual(['1/2 FG', '31 long', '1/1 XP']);
-    expect(line(entry({ espnId: '4361652', position: 'LB' }))).toEqual(['9 tackles', '1 sacks', '1 TFL', '0 PD', '0 INT']);
+  it('lists what the league scores, leaving out zeros and stats it gives no points', () => {
+    expect(line(entry({}))).toEqual(['299 pass yds', '3 pass TD', '2 INT', '1 2PT']); // 0 rush yds and the unscored 5 sacks are left out
+    expect(line(entry({ espnId: '4569987', position: 'RB' }))).toEqual(['93 rush yds', '3 catches', '33 rec yds']); // carries score nothing, 0 TD hidden
+    expect(line(entry({ espnId: '4430802', position: 'TE' }))).toEqual(['3 catches', '27 rec yds', '1 rec TD']);
+    expect(line(entry({ espnId: '17372', position: 'K' }))).toEqual(['1/2 FG', '1/1 XP']);
+    expect(line(entry({ espnId: '4361652', position: 'LB' }))).toEqual(['9 tackles', '1 sacks', '1 TFL', '1 QB hits']);
     expect(line(entry({ kind: 'defense', espnId: '23', position: 'D/ST' }))).toEqual(['2 sacks', '1 INT', '1 fum rec', '27 pts allowed']);
   });
-  it('adds return yards and TDs for skill players only when they have any', () => {
-    const returner = (returns: NonNullable<(typeof stats)['players'][string]['returns']>) =>
-      statLine(entry({ espnId: 'r', position: 'WR' }), { ...stats, players: { r: { twoPointConversions: 0, safeties: 0, returns } } }).map((s) => `${s.value} ${s.label}`);
-    expect(returner({ touchdowns: 0, kickYards: 0, puntYards: 0 })).toEqual(['0/0 catches', '0 rec yds', '0 TD']);
-    expect(returner({ touchdowns: 0, kickYards: 48 })).toEqual(['0/0 catches', '0 rec yds', '0 TD', '48 ret yds']);
-    expect(returner({ touchdowns: 1, kickYards: 98, puntYards: 12 })).toEqual(['0/0 catches', '0 rec yds', '0 TD', '110 ret yds', '1 ret TD']);
-    expect(statLine(entry({ espnId: 'r', position: 'RB' }), { ...stats, players: { r: { twoPointConversions: 0, safeties: 0, returns: { touchdowns: 1, puntYards: 60 } } } })
-      .map((s) => s.label)).toEqual(['carries', 'rush yds', 'catches', 'rec yds', 'TD', 'ret yds', 'ret TD']);
+
+  it('follows the league: weights, negative ones, switched-off rules and step rules', () => {
+    const tePlayer = entry({ espnId: '4430802', position: 'TE' });
+    expect(line(tePlayer, PRESETS.standard)).toEqual(['27 rec yds', '1 rec TD']); // no points per catch
+    expect(line(tePlayer, { ...ppr, recTarget: 0.1 })).toEqual(['5 targets', '3 catches', '27 rec yds', '1 rec TD']);
+    expect(line(tePlayer, { ...ppr, off: ['reception'] })).toEqual(['27 rec yds', '1 rec TD']);
+    expect(line(entry({}), { ...ppr, sacked: -1 })).toContain('5 sacked');
+    expect(line(entry({ espnId: '4569987', position: 'RB' }), { ...ppr, steps: [{ stat: 'rushAttempt', every: 10, points: 1 }] })).toContain('17 carries');
   });
+
+  it('shows whatever the player recorded, whatever the position', () => {
+    const trick = only({ twoPointConversions: 0, safeties: 0, passing: { completions: 1, attempts: 1, yards: 40, touchdowns: 1, interceptions: 0 }, fumbles: { fumbles: 1, lost: 1, recovered: 0 } });
+    expect(line(x, ppr, trick)).toEqual(['40 pass yds', '1 pass TD', '1 fum lost']); // a receiver's trick play; fumbles alone score nothing in PPR
+  });
+
+  it('adds return yards and TDs only when they score and are not 0', () => {
+    const returner = (returns: NonNullable<PlayerStats['returns']>, v: ScoringValues = { ...ppr, kickReturnYards: 0.04 }) =>
+      line(x, v, only({ twoPointConversions: 0, safeties: 0, returns }));
+    expect(returner({ touchdowns: 0, kickYards: 0, puntYards: 0 })).toEqual([]);
+    expect(returner({ touchdowns: 1, kickYards: 98, puntYards: 12 })).toEqual(['98 ret yds', '1 ret TD']); // punt return yards score nothing here
+    expect(returner({ touchdowns: 1, kickYards: 98, puntYards: 12 }, { ...ppr, kickReturnYards: 0.04, puntReturnYards: 0.04 })).toEqual(['110 ret yds', '1 ret TD']);
+  });
+
+  it('always shows points allowed, since 0 is a shutout', () => {
+    const shutout = { ...stats, defenses: { 23: { ...stats.defenses['23']!, sacks: 0, interceptions: 0, fumbleRecoveries: 0, pointsAllowed: 0 } } };
+    expect(line(entry({ kind: 'defense', espnId: '23', position: 'D/ST' }), ppr, shutout)).toEqual(['0 pts allowed']);
+  });
+
   it('is empty without stats', () => {
-    expect(statLine(entry({}), undefined)).toEqual([]);
-    expect(statLine(entry({ espnId: '1' }), stats)).toEqual([]);
+    expect(statLine(entry({}), undefined, ppr)).toEqual([]);
+    expect(statLine(entry({ espnId: '1' }), stats, ppr)).toEqual([]);
   });
 });
 

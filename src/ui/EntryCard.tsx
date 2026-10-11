@@ -65,7 +65,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const stats = summary.data;
   const result = scoreEntry(entry, stats, profile.values);
   const total = result.total.toFixed(2);
-  const items = statLine(entry, stats);
+  const items = statLine(entry, stats, profile.values);
   const live = game?.state === 'in';
   const leagueInjuries = useLeagueInjuries(paused).data;
   const injury = entry.kind === 'player' ? injuryOf(entry.espnId, stats, leagueInjuries) : undefined;
