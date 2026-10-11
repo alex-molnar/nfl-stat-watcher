@@ -2,7 +2,7 @@ import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mahomes, profilesFixture, warren } from '../test/data';
 import { reloadAllStores } from '../storage/store';
-import { renderAt, seed, declineCamp } from '../test/render';
+import { renderAt, seed, declineCamp, inHungarian } from '../test/render';
 import { DEFAULT_POSITION_ORDER } from '../stats/positionOrder';
 import { positionOrderStore } from '../storage/positionOrder';
 import { readFileSync } from 'node:fs';
@@ -518,7 +518,15 @@ describe('settings page', () => {
       await userEvent.click(syncButton());
       expect(await screen.findByText('Linked 1 of 2 games with DAZN.')).toBeInTheDocument();
       expect(daznCalls(f)).toHaveLength(1);
-      expect(screen.getByText(/Last synced .*: 1 games linked\./)).toBeInTheDocument();
+      expect(screen.getByText(/Last synced .*: 1 game linked\./)).toBeInTheDocument();
+    });
+
+    it('speaks Hungarian when the site does', async () => {
+      routes();
+      renderAt('/settings');
+      await inHungarian();
+      expect(await screen.findByRole('checkbox', { name: 'DAZN meccsek megjelenítése' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Meccslinkek szinkronizálása a DAZN-nal' })).toBeInTheDocument();
     });
 
     it('shows a failed sync in the status line', async () => {

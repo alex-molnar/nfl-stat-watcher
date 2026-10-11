@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { LANGUAGES, LANGUAGE_NAMES, languageStore, type LanguageChoice } from '../i18n';
 import { DAZN_REGION, syncDaznLinks } from '../dazn/links';
 import { DaznGameLinks } from './DaznGameLinks';
@@ -28,15 +28,11 @@ type Category = (typeof CATEGORIES)[number];
 const LANGUAGE_CHOICES: LanguageChoice[] = ['auto', ...LANGUAGES];
 type Notice = '' | 'saved' | 'cleared' | 'clearFailed' | 'campStarted';
 
-const DAZN_MODE_LABELS: Record<DaznMode, string> = { default: 'Default', power: 'Power mode' };
-const DAZN_MODE_HELP: Record<DaznMode, string> = {
-  default: 'One DAZN window. Watch on DAZN moves it to the game and brings it forward.',
-  power: 'One window per live game: you are asked first, then every live game opens in the background and closes when it ends. Watch on DAZN brings that game\'s window forward. Needs pop-ups allowed for this site and a computer that can play several streams at once; DAZN may also limit how many streams play at once.',
-};
+type DaznNotice = { linked: number; games: number } | { reason: string } | null; // values, not text, so a language change words it in the new language
 
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t(($) => $.settings.title));
   const hint = useHint();
   const storedLanguage = useStore(languageStore);
@@ -53,7 +49,7 @@ export function SettingsPage() {
   const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState<Notice>(''); // a key, not the text, so a language change at Save words it in the new language
   const [syncing, setSyncing] = useState(false);
-  const [daznNotice, setDaznNotice] = useState('');
+  const [daznNotice, setDaznNotice] = useState<DaznNotice>(null);
   const [gamesOpen, setGamesOpen] = useState(false); // the list loads the week's games only once it is opened
   const confirmRef = useRef<HTMLDialogElement>(null);
   const language = draft?.language ?? storedLanguage;
@@ -88,18 +84,18 @@ export function SettingsPage() {
     daznModeStore.set(daznMode);
     setDraft(null);
     setNotice('saved');
-    setDaznNotice('');
+    setDaznNotice(null);
   }
 
   async function syncNow() {
     setSyncing(true);
     setNotice('');
-    setDaznNotice('');
+    setDaznNotice(null);
     try {
       const { stored: result, games } = await syncDaznLinks();
-      setDaznNotice(`Linked ${Object.keys(result.links).length} of ${games} games with DAZN.`);
+      setDaznNotice({ linked: Object.keys(result.links).length, games });
     } catch (cause) {
-      setDaznNotice(`Could not sync with DAZN: ${cause instanceof Error ? cause.message : 'unknown error'}.`);
+      setDaznNotice({ reason: cause instanceof Error ? cause.message : String(cause) });
     } finally {
       setSyncing(false);
     }
@@ -165,27 +161,27 @@ export function SettingsPage() {
                 <p id="auto-sync-help" className="muted">{t(($) => $.settings.starters.autoSyncHelp)}</p>
               </fieldset>
               <fieldset>
-                <legend>DAZN game links <span className="chip note">Experimental, untested</span></legend>
+                <legend>{t(($) => $.dazn.settings.legend)} <span className="chip note">{t(($) => $.dazn.settings.experimental)}</span></legend>
                 <label className="choice">
                   <input type="checkbox" checked={dazn} aria-describedby="dazn-help" onChange={(event) => change({ dazn: event.target.checked })} />
-                  Expose DAZN games
+                  {t(($) => $.dazn.settings.enable)}
                 </label>
-                <p id="dazn-help" className="muted">Looks up this week's games on DAZN's NFL Game Pass schedule (region {DAZN_REGION}), through this site's own server, and matches them to the NFL games. Off by default: nothing is requested from DAZN while it is off. When on, it syncs once every time the site loads. Cards of players in the red zone then get a "Watch on DAZN" button, which opens that game in one DAZN window and brings it to the front.</p>
-                {dazn && <p className="compat-warning" role="note"><strong>Warning:</strong> games are synced anyway, but opening a game on DAZN will rely on you being logged in to DAZN.</p>}
-                <button type="button" className="btn press" disabled={syncing || !dazn} onClick={syncNow}>Sync game links with DAZN</button>
-                <p className="muted">{daznLinks.syncedAt ? `Last synced ${new Date(daznLinks.syncedAt).toLocaleString()}: ${Object.keys(daznLinks.links).length} games linked.` : 'Not synced yet.'}</p>
+                <p id="dazn-help" className="muted">{t(($) => $.dazn.settings.help, { region: DAZN_REGION })}</p>
+                {dazn && <p className="compat-warning" role="note"><Trans t={t} i18nKey={($) => $.dazn.settings.warning} components={{ b: <strong /> }} /></p>}
+                <button type="button" className="btn press" disabled={syncing || !dazn} onClick={syncNow}>{t(($) => $.dazn.settings.sync)}</button>
+                <p className="muted">{daznLinks.syncedAt ? t(($) => $.dazn.settings.lastSynced, { when: new Date(daznLinks.syncedAt).toLocaleString(i18n.language), count: Object.keys(daznLinks.links).length }) : t(($) => $.dazn.settings.notSynced)}</p>
                 <details className="dazn-games-box" open={gamesOpen} onToggle={(event) => setGamesOpen(event.currentTarget.open)}>
-                  <summary>This week's games and their links</summary>
+                  <summary>{t(($) => $.dazn.settings.games)}</summary>
                   {gamesOpen && <DaznGameLinks />}
                 </details>
-                <div role="radiogroup" aria-label="DAZN window mode" className={`choice-list dazn-modes${dazn ? '' : ' off'}`} aria-disabled={!dazn || undefined}>
+                <div role="radiogroup" aria-label={t(($) => $.dazn.settings.modeLabel)} className={`choice-list dazn-modes${dazn ? '' : ' off'}`} aria-disabled={!dazn || undefined}>
                   {DAZN_MODES.map((m) => (
                     <div key={m} className="choice-row">
                       <label className="choice">
                         <input type="radio" name="dazn-mode" value={m} checked={daznMode === m} disabled={!dazn} aria-describedby={`dazn-mode-${m}`} onChange={() => change({ daznMode: m })} />
-                        {DAZN_MODE_LABELS[m]}
+                        {t(($) => $.dazn.settings.modes[m])}
                       </label>
-                      <span id={`dazn-mode-${m}`} className="muted">{DAZN_MODE_HELP[m]}</span>
+                      <span id={`dazn-mode-${m}`} className="muted">{t(($) => $.dazn.settings.modeHelp[m])}</span>
                     </div>
                   ))}
                 </div>
@@ -253,7 +249,7 @@ export function SettingsPage() {
           {notice === 'cleared' && t(($) => $.settings.notices.cleared)}
           {notice === 'clearFailed' && t(($) => $.settings.notices.clearFailed)}
           {notice === 'campStarted' && t(($) => $.settings.camp.started, { name: storedName })}
-          {daznNotice}
+          {daznNotice && ('reason' in daznNotice ? t(($) => $.dazn.settings.syncFailed, { reason: daznNotice.reason }) : t(($) => $.dazn.settings.synced, { linked: daznNotice.linked, count: daznNotice.games }))}
         </p>
       </main>
       <dialog ref={confirmRef} data-worried aria-labelledby="clear-title" aria-describedby="clear-warning" {...backdropClose}>

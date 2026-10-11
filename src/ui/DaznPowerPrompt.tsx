@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { closeGameWindow, openGameWindows, planPower, readOpened, writeOpened } from '../dazn/power';
 import { useScoreboard } from '../hooks/queries';
 import { daznEnabledStore, daznLinksStore, daznModeStore, daznPathFor } from '../storage/dazn';
@@ -7,6 +8,7 @@ import { usePaused } from './PauseButton';
 
 /** Power mode: asks before opening a window per live game, and closes the window of a game that ended. */
 function PowerWatcher() {
+  const { t } = useTranslation();
   const games = useScoreboard(usePaused()).data;
   const links = useStore(daznLinksStore);
   const [opened, setOpened] = useState(readOpened);
@@ -36,14 +38,14 @@ function PowerWatcher() {
   }
 
   return (
-    <section className="power-prompt" aria-label="Live DAZN games">
+    <section className="power-prompt" aria-label={t(($) => $.dazn.power.label)}>
       <p aria-live="polite">
-        {offer.length === 1 ? '1 live game has a DAZN link' : `${offer.length} live games have a DAZN link`} ({names}). Open {offer.length === 1 ? 'it' : 'them'} in the background?
-        {blocked > 0 && ` Your browser blocked ${blocked}. Allow pop-ups for this site in the address bar, then press Open games again.`}
+        {t(($) => $.dazn.power.offer, { count: offer.length, names })}
+        {blocked > 0 && <> {t(($) => $.dazn.power.blocked, { count: blocked })}</>}
       </p>
       <div className="power-actions">
-        <button type="button" className="btn btn-primary press" onClick={openAll}>Open games</button>
-        <button type="button" className="btn press" onClick={() => { setDismissed((ids) => [...ids, ...offer.map((game) => game.eventId)]); setBlocked(0); }}>Not now</button>
+        <button type="button" className="btn btn-primary press" onClick={openAll}>{t(($) => $.dazn.power.open)}</button>
+        <button type="button" className="btn press" onClick={() => { setDismissed((ids) => [...ids, ...offer.map((game) => game.eventId)]); setBlocked(0); }}>{t(($) => $.dazn.power.notNow)}</button>
       </div>
     </section>
   );

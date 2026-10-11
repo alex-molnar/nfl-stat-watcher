@@ -1,4 +1,5 @@
 import { getScoreboard, getTeams } from '../espn/client';
+import { i18n } from '../i18n';
 import type { EspnTeamRef } from '../espn/types';
 import { toGames, type GameInfo } from '../stats/scoreboard';
 import { daznLinksStore, type DaznLinks } from '../storage/dazn';
@@ -17,7 +18,7 @@ export function parseScheduleTiles(html: string): DaznTile[] {
   const rail = [...doc.querySelectorAll('[data-testid="standard-rail"]')].find(
     (candidate) => candidate.querySelector('[data-testid="standard-rail__h2-heading"]')?.textContent?.trim() === RAIL_HEADING,
   );
-  if (!rail) throw new Error(`the "${RAIL_HEADING}" row was not found on the DAZN schedule page`);
+  if (!rail) throw new Error(i18n.t(($) => $.dazn.errors.noRow, { row: RAIL_HEADING }));
   const prefix = `/${DAZN_REGION}/home/`;
   return [...rail.querySelectorAll<HTMLAnchorElement>('a[data-testid="standard-rail__tile__link"]')].flatMap((anchor) => {
     const href = anchor.getAttribute('href') ?? '';
@@ -51,7 +52,7 @@ export function parseDaznGameLink(text: string): string | null {
 /** Reads DAZN's schedule through our own origin, maps this week's ESPN games to it and saves the result. */
 export async function syncDaznLinks(): Promise<{ stored: DaznLinks; games: number }> {
   const response = await fetch(SCHEDULE_URL);
-  if (!response.ok) throw new Error(`DAZN answered ${response.status}`);
+  if (!response.ok) throw new Error(i18n.t(($) => $.dazn.errors.status, { status: response.status }));
   const tiles = parseScheduleTiles(await response.text());
   const [scoreboard, teams] = await Promise.all([getScoreboard(), getTeams()]);
   const games = toGames(scoreboard);
