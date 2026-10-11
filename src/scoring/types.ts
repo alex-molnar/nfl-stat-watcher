@@ -51,7 +51,9 @@ export interface Profile {
 }
 
 export interface ScoreLine { label: string; points: number }
-export interface ScoreResult { total: number; breakdown: ScoreLine[] }
+/** The scoring rule a breakdown line came from: a weight, a step rule's stat, or the points allowed tier or band. */
+export type ScoreKey = ValueKey | StepStat | 'pointsAllowed';
+export interface ScoreResult { total: number; breakdown: ScoreLine[]; byRule: Partial<Record<ScoreKey, number>> }
 
 export const POINTS_ALLOWED_TIERS = ['0', '1-6', '7-13', '14-20', '21-27', '28-34', '35+'] as const;
 

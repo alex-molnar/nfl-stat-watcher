@@ -18,7 +18,8 @@ import { watchOnDazn } from '../dazn/watch';
 import { daznEnabledStore, daznLinksStore, daznModeStore, daznPathFor } from '../storage/dazn';
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
-import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
+import { displayName, isOffense, isRedZone, kickoffText, resultText, signedPoints, statLine, textOn } from './format';
+import { StatTip } from './StatTip';
 import { issueText } from '../leagues/espn/statMap';
 
 interface Props {
@@ -38,7 +39,6 @@ const LONG = new Set(['td', 'fg', 'tdallowed', 'missfg', 'intthrown', 'fumblelos
 /** Eighteen sparks fanned out from the card centre, spread evenly with a few different distances. */
 const SPARKS: CSSProperties[] = Array.from({ length: 18 }, (_, i) => ({ '--a': `${i * 20}deg`, '--d': `${95 + (i % 3) * 38}px` }) as CSSProperties);
 
-const sign = (n: number) => `${n > 0 ? '+' : n < 0 ? '-' : ''}${Math.abs(n).toFixed(2)}`;
 
 export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, movable = true, onMove, onRemove }: Props) {
   const { t } = useTranslation();
@@ -154,10 +154,10 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       <div className="stats">
         {items.length > 0 ? (
           items.map((s) => (
-            <div className="stat" key={s.label}>
+            <StatTip key={s.label} rules={s.rules}>
               <Bump value={s.value} />
               <span>{s.label}</span>
-            </div>
+            </StatTip>
           ))
         ) : (
           <div className="stat"><span>{game?.state === 'pre' ? t(($) => $.shell.entry.noStatsPre) : t(($) => $.shell.entry.noStats)}</span></div>
@@ -168,7 +168,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
         <dl className="brk">
           {result.breakdown.length > 0 ? (
             result.breakdown.map((l) => (
-              <div key={l.label}><dt>{l.label}</dt><dd>{sign(l.points)}</dd></div>
+              <div key={l.label}><dt>{l.label}</dt><dd>{signedPoints(l.points)}</dd></div>
             ))
           ) : (
             <div><dt>{t(($) => $.shell.entry.noPoints)}</dt><dd>0.00</dd></div>

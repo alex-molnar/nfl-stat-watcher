@@ -99,6 +99,7 @@ export const shell = {
     tiedAway: 'Tied {{us}}-{{them}} at {{opponent}}',
   },
   entry: {
+    statEarned: '{{points}} pts this game',
     teamDefense: 'Team defense',
     versusHome: 'vs {{opponent}}',
     versusAway: 'at {{opponent}}',

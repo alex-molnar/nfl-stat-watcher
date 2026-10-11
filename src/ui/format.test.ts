@@ -54,6 +54,17 @@ describe('statLine', () => {
     expect(line(entry({ kind: 'defense', espnId: '23', position: 'D/ST' }), ppr, shutout)).toEqual(['0 pts allowed']);
   });
 
+  it('explains each stat with the league rules behind it and what it earned this game', () => {
+    const rules = (e: FollowedEntry, v: ScoringValues) => Object.fromEntries(statLine(e, stats, v).map((s) => [s.label, s.rules]));
+    const te = rules(entry({ espnId: '4430802', position: 'TE' }), { ...ppr, rec100: 3, steps: [{ stat: 'recYards', every: 10, points: 0.5 }] });
+    expect(te['rec yds']).toBe('Per receiving yard: 0.1\n100-199 yard receiving game: 3\nEvery 10 receiving yards: 0.5\n+3.70 pts this game'); // 27 yards: no bonus yet
+    expect(rules(entry({}), ppr).INT).toBe('Interception thrown: -2\n-4.00 pts this game');
+    expect(rules(entry({ espnId: '17372', position: 'K' }), ppr).FG).toContain('Missed field goal (any distance): -1\n+2.00 pts this game');
+    const dst = rules(entry({ kind: 'defense', espnId: '23', position: 'D/ST' }), { ...ppr, yardsAllowed350: -1 });
+    expect(dst['yds allowed']).toBe('372 yards allowed: -1.00\n-1.00 pts this game');
+    expect(dst['pts allowed']).toBe('27 points allowed: 0.00\n0.00 pts this game');
+  });
+
   it('is empty without stats', () => {
     expect(statLine(entry({}), undefined, ppr)).toEqual([]);
     expect(statLine(entry({ espnId: '1' }), stats, ppr)).toEqual([]);

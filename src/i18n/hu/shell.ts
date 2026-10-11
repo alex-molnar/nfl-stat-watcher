@@ -100,6 +100,7 @@ export const shell: Messages['shell'] = {
     tiedAway: 'Döntetlen {{us}}-{{them}}, idegenben, {{opponent}} ellen',
   },
   entry: {
+    statEarned: '{{points}} pont ezen a meccsen',
     teamDefense: 'Csapatvédelem',
     versusHome: '{{opponent}} ellen, otthon',
     versusAway: '{{opponent}} ellen, idegenben',
