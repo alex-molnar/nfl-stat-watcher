@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { LANGUAGES, LANGUAGE_NAMES, languageStore, type LanguageChoice } from '../i18n';
+import { DAZN_REGION, syncDaznLinks } from '../dazn/links';
+import { DaznGameLinks } from './DaznGameLinks';
+import { DAZN_MODES, daznEnabledStore, daznLinksStore, daznModeStore, type DaznMode } from '../storage/dazn';
 import { NAME_DISPLAY_MODES, nameDisplayStore, type NameDisplayMode } from '../storage/nameDisplay';
 import { CAMP_KEY } from '../storage/camp';
 import { DEFAULT_MASCOT_NAME, MAX_MASCOT_NAME, mascotEnabledStore, mascotNameStore } from '../storage/mascot';
@@ -19,15 +22,17 @@ import { bookmarkHelpStore } from '../storage/bookmarkHelp';
 import { autoSyncStore } from '../storage/autoSync';
 
 const MODE_EXAMPLES: Record<NameDisplayMode, string> = { full: 'David Montgomery', initial: 'D. Montgomery', formal: 'Montgomery, David' };
-type SettingsDraft = { language: LanguageChoice; mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean; autoSync: boolean };
+type SettingsDraft = { language: LanguageChoice; mode: NameDisplayMode; mascot: boolean; name: string; positions: PositionGroup[]; bookmarkHelp: boolean; autoSync: boolean; dazn: boolean; daznMode: DaznMode };
 const CATEGORIES = ['general', 'positionOrder', 'siteSettings'] as const;
 type Category = (typeof CATEGORIES)[number];
 const LANGUAGE_CHOICES: LanguageChoice[] = ['auto', ...LANGUAGES];
 type Notice = '' | 'saved' | 'cleared' | 'clearFailed' | 'campStarted';
 
+type DaznNotice = { linked: number; games: number } | { reason: string } | null; // values, not text, so a language change words it in the new language
+
 /** App-wide preferences. Like a league, changes wait in a working copy until Save. */
 export function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   usePageTitle(t(($) => $.settings.title));
   const hint = useHint();
   const storedLanguage = useStore(languageStore);
@@ -37,9 +42,15 @@ export function SettingsPage() {
   const storedPositions = useStore(positionOrderStore);
   const storedBookmarkHelp = useStore(bookmarkHelpStore);
   const storedAutoSync = useStore(autoSyncStore);
+  const storedDazn = useStore(daznEnabledStore);
+  const storedDaznMode = useStore(daznModeStore);
+  const daznLinks = useStore(daznLinksStore);
   const [category, setCategory] = useState<Category>('general');
   const [draft, setDraft] = useState<SettingsDraft | null>(null); // null: no unsaved change
   const [notice, setNotice] = useState<Notice>(''); // a key, not the text, so a language change at Save words it in the new language
+  const [syncing, setSyncing] = useState(false);
+  const [daznNotice, setDaznNotice] = useState<DaznNotice>(null);
+  const [gamesOpen, setGamesOpen] = useState(false); // the list loads the week's games only once it is opened
   const confirmRef = useRef<HTMLDialogElement>(null);
   const language = draft?.language ?? storedLanguage;
   const mode = draft?.mode ?? stored;
@@ -48,8 +59,10 @@ export function SettingsPage() {
   const positions = draft?.positions ?? storedPositions;
   const bookmarkHelp = draft?.bookmarkHelp ?? storedBookmarkHelp;
   const autoSync = draft?.autoSync ?? storedAutoSync;
-  const change = (patch: Partial<SettingsDraft>) => setDraft({ language, mode, mascot, name, positions, bookmarkHelp, autoSync, ...patch });
-  const dirty = language !== storedLanguage || mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp || autoSync !== storedAutoSync;
+  const dazn = draft?.dazn ?? storedDazn;
+  const daznMode = draft?.daznMode ?? storedDaznMode;
+  const change = (patch: Partial<SettingsDraft>) => setDraft({ language, mode, mascot, name, positions, bookmarkHelp, autoSync, dazn, daznMode, ...patch });
+  const dirty = language !== storedLanguage || mode !== stored || mascot !== storedMascot || name.trim() !== storedName || positions.some((p, i) => p !== storedPositions[i]) || bookmarkHelp !== storedBookmarkHelp || autoSync !== storedAutoSync || dazn !== storedDazn || daznMode !== storedDaznMode;
 
   // The browser's own prompt for closing or reloading the tab with unsaved changes.
   useEffect(() => {
@@ -67,8 +80,25 @@ export function SettingsPage() {
     positionOrderStore.set([...positions]);
     bookmarkHelpStore.set(bookmarkHelp);
     autoSyncStore.set(autoSync);
+    daznEnabledStore.set(dazn);
+    daznModeStore.set(daznMode);
     setDraft(null);
     setNotice('saved');
+    setDaznNotice(null);
+  }
+
+  async function syncNow() {
+    setSyncing(true);
+    setNotice('');
+    setDaznNotice(null);
+    try {
+      const { stored: result, games } = await syncDaznLinks();
+      setDaznNotice({ linked: Object.keys(result.links).length, games });
+    } catch (cause) {
+      setDaznNotice({ reason: cause instanceof Error ? cause.message : String(cause) });
+    } finally {
+      setSyncing(false);
+    }
   }
 
   function clearData() {
@@ -130,6 +160,32 @@ export function SettingsPage() {
                 </label>
                 <p id="auto-sync-help" className="muted">{t(($) => $.settings.starters.autoSyncHelp)}</p>
               </fieldset>
+              <fieldset>
+                <legend>{t(($) => $.dazn.settings.legend)} <span className="chip note">{t(($) => $.dazn.settings.experimental)}</span></legend>
+                <label className="choice">
+                  <input type="checkbox" checked={dazn} aria-describedby="dazn-help" onChange={(event) => change({ dazn: event.target.checked })} />
+                  {t(($) => $.dazn.settings.enable)}
+                </label>
+                <p id="dazn-help" className="muted">{t(($) => $.dazn.settings.help, { region: DAZN_REGION })}</p>
+                {dazn && <p className="compat-warning" role="note"><Trans t={t} i18nKey={($) => $.dazn.settings.warning} components={{ b: <strong /> }} /></p>}
+                <button type="button" className="btn press" disabled={syncing || !dazn} onClick={syncNow}>{t(($) => $.dazn.settings.sync)}</button>
+                <p className="muted">{daznLinks.syncedAt ? t(($) => $.dazn.settings.lastSynced, { when: new Date(daznLinks.syncedAt).toLocaleString(i18n.language), count: Object.keys(daznLinks.links).length }) : t(($) => $.dazn.settings.notSynced)}</p>
+                <details className="dazn-games-box" open={gamesOpen} onToggle={(event) => setGamesOpen(event.currentTarget.open)}>
+                  <summary>{t(($) => $.dazn.settings.games)}</summary>
+                  {gamesOpen && <DaznGameLinks />}
+                </details>
+                <div role="radiogroup" aria-label={t(($) => $.dazn.settings.modeLabel)} className={`choice-list dazn-modes${dazn ? '' : ' off'}`} aria-disabled={!dazn || undefined}>
+                  {DAZN_MODES.map((m) => (
+                    <div key={m} className="choice-row">
+                      <label className="choice">
+                        <input type="radio" name="dazn-mode" value={m} checked={daznMode === m} disabled={!dazn} aria-describedby={`dazn-mode-${m}`} onChange={() => change({ daznMode: m })} />
+                        {t(($) => $.dazn.settings.modes[m])}
+                      </label>
+                      <span id={`dazn-mode-${m}`} className="muted">{t(($) => $.dazn.settings.modeHelp[m])}</span>
+                    </div>
+                  ))}
+                </div>
+              </fieldset>
             </>}
             {category === 'positionOrder' && <fieldset>
               <legend>{t(($) => $.settings.positions.legend)}</legend>
@@ -188,11 +244,12 @@ export function SettingsPage() {
             {dirty && <SaveActions label={t(($) => $.settings.saveBarEndLabel)} onSave={save} onCancel={() => setDraft(null)} />}
           </section>
         </div>
-        <p className={notice ? 'page-note' : 'sr'} role="status" aria-live="polite">
+        <p className={notice || daznNotice ? 'page-note' : 'sr'} role="status" aria-live="polite">
           {notice === 'saved' && t(($) => $.settings.notices.saved)}
           {notice === 'cleared' && t(($) => $.settings.notices.cleared)}
           {notice === 'clearFailed' && t(($) => $.settings.notices.clearFailed)}
           {notice === 'campStarted' && t(($) => $.settings.camp.started, { name: storedName })}
+          {daznNotice && ('reason' in daznNotice ? t(($) => $.dazn.settings.syncFailed, { reason: daznNotice.reason }) : t(($) => $.dazn.settings.synced, { linked: daznNotice.linked, count: daznNotice.games }))}
         </p>
       </main>
       <dialog ref={confirmRef} data-worried aria-labelledby="clear-title" aria-describedby="clear-warning" {...backdropClose}>

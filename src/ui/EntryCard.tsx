@@ -14,6 +14,8 @@ import { Bump } from './Bump';
 import { MiniField } from './MiniField';
 import { injuryLabel, injuryOf, injuryTone, isOut } from '../stats/injury';
 import { onRightSide } from '../stats/liveOrder';
+import { watchOnDazn } from '../dazn/watch';
+import { daznEnabledStore, daznLinksStore, daznModeStore, daznPathFor } from '../storage/dazn';
 import { nameDisplayStore } from '../storage/nameDisplay';
 import { useStore } from '../storage/useStore';
 import { displayName, isOffense, isRedZone, kickoffText, resultText, statLine, textOn } from './format';
@@ -44,6 +46,10 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
   const summary = useGameSummary(game, paused);
   const athlete = useAthlete(entry.kind === 'player' ? entry.espnId : undefined);
   const [open, setOpen] = useState(false);
+  const daznOn = useStore(daznEnabledStore);
+  const daznPath = daznPathFor(useStore(daznLinksStore), game?.eventId ?? '');
+  const power = useStore(daznModeStore) === 'power';
+  const [watchNote, setWatchNote] = useState('');
 
   // Keep the stored team current, for example after a trade.
   useEffect(() => {
@@ -178,11 +184,17 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
       ) : null}
 
       {note && <p className="note">{note}</p>}
+      {watchNote && <p className="note" role="status">{watchNote}</p>}
 
       <div className="ft">
         {clips.length > 0 && (
           <button type="button" className={`hl-btn press${unseen ? ' fresh' : ''}`} onClick={() => setWatching(true)} aria-label={unseen ? t(($) => $.shell.entry.highlightsNewLabel, { name, n: clips.length }) : t(($) => $.shell.entry.highlightsLabel, { name, n: clips.length })}>
             <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> {t(($) => $.shell.entry.highlightsWord)}</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
+          </button>
+        )}
+        {redZone && daznOn && daznPath && (
+          <button type="button" className="hl-btn press" aria-label={t(($) => $.dazn.watch.label, { name })} onClick={() => setWatchNote(watchOnDazn(daznPath, power ? game?.eventId : undefined) === 'blocked' ? t(($) => $.dazn.watch.blocked) : '')}>
+            {t(($) => $.dazn.watch.button)}
           </button>
         )}
         {movable && !opposing && (

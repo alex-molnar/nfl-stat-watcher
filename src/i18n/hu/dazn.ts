@@ -1,0 +1,55 @@
+import type { Messages } from '../messages';
+
+export const dazn: Messages['dazn'] = {
+  settings: {
+    legend: 'DAZN meccslinkek',
+    experimental: 'Kísérleti, nem tesztelt',
+    enable: 'DAZN meccsek megjelenítése',
+    help: 'Megkeresi a heti meccseket a DAZN NFL Game Pass műsorában ({{region}} régió), az oldal saját szerverén keresztül, és párosítja őket az NFL-meccsekkel. Alapból ki van kapcsolva: amíg ki van kapcsolva, semmit nem kér le a DAZN-tól. Bekapcsolva minden oldalbetöltéskor egyszer szinkronizál. A piros zónában lévő játékosok kártyáin ekkor megjelenik a „Nézd a DAZN-on” gomb, amely egyetlen DAZN-ablakban nyitja meg a meccset, és előtérbe hozza.',
+    warning: '<b>Figyelem:</b> a meccsek így is szinkronizálódnak, de egy meccs megnyitásához be kell lenned jelentkezve a DAZN-ra.',
+    sync: 'Meccslinkek szinkronizálása a DAZN-nal',
+    lastSynced_one: 'Utoljára szinkronizálva: {{when}}, {{count}} meccs összekapcsolva.',
+    lastSynced_other: 'Utoljára szinkronizálva: {{when}}, {{count}} meccs összekapcsolva.',
+    notSynced: 'Még nincs szinkronizálva.',
+    games: 'A heti meccsek és a linkjeik',
+    modeLabel: 'DAZN-ablak módja',
+    modes: { default: 'Alap', power: 'Power mód' },
+    modeHelp: {
+      default: 'Egy DAZN-ablak. A Nézd a DAZN-on gomb átváltja a meccsre, és előtérbe hozza.',
+      power: 'Minden élő meccsnek saját ablak: előbb megkérdezünk, aztán minden élő meccs a háttérben nyílik meg, és bezárul, amikor véget ér. A Nézd a DAZN-on gomb az adott meccs ablakát hozza előtérbe. Ehhez engedélyezni kell a felugró ablakokat ezen az oldalon, és olyan gép kell, amely egyszerre több streamet is elbír; a DAZN is korlátozhatja, hány stream megy egyszerre.',
+    },
+    synced_one: '{{count}} meccsből {{linked}} összekapcsolva a DAZN-nal.',
+    synced_other: '{{count}} meccsből {{linked}} összekapcsolva a DAZN-nal.',
+    syncFailed: 'Nem sikerült szinkronizálni a DAZN-nal: {{reason}}.',
+  },
+  errors: {
+    status: 'a DAZN {{status}} kóddal válaszolt',
+    noRow: 'a „{{row}}” sor nem található a DAZN műsoroldalán',
+  },
+  games: {
+    states: { pre: 'Hamarosan', in: 'Élő', post: 'Véget ért' },
+    yourLink: 'Saját linked',
+    foundLink: 'A szinkronizálás találta',
+    noLink: 'Még nincs link',
+    linkFor: 'DAZN-link ehhez: {{title}}',
+    placeholder: 'Illessz be egy DAZN meccslinket',
+    use: 'Ezt a linket használd',
+    remove: 'Saját link törlése',
+    invalid: 'Ez nem DAZN meccslink. Illeszd be a meccs oldalának címét, például https://www.dazn.com/en-NL/home/…/…',
+    loadFailed: 'Nem sikerült betölteni a heti meccseket.',
+    loading: 'Meccsek betöltése…',
+  },
+  power: {
+    label: 'Élő DAZN-meccsek',
+    offer_one: '{{count}} élő meccsnek van DAZN-linkje ({{names}}). Megnyitod a háttérben?',
+    offer_other: '{{count}} élő meccsnek van DAZN-linkje ({{names}}). Megnyitod őket a háttérben?',
+    blocked: 'A böngésző {{count}} ablakot letiltott. Engedélyezd a felugró ablakokat a címsorban, aztán nyomd meg újra a Meccsek megnyitása gombot.',
+    open: 'Meccsek megnyitása',
+    notNow: 'Most nem',
+  },
+  watch: {
+    button: 'Nézd a DAZN-on',
+    label: '{{name}} nézése a DAZN-on',
+    blocked: 'A böngésző letiltotta a DAZN-ablakot. Engedélyezd a felugró ablakokat ezen az oldalon.',
+  },
+};

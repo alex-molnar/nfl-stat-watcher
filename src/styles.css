@@ -2,12 +2,14 @@
   --bg: #E8F0E4; --panel: #FFFFFF; --ink: #132016; --muted: #4F6555; --rule: #D2DFCD;
   --turf: #3B8A46; --turf2: #357F40; --pylon: #B93D0A; --accent: #14532D; --accent-ink: #FFFFFF;
   --danger: #B42318; --bump: rgba(255, 106, 19, .28); --focus: #14532D; --field-border: #4F6555;
+  --note: #1D4ED8; --note-ink: #FFFFFF;
   color-scheme: light;
 }
 [data-theme="dark"] {
   --bg: #0B1810; --panel: #122319; --ink: #E5EFE6; --muted: #9CB3A1; --rule: #21382A;
   --turf: #1F5A2A; --turf2: #1B5126; --pylon: #FF7A2E; --accent: #86EFAC; --accent-ink: #0B1810;
   --danger: #F97066; --bump: rgba(255, 106, 19, .32); --focus: #86EFAC; --field-border: #9CB3A1;
+  --note: #93C5FD; --note-ink: #0B1426;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -589,3 +591,25 @@ dialog.transfer-dialog { width: min(720px, calc(100vw - 32px)); }
 .site-foot-links a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .site-foot-coffee { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; text-decoration: none; }
 .site-foot-coffee:hover { filter: brightness(1.08); }
+/* A blue (never a warning colour) tag for features that are experimental. */
+.chip.note { margin-left: 8px; background: var(--note); color: var(--note-ink); font-family: 'Hanken Grotesk', sans-serif; }
+
+/* Settings, DAZN: this week's games with their link, ended games greyed and locked. */
+.dazn-games-box { margin-top: 12px; }
+.dazn-games-box summary { cursor: pointer; font-weight: 700; }
+.dazn-games { list-style: none; margin: 8px 0 0; padding: 0; }
+.dazn-game { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.dazn-game p { margin: 0; overflow-wrap: anywhere; }
+.dazn-game-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dazn-game-edit { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.dazn-game-edit .field-label { flex: 1 1 260px; }
+.dazn-game.ended { opacity: .55; }
+
+/* Power mode: asks before opening a window per live game. */
+.power-prompt { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; width: min(640px, calc(100vw - 32px)); display: grid; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--accent); background: var(--panel); color: var(--ink); box-shadow: 0 8px 28px rgba(0, 0, 0, .35); }
+.power-prompt p { margin: 0; }
+.power-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Settings, DAZN: the window mode is greyed out until "Expose DAZN games" is on. */
+.dazn-modes { margin-top: 12px; }
+.dazn-modes.off { opacity: .55; }
