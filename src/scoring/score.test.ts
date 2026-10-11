@@ -103,8 +103,8 @@ describe('scoreEntry', () => {
     expect(scoreEntry({ ...base, kind: 'defense', espnId: '999', teamId: '23', position: 'D/ST' }, game, ppr).total).toBeCloseTo(6);
   });
   it('returns zero without game stats or without a box score line', () => {
-    expect(scoreEntry(base, undefined, ppr)).toEqual({ total: 0, breakdown: [] });
-    expect(scoreEntry({ ...base, espnId: '1' }, game, ppr)).toEqual({ total: 0, breakdown: [] });
+    expect(scoreEntry(base, undefined, ppr)).toEqual({ total: 0, breakdown: [], byRule: {} });
+    expect(scoreEntry({ ...base, espnId: '1' }, game, ppr)).toEqual({ total: 0, breakdown: [], byRule: {} });
   });
 });
 
