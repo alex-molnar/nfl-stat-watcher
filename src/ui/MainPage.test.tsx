@@ -510,10 +510,11 @@ describe('Watch on DAZN', () => {
     await waitFor(() => expect(screen.getByText('SF runner').closest('.card')).toHaveClass('is-rz'));
   };
 
-  it('shows only on a red zone card whose game has a link, with the setting on', async () => {
+  it('shows on every card whose game has a link, in the red zone or not, with the setting on', async () => {
     await setup(true, { '401872975': '/home/a/b' });
     expect(watch('SF runner')).toBeInTheDocument();
-    expect(watch('DEN receiver')).not.toBeInTheDocument(); // not in the red zone
+    expect(screen.getByText('DEN receiver').closest('.card')).not.toHaveClass('is-rz'); // same game, without the ball
+    expect(watch('DEN receiver')).toBeInTheDocument();
   });
 
   it('is hidden with the setting off, or without a link for the game', async () => {

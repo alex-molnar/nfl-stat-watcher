@@ -192,7 +192,7 @@ export function EntryCard({ entry, game, profiles, hasSchedule, paused = false, 
             <span aria-hidden="true">▶</span><span className="hl-word" aria-hidden="true"> {t(($) => $.shell.entry.highlightsWord)}</span> {clips.length}{unseen > 0 && <i className="hl-dot" aria-hidden="true" />}
           </button>
         )}
-        {redZone && daznOn && daznPath && (
+        {daznOn && daznPath && (
           <button type="button" className="hl-btn press" aria-label={t(($) => $.dazn.watch.label, { name })} onClick={() => setWatchNote(watchOnDazn(daznPath, power ? game?.eventId : undefined) === 'blocked' ? t(($) => $.dazn.watch.blocked) : '')}>
             {t(($) => $.dazn.watch.button)}
           </button>
