@@ -24,6 +24,10 @@ export function statLine(entry: FollowedEntry, game: GameStats | undefined): Sta
   if (!s) return [];
   const rec = s.receiving ?? { receptions: 0, targets: 0, yards: 0, touchdowns: 0 };
   const rush = s.rushing ?? { attempts: 0, yards: 0, touchdowns: 0 };
+  // Most skill players never return a kick, so returns show only once they produced something.
+  const ret = s.returns ?? { touchdowns: 0 };
+  const retYards = (ret.kickYards ?? 0) + (ret.puntYards ?? 0);
+  const returns = items(([[retYards, 'retYds'], [ret.touchdowns, 'retTd']] as [number, StatKey][]).filter(([v]) => v !== 0));
   switch (entry.position) {
     case 'QB': {
       const p = s.passing ?? { completions: 0, attempts: 0, yards: 0, touchdowns: 0, interceptions: 0 };
@@ -31,10 +35,10 @@ export function statLine(entry: FollowedEntry, game: GameStats | undefined): Sta
     }
     case 'RB':
     case 'FB':
-      return items([[rush.attempts, 'carries'], [rush.yards, 'rushYds'], [rec.receptions, 'catches'], [rec.yards, 'recYds'], [rush.touchdowns + rec.touchdowns, 'td']]);
+      return items([[rush.attempts, 'carries'], [rush.yards, 'rushYds'], [rec.receptions, 'catches'], [rec.yards, 'recYds'], [rush.touchdowns + rec.touchdowns, 'td']]).concat(returns);
     case 'WR':
     case 'TE':
-      return items([[`${rec.receptions}/${rec.targets}`, 'catches'], [rec.yards, 'recYds'], [rec.touchdowns, 'td']]);
+      return items([[`${rec.receptions}/${rec.targets}`, 'catches'], [rec.yards, 'recYds'], [rec.touchdowns, 'td']]).concat(returns);
     case 'K':
     case 'PK': {
       const k = s.kicking ?? { fgMade: 0, fgAttempts: 0, longest: 0, xpMade: 0, xpAttempts: 0, madeDistances: [] };
