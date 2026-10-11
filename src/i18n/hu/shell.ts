@@ -68,6 +68,8 @@ export const shell: Messages['shell'] = {
     carries: 'futás',
     catches: 'elkapás',
     recYds: 'elkapott yard',
+    retYds: 'visszahordott yard',
+    retTd: 'visszahordásos TD',
     td: 'TD',
     fg: 'FG',
     long: 'leghosszabb',

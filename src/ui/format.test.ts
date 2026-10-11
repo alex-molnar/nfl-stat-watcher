@@ -20,6 +20,15 @@ describe('statLine', () => {
     expect(line(entry({ espnId: '4361652', position: 'LB' }))).toEqual(['9 tackles', '1 sacks', '1 TFL', '0 PD', '0 INT']);
     expect(line(entry({ kind: 'defense', espnId: '23', position: 'D/ST' }))).toEqual(['2 sacks', '1 INT', '1 fum rec', '27 pts allowed']);
   });
+  it('adds return yards and TDs for skill players only when they have any', () => {
+    const returner = (returns: NonNullable<(typeof stats)['players'][string]['returns']>) =>
+      statLine(entry({ espnId: 'r', position: 'WR' }), { ...stats, players: { r: { twoPointConversions: 0, safeties: 0, returns } } }).map((s) => `${s.value} ${s.label}`);
+    expect(returner({ touchdowns: 0, kickYards: 0, puntYards: 0 })).toEqual(['0/0 catches', '0 rec yds', '0 TD']);
+    expect(returner({ touchdowns: 0, kickYards: 48 })).toEqual(['0/0 catches', '0 rec yds', '0 TD', '48 ret yds']);
+    expect(returner({ touchdowns: 1, kickYards: 98, puntYards: 12 })).toEqual(['0/0 catches', '0 rec yds', '0 TD', '110 ret yds', '1 ret TD']);
+    expect(statLine(entry({ espnId: 'r', position: 'RB' }), { ...stats, players: { r: { twoPointConversions: 0, safeties: 0, returns: { touchdowns: 1, puntYards: 60 } } } })
+      .map((s) => s.label)).toEqual(['carries', 'rush yds', 'catches', 'rec yds', 'TD', 'ret yds', 'ret TD']);
+  });
   it('is empty without stats', () => {
     expect(statLine(entry({}), undefined)).toEqual([]);
     expect(statLine(entry({ espnId: '1' }), stats)).toEqual([]);

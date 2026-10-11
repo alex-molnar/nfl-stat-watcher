@@ -67,6 +67,8 @@ export const shell = {
     carries: 'carries',
     catches: 'catches',
     recYds: 'rec yds',
+    retYds: 'ret yds',
+    retTd: 'ret TD',
     td: 'TD',
     fg: 'FG',
     long: 'long',
